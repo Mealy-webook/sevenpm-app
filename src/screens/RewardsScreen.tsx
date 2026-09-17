@@ -1,26 +1,27 @@
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 
+import ArrowLeft from "../icons/ic-arrow-left-20.svg";
 import BeatsBurn from "../icons/ic-beats-burn.svg";
 import BeatsEarn from "../icons/ic-beats-earn.svg";
-import Crown from "../icons/ic-crown-24.svg";
-import Info from "../icons/ic-info-13.svg";
+import ChevronDown from "../icons/ic-chevron-down-16.svg";
+import Info from "../icons/ic-info-20.svg";
 import LockSmall from "../icons/ic-lock-locked-16.svg";
 import TierCheck from "../icons/ic-tier-check.svg";
 import TierLock from "../icons/ic-tier-lock.svg";
 import { Button } from "../components/Button";
 import { Chip } from "../components/Chip";
 import { Confirm } from "../components/Confirm";
-import { ListRow } from "../components/ListRow";
-import { NavBar, Page } from "../components/Screen";
+import { Dock } from "../components/Dock";
+import { Page } from "../components/Screen";
 import { Sheet } from "../components/Sheet";
+import { Tap } from "../components/Tap";
 import { icon } from "../icons";
 import { Text } from "../theme/Text";
-import { colors, gutter, space } from "../theme/tokens";
+import { colors, displaySize, space, type } from "../theme/tokens";
 import {
-  accountUser,
   loyaltyActivity,
   loyaltyBalance,
   loyaltyCopy,
@@ -32,13 +33,14 @@ import {
 } from "../data/account";
 
 /**
- * SevenPM Rewards, from Figma 2250:10073 by way of the web build's loyalty
- * panel — and the screen the design system was proved against, because
- * between them these blocks use the display face, the brand accent, chips,
- * list rows with icon tiles, a progress track and both button states, so
- * anything wrong with the tokens shows up here first.
+ * SevenPM Rewards, from Figma 286:51956.
  *
- * Two rules carried over from the web build, both load-bearing:
+ * The balance is the screen's headline — the figure in white and the unit in
+ * brand yellow, both at display size — and everything under it answers a
+ * question about that figure: how far to the next membership, when some of it
+ * expires, what it buys, and where it came from.
+ *
+ * Two rules carried from the web build, both load-bearing:
  *
  * - Whether a reward can be taken is a question of Beats, not rank. Rank only
  *   files it under a chip.
@@ -47,12 +49,15 @@ import {
  */
 export function RewardsScreen() {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const navigation = useNavigation();
+
   const [balance, setBalance] = useState(loyaltyBalance);
   const [redeemed, setRedeemed] = useState<string[]>([]);
   const [filter, setFilter] = useState("all");
   const [confirming, setConfirming] = useState<LoyaltyReward | null>(null);
   const [howTo, setHowTo] = useState(false);
+  const [openEntry, setOpenEntry] = useState<string | null>(null);
 
   const tier =
     [...loyaltyTiers].reverse().find((t) => loyaltyLifetime >= t.threshold) ??
@@ -71,66 +76,56 @@ export function RewardsScreen() {
     setRedeemed((current) => [...current, reward.id]);
   };
 
+  const display = displaySize(type.displayStep, width);
+
   return (
     <Page>
-      {/* Rewards is reached from the account list and from the Beats figure in
-          the Discover header, so it is always a push and always has a back. */}
-      <NavBar floating onBack={navigation.goBack} />
+      {/* Back on the left, the explainer on the right. */}
+      <View style={[styles.bar, { paddingTop: insets.top + space.s }]}>
+        <Tap
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          onPress={navigation.goBack}
+          style={styles.barButton}
+        >
+          <ArrowLeft width={20} height={20} />
+        </Tap>
+        <View style={styles.barSpacer} />
+        <Tap
+          accessibilityRole="button"
+          accessibilityLabel={loyaltyHowTo.title}
+          onPress={() => setHowTo(true)}
+          style={styles.barButton}
+        >
+          <Info width={20} height={20} />
+        </Tap>
+      </View>
 
-      <ScrollView
-        style={styles.page}
-        contentContainerStyle={{ paddingBottom: space.section }}
-      >
-      {/* Banner — the raised band the web build puts behind the greeting. */}
-      <View style={[styles.banner, { paddingTop: insets.top + 56 }]}>
-        <Text variant="displayM" uppercase color={colors.white}>
-          {accountUser.name}
-        </Text>
-
-        <View style={styles.memberRow}>
-          <View style={styles.memberChip}>
-            <Crown width={24} height={24} />
-            <Text variant="bodyBold">{loyaltyCopy.memberLabel(tier.name)}</Text>
-          </View>
-          <Text variant="caption" color={colors.contentSecondary}>
-            {loyaltyCopy.memberSince}
-          </Text>
-        </View>
-
-        {/* Beats card */}
-        <View style={styles.beatsCard}>
-          <View style={styles.beatsHead}>
-            <View style={styles.beatsFigure}>
-              <Text variant="displayL" color={colors.white}>
-                {balance.toLocaleString("en-US")}
-              </Text>
-              <Text variant="displayL" uppercase color={colors.brand}>
-                {loyaltyCopy.unit}
-              </Text>
-            </View>
-            <Button
-              label={loyaltyCopy.howTo}
-              icon={Info}
-              onPress={() => setHowTo(true)}
-            />
+      <ScrollView contentContainerStyle={{ paddingBottom: space.section }}>
+        <View style={styles.head}>
+          <View style={styles.figure}>
+            <Text variant="displayStep" color={colors.white} style={display}>
+              {balance.toLocaleString("en-US")}
+            </Text>
+            <Text variant="displayStep" uppercase color={colors.brand} style={display}>
+              {loyaltyCopy.unit}
+            </Text>
           </View>
 
-          <Text variant="body" color={colors.contentSecondary}>
+          <Text variant="bodyS" color={colors.contentSecondary}>
             {next
               ? `${loyaltyCopy.toNextLead} ${loyaltyCopy.toNext(
                   next.threshold - loyaltyLifetime,
                 )} ${next.name} ${loyaltyCopy.toNextTail}`
               : loyaltyCopy.topTier}
           </Text>
-
-          {/* Beats expire, so the card says when and how many. */}
           <Text variant="caption" color={colors.contentSecondary}>
             {loyaltyCopy.expiry(loyaltyCopy.expiring, loyaltyCopy.expiresAt)}
           </Text>
 
-          {/* Membership track. Reached stops are brand yellow with a tick;
-              the rest are outlined with a lock. The rail between two reached
-              stops is white, so the journey so far reads as one line. */}
+          {/* Membership track. Reached stops are brand yellow with a tick; the
+              rest are outlined with a lock. The rail between two reached stops
+              is white, so the journey so far reads as one line. */}
           <View style={styles.track}>
             {loyaltyTiers.map((item, index) => {
               const reached = loyaltyLifetime >= item.threshold;
@@ -158,11 +153,9 @@ export function RewardsScreen() {
                       )}
                     </View>
                     <Text
-                      variant="captionBold"
+                      variant="caption"
                       color={
-                        item.id === tier.id
-                          ? colors.contentPrimary
-                          : colors.contentSecondary
+                        reached ? colors.contentPrimary : colors.contentSecondary
                       }
                     >
                       {item.name}
@@ -173,109 +166,131 @@ export function RewardsScreen() {
             })}
           </View>
         </View>
-      </View>
 
-      {/* Rewards */}
-      <View style={styles.section}>
-        <Text variant="sectionTitle" uppercase>
-          {loyaltyCopy.title}
-        </Text>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chips}
-        >
-          {[{ id: "all", name: loyaltyCopy.allMemberships }, ...loyaltyTiers].map(
-            (chip) => (
-              <Chip
-                key={chip.id}
-                label={chip.name}
-                selected={filter === chip.id}
-                onPress={() => setFilter(chip.id)}
-              />
-            ),
-          )}
-        </ScrollView>
-
-        {shown.length === 0 ? (
-          <Text variant="bodyBold" color={colors.contentSecondary}>
-            {loyaltyCopy.empty}
+        {/* Rewards */}
+        <View style={styles.section}>
+          <Text variant="titleBody" uppercase>
+            {loyaltyCopy.title}
           </Text>
-        ) : (
-          <View style={styles.rows}>
-            {shown.map((reward) => {
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chips}
+          >
+            {[{ id: "all", name: loyaltyCopy.allMemberships }, ...loyaltyTiers].map(
+              (chip) => (
+                <Chip
+                  key={chip.id}
+                  label={chip.name}
+                  selected={filter === chip.id}
+                  onPress={() => setFilter(chip.id)}
+                />
+              ),
+            )}
+          </ScrollView>
+
+          {shown.length === 0 ? (
+            <Text variant="bodyBold" color={colors.contentSecondary}>
+              {loyaltyCopy.empty}
+            </Text>
+          ) : (
+            shown.map((reward) => {
+              const Mark = icon(reward.icon);
               const taken = redeemed.includes(reward.id);
               const affordable = balance >= reward.cost;
               return (
-                <ListRow
-                  key={reward.id}
-                  icon={icon(reward.icon)}
-                  label={reward.name}
-                  sub={`${reward.cost.toLocaleString("en-US")} ${loyaltyCopy.unit}`}
-                  trailing={
-                    taken ? (
-                      <Text variant="bodySBold" color={colors.positive}>
-                        {loyaltyCopy.redeemed}
-                      </Text>
-                    ) : affordable ? (
-                      <Button
-                        label={loyaltyCopy.redeem}
-                        onPress={() => setConfirming(reward)}
-                      />
-                    ) : (
-                      <Button
-                        label={loyaltyCopy.locked}
-                        icon={LockSmall}
-                        disabled
-                      />
-                    )
-                  }
-                />
+                <View key={reward.id} style={styles.row}>
+                  {Mark && <Mark width={24} height={24} />}
+                  <View style={styles.rowBody}>
+                    <Text variant="body" numberOfLines={2}>
+                      {reward.name}
+                    </Text>
+                    <Text variant="bodyS" color={colors.contentSecondary}>
+                      {loyaltyCopy.beats(reward.cost)}
+                    </Text>
+                  </View>
+                  {taken ? (
+                    <Text variant="bodySBold" color={colors.positive}>
+                      {loyaltyCopy.redeemed}
+                    </Text>
+                  ) : affordable ? (
+                    /* White, because taking it is the action on this row. */
+                    <Button
+                      variant="primary"
+                      label={loyaltyCopy.redeem}
+                      onPress={() => setConfirming(reward)}
+                      style={styles.redeem}
+                    />
+                  ) : (
+                    <Button label={loyaltyCopy.locked} icon={LockSmall} disabled />
+                  )}
+                </View>
               );
-            })}
-          </View>
-        )}
-      </View>
-
-      {/* Ledger */}
-      <View style={styles.section}>
-        <Text variant="sectionTitle" uppercase>
-          {loyaltyCopy.activityTitle}
-        </Text>
-        <Text variant="bodyBold" color={colors.contentSecondary}>
-          {loyaltyCopy.today}
-        </Text>
-
-        <View>
-          {loyaltyActivity.map((entry) => (
-            <ListRow
-              key={entry.id}
-              icon={entry.kind === "earn" ? BeatsEarn : BeatsBurn}
-              label={entry.label}
-              sub={entry.time}
-              trailing={
-                <Text
-                  variant="bodyBold"
-                  color={
-                    entry.kind === "earn"
-                      ? colors.positive
-                      : colors.contentPrimary
-                  }
-                >
-                  {entry.kind === "earn"
-                    ? loyaltyCopy.earned(entry.beats)
-                    : loyaltyCopy.beats(entry.beats)}
-                </Text>
-              }
-            />
-          ))}
+            })
+          )}
         </View>
 
-        <Text variant="caption" color={colors.contentSecondary}>
-          {loyaltyCopy.note}
-        </Text>
-      </View>
+        {/* Ledger */}
+        <View style={styles.section}>
+          <Text variant="titleBody" uppercase>
+            {loyaltyCopy.activityTitle}
+          </Text>
+          <Text variant="bodyS" color={colors.contentSecondary}>
+            {loyaltyCopy.today}
+          </Text>
+
+          {loyaltyActivity.map((entry) => {
+            const open = openEntry === entry.id;
+            return (
+              <Tap
+                key={entry.id}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: open }}
+                onPress={() => setOpenEntry(open ? null : entry.id)}
+                scale={0.995}
+                style={styles.entry}
+              >
+                <View style={styles.row}>
+                  {entry.kind === "earn" ? (
+                    <BeatsEarn width={24} height={24} />
+                  ) : (
+                    <BeatsBurn width={24} height={24} />
+                  )}
+                  <View style={styles.rowBody}>
+                    <Text variant="body">{entry.label}</Text>
+                    <Text variant="bodyS" color={colors.contentSecondary}>
+                      {entry.time}
+                    </Text>
+                  </View>
+                  <Text
+                    variant="bodyBold"
+                    color={
+                      entry.kind === "earn" ? colors.positive : colors.contentPrimary
+                    }
+                  >
+                    {entry.kind === "earn"
+                      ? loyaltyCopy.earned(entry.beats)
+                      : loyaltyCopy.beats(entry.beats)}
+                  </Text>
+                  <View style={open ? styles.flip : undefined}>
+                    <ChevronDown width={16} height={16} />
+                  </View>
+                </View>
+                {open && (
+                  <Text variant="bodyS" color={colors.contentSecondary}>
+                    {entry.detail}
+                  </Text>
+                )}
+              </Tap>
+            );
+          })}
+
+          <Text variant="caption" color={colors.contentSecondary}>
+            {loyaltyCopy.note}
+          </Text>
+        </View>
+      </ScrollView>
 
       {/* Spending Beats is not undoable, so it is asked before it is done. */}
       <Confirm
@@ -295,91 +310,64 @@ export function RewardsScreen() {
         }}
       />
 
+      {/* How it works — a rate card, not an essay. */}
       <Sheet
         open={howTo}
         onClose={() => setHowTo(false)}
+        align="left"
         title={loyaltyHowTo.title}
+        subtitle={loyaltyHowTo.intro}
         closeLabel={loyaltyHowTo.done}
         footer={
-          <Button
-            variant="primary"
-            label={loyaltyHowTo.done}
-            onPress={() => setHowTo(false)}
-          />
+          <Dock surface="panel">
+            <Button
+              variant="primary"
+              label={loyaltyHowTo.done}
+              onPress={() => setHowTo(false)}
+            />
+          </Dock>
         }
       >
-        <Text variant="body" color={colors.contentSecondary}>
-          {loyaltyHowTo.intro}
-        </Text>
-
-        <Text variant="titleBody" uppercase>
-          {loyaltyHowTo.earnTitle}
-        </Text>
-        {loyaltyHowTo.earn.map((way) => (
-          <ListRow
-            key={way.id}
-            icon={icon(way.icon)}
-            label={way.label}
-            sub={way.detail}
-          />
-        ))}
-
-        <Text variant="titleBody" uppercase>
-          {loyaltyHowTo.membershipTitle}
-        </Text>
-        <Text variant="body" color={colors.contentSecondary}>
-          {loyaltyHowTo.membershipBody}
-        </Text>
-
-        <Text variant="titleBody" uppercase>
-          {loyaltyHowTo.expiryTitle}
-        </Text>
-        <Text variant="body" color={colors.contentSecondary}>
-          {loyaltyHowTo.expiryBody}
-        </Text>
+        {loyaltyHowTo.earn.map((way) => {
+          const Mark = icon(way.icon);
+          return (
+            <View key={way.id} style={styles.rateRow}>
+              {Mark && <Mark width={24} height={24} />}
+              <Text variant="body" style={styles.rowBody}>
+                {way.label}
+              </Text>
+              <View style={styles.ratePill}>
+                <Text variant="caption" color={colors.contentSecondary}>
+                  {loyaltyHowTo.rate(way.beats)}
+                </Text>
+              </View>
+            </View>
+          );
+        })}
       </Sheet>
-      </ScrollView>
     </Page>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.bgPrimary },
-
-  banner: {
-    backgroundColor: colors.bgSecondary,
-    paddingHorizontal: gutter,
-    paddingBottom: space.xl,
-    gap: space.l,
-  },
-  memberRow: { flexDirection: "row", alignItems: "center", gap: space.m },
-  memberChip: {
+  bar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: space.s,
+    paddingHorizontal: space.xl,
+    paddingBottom: space.s,
+  },
+  barSpacer: { flex: 1 },
+  barButton: {
+    padding: 10,
     backgroundColor: colors.overlay5,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.overlay10,
-    padding: space.s,
-    paddingRight: space.l,
   },
 
-  beatsCard: {
-    backgroundColor: colors.bgTertiary,
-    borderWidth: 1,
-    borderColor: colors.borderDimmed,
-    padding: space.xl,
-    gap: space.m,
-  },
-  beatsHead: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: space.m,
-  },
-  beatsFigure: { flexDirection: "row", alignItems: "flex-end", gap: space.s },
+  head: { paddingHorizontal: space.xl, paddingTop: space.m, gap: space.s },
+  figure: { flexDirection: "row", alignItems: "baseline", gap: space.m },
 
-  track: { flexDirection: "row", alignItems: "flex-start", paddingTop: space.s },
+  track: { flexDirection: "row", alignItems: "flex-start", paddingTop: space.l },
   trackCell: { flexDirection: "row", alignItems: "flex-start", flex: 1 },
   rail: { height: 3, flex: 1, marginTop: 10.5 },
   railOn: { backgroundColor: colors.white },
@@ -394,7 +382,20 @@ const styles = StyleSheet.create({
   stopOn: { backgroundColor: colors.brand },
   stopOff: { borderWidth: 1, borderColor: colors.overlay10 },
 
-  section: { paddingHorizontal: gutter, paddingTop: space.section, gap: space.l },
-  chips: { flexDirection: "row", gap: 10, paddingRight: gutter },
-  rows: { gap: space.xs },
+  section: { paddingHorizontal: space.xl, paddingTop: space.section, gap: space.m },
+  chips: { flexDirection: "row", gap: space.s, paddingRight: space.xl },
+
+  row: { flexDirection: "row", alignItems: "center", gap: space.m },
+  rowBody: { flex: 1, minWidth: 0 },
+  redeem: { paddingHorizontal: space.l, paddingVertical: 10 },
+
+  entry: { gap: space.s, paddingVertical: space.s },
+  flip: { transform: [{ rotate: "180deg" }] },
+
+  rateRow: { flexDirection: "row", alignItems: "center", gap: space.m },
+  ratePill: {
+    paddingHorizontal: space.m,
+    paddingVertical: space.xs,
+    backgroundColor: colors.overlay5,
+  },
 });

@@ -43,6 +43,7 @@ export function Sheet({
   closeLabel,
   children,
   footer,
+  align = "center",
 }: {
   open: boolean;
   onClose: () => void;
@@ -53,6 +54,12 @@ export function Sheet({
   children: React.ReactNode;
   /** Dock under the scrollable body. */
   footer?: React.ReactNode;
+  /**
+   * The booking sheets centre their title between the close button and an
+   * equal empty side. The rewards sheet (286:52793) puts the close on its own
+   * row and the title left, below it, which gives a long title the full width.
+   */
+  align?: "center" | "left";
 }) {
   const insets = useSafeAreaInsets();
 
@@ -81,6 +88,28 @@ export function Sheet({
             <View style={styles.grabber} />
           </View>
 
+          {align === "left" ? (
+            <View style={styles.headLeft}>
+              <View style={styles.headLeftActions}>
+                <Tap
+                  accessibilityRole="button"
+                  accessibilityLabel={closeLabel}
+                  onPress={onClose}
+                  style={styles.close}
+                >
+                  <Close width={20} height={20} />
+                </Tap>
+              </View>
+              <Text variant="titleBody" uppercase>
+                {title}
+              </Text>
+              {subtitle && (
+                <Text variant="bodyS" color={colors.contentSecondary}>
+                  {subtitle}
+                </Text>
+              )}
+            </View>
+          ) : (
           <View style={styles.head}>
             {/* The title is centred between two equal flexible sides, so it
                 stays centred on the screen rather than centred in whatever
@@ -111,6 +140,7 @@ export function Sheet({
               </Tap>
             </View>
           </View>
+          )}
 
           <ScrollView
             style={styles.body}
@@ -290,6 +320,8 @@ const styles = StyleSheet.create({
   headActions: { alignItems: "flex-end" },
   headText: { flex: 1, minWidth: 0, maxWidth: 240, gap: space.xs },
   headTitle: { textAlign: "center" },
+  headLeft: { paddingHorizontal: 20, paddingTop: space.s, gap: space.xs },
+  headLeftActions: { alignItems: "flex-end" },
   /* No border on the sheet's close button — the comps drop it here. */
   close: { padding: 10, backgroundColor: colors.overlay5 },
   body: { flexGrow: 0 },
