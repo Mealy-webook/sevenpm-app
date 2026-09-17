@@ -86,15 +86,23 @@ export const fonts = {
 } as const;
 
 /**
- * The type scale, straight from the Figma text styles. `size` and `line` are
- * both absolute — this system never uses a unitless line-height multiplier,
- * because the display faces need line boxes tighter than their own size.
+ * The type scale, from the Figma text styles. `size` and `line` are both
+ * absolute — never a unitless multiplier.
+ *
+ * The display line heights are the one place this departs from the comps, and
+ * it is not optional. Figma (and the web build) set Daltown on a line box
+ * *tighter* than its own size — 160/116, 64/44 — and a browser simply lets the
+ * glyphs overflow it. React Native clips them instead: at 64/44 the zeros in
+ * "500" lose their top and bottom curves and read as "5UU".
+ *
+ * So display line heights are >= their size here, and the tight vertical
+ * rhythm the comps get from the line box is recovered with layout gaps.
  */
 export const type = {
   /* Display — Daltown, uppercase, always. */
-  displayXL: { font: fonts.display, size: 160, line: 116 },
-  displayL: { font: fonts.display, size: 64, line: 44 },
-  displayM: { font: fonts.display, size: 40, line: 34 },
+  displayXL: { font: fonts.display, size: 160, line: 168 },
+  displayL: { font: fonts.display, size: 64, line: 68 },
+  displayM: { font: fonts.display, size: 40, line: 44 },
 
   /* Titles — Roboto Bold, uppercase, negative tracking. */
   sectionTitle: { font: fonts.bold, size: 26, line: 32, tracking: -0.13 },

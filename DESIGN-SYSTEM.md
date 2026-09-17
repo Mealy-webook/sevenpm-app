@@ -46,9 +46,14 @@ Four families. Only the first is unusual:
 - **Roboto** 400 / 600 / 700 / 900 — everything else.
 
 The scale lives in `type` in the tokens file. Sizes and line heights are both
-absolute, never a unitless multiplier: the display styles need line boxes
-**tighter than their own size** (160/116, 64/44), which a multiplier cannot
-express cleanly.
+absolute, never a unitless multiplier.
+
+**Display line heights deliberately differ from the comps.** Figma and the web
+build set Daltown on a line box tighter than its own size (160/116, 64/44), and
+a browser lets the glyphs overflow it. React Native clips them: at 64/44 the
+zeros in "500" lose their top and bottom curves and read as "5UU". Display line
+heights here are therefore >= their size, and the tight vertical rhythm is
+recovered with layout gaps instead. Do not "fix" them back to the Figma values.
 
 Set text only through `src/theme/Text.tsx`. React Native has no cascade, so
 every `Text` would otherwise carry its own font, size and line height — and
