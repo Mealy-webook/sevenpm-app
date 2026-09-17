@@ -70,6 +70,7 @@ export const images: Record<string, ImageSourcePropType> = {
   "/assets/conf-qr.png": require("../assets/img/conf-qr.png"),
   "/assets/event-hero.jpg": require("../assets/img/event-hero.jpg"),
   "/assets/event-map.jpg": require("../assets/img/event-map.jpg"),
+  "/assets/tab-light.png": require("../assets/img/tab-light.png"),
   "/assets/ticket-paper.png": require("../assets/img/ticket-paper.png"),
   "/assets/lineup-1.jpg": require("../assets/img/lineup-1.jpg"),
   "/assets/lineup-2.jpg": require("../assets/img/lineup-2.jpg"),
