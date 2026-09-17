@@ -28,10 +28,18 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
  *   it is a real tap target that carries no weight — "Skip", "Maybe later",
  *   "Manage cookies".
  *
- * Secondary sizes itself from an inner fixed-height content box (16px) rather
- * than from padding on the label, which is how the Figma components are built;
- * sizing it any other way gives buttons a pixel or two off each other. The
- * dock buttons are full-width and set their own 16px padding instead.
+ * **Sizing note, and it is a trap.** The Figma components are built from an
+ * inner content box of a fixed 16px with padding around it, and this component
+ * used to reproduce that literally. In Figma a text layer overflows its box
+ * without consequence; in React Native a 20px line inside a 16px box is
+ * clipped, and every secondary button in the app lost the bottom of its
+ * letters. It is the same mistake as setting a display line height tighter
+ * than its size — see DESIGN-SYSTEM.md §2.
+ *
+ * So the heights the comps specify are reproduced with padding instead, and
+ * the arithmetic is written down: total = line height + 2 × vertical padding.
+ * Secondary small is 13/20 in 36px, medium 15/22 in 40px, and the dock
+ * buttons are 17/24 in 52px.
  */
 export function Button({
   label,
@@ -110,11 +118,9 @@ export function Button({
           {label}
         </Text>
       ) : (
-        <View style={styles.box}>
-          <Text variant={size === "m" ? "bodyBold" : "bodySBold"} color={content}>
-            {label}
-          </Text>
-        </View>
+        <Text variant={size === "m" ? "bodyBold" : "bodySBold"} color={content}>
+          {label}
+        </Text>
       )}
     </AnimatedPressable>
   );
@@ -127,21 +133,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: space.xs,
   },
+  /* 20px line + 8 + 8 = 36. */
   small: {
     gap: space.xs,
-    padding: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
     backgroundColor: colors.overlay5,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.overlay10,
   },
+  /* 22px line + 9 + 9 = 40. */
   medium: {
     gap: space.xs,
-    padding: space.m,
+    paddingVertical: 9,
+    paddingHorizontal: space.l,
     backgroundColor: colors.overlay5,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.overlay10,
   },
-  dock: { gap: space.s, paddingHorizontal: space.xl, paddingVertical: space.l },
+  /* 24px line + 14 + 14 = 52, and the comps' 20px side padding. */
+  dock: { gap: space.s, paddingHorizontal: 20, paddingVertical: 14 },
   dockLabel: { fontFamily: "Roboto_600SemiBold" },
   primary: { backgroundColor: colors.white },
   outline: {
@@ -154,5 +165,4 @@ const styles = StyleSheet.create({
      rather than as an outlined control you cannot press. */
   disabled: { borderColor: "transparent" },
   dockDisabled: { backgroundColor: colors.overlay5 },
-  box: { height: 16, justifyContent: "center", paddingHorizontal: space.xs },
 });
