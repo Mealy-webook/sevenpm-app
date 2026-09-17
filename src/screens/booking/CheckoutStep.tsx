@@ -1,26 +1,43 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
+import type { SvgProps } from "react-native-svg";
 
+import Beats from "../../icons/ic-beats-earn.svg";
 import CheckOff from "../../icons/ic-check-off.svg";
 import CheckOn from "../../icons/ic-check-on.svg";
-import Trash from "../../icons/ic-trash-red-16.svg";
+import Delivery from "../../icons/ic-delivery-24.svg";
+import Installment from "../../icons/ic-installment-24.svg";
+import ApplePay from "../../icons/ic-applepay-24.svg";
+import Card from "../../icons/ic-card-24.svg";
+import Promo from "../../icons/ic-promo-24.svg";
+import Ticket from "../../icons/ic-ticket-24.svg";
+import Wallet from "../../icons/ic-wallet.svg";
 import { Button } from "../../components/Button";
 import { Switch } from "../../components/Switch";
 import { Tap } from "../../components/Tap";
 import { icon } from "../../icons";
 import { Text } from "../../theme/Text";
-import { colors, space } from "../../theme/tokens";
+import { colors, displaySize, space, type } from "../../theme/tokens";
 import { bookingConfig, bookingCopy, formatMoney } from "../../data/booking";
 import { Option, TotalRow } from "./BookingSheets";
-import type { Delivery, SavedCard } from "./BookingSheets";
+import type { Delivery as DeliveryChoice, SavedCard } from "./BookingSheets";
 import type { Totals } from "./cart";
 
 /**
- * Step 3, from Figma 2033:18293: where the order gets a delivery address, a
- * payment method, its discounts, and the one box that must be ticked.
+ * Step 3, from Figma 346:47218 and its completed state 346:47323.
  *
- * The price block is the same arithmetic the summary sheet shows, stated once
- * more in full — VAT sits inside the total rather than on top of it, which is
- * how the comp reads it, so the figure quoted here is the figure charged.
+ * Five sections of rows, each one a fact about the order and the one thing you
+ * can do about it: what is in the basket, where the merchandise goes, how you
+ * are paying, what you have taken off, and what it comes to.
+ *
+ * The app comps differ from the web build in three ways worth naming. The
+ * order summary is a row here rather than a bar, with "View" opening the
+ * sheet. Discounts became **Vouchers**, which covers a promo code *and*
+ * spending Beats — the loyalty programme reaches into checkout, which it never
+ * did on the web. And the screen states what the booking will earn you before
+ * you pay, which is the only forward-looking line on it.
+ *
+ * VAT sits inside the total rather than on top of it, so the figure quoted is
+ * the figure charged.
  */
 export function CheckoutStep({
   totals,
@@ -33,16 +50,16 @@ export function CheckoutStep({
   onAddCard,
   wallet,
   onWallet,
-  promo,
-  onPromo,
-  onRemovePromo,
+  voucher,
+  onVouchers,
+  onSummary,
   agreed,
   onAgree,
   agreementError,
 }: {
   totals: Totals;
   hasMerch: boolean;
-  delivery: Delivery | null;
+  delivery: DeliveryChoice | null;
   onDelivery: () => void;
   method: string;
   onMethod: (id: string) => void;
@@ -50,44 +67,55 @@ export function CheckoutStep({
   onAddCard: () => void;
   wallet: boolean;
   onWallet: (on: boolean) => void;
-  promo: { code: string; off: number } | null;
-  onPromo: () => void;
-  onRemovePromo: () => void;
+  voucher: { code: string; off: number } | null;
+  onVouchers: () => void;
+  onSummary: () => void;
   agreed: boolean;
   onAgree: (agreed: boolean) => void;
   agreementError: boolean;
 }) {
+  const { width } = useWindowDimensions();
   const copy = bookingCopy.checkout;
+
+  /* 1 Beat per dirham of tickets — the rule the rewards sheet states. */
+  const earned = totals.ticketLines.reduce((sum, line) => sum + line.amount, 0);
 
   return (
     <View style={styles.step}>
-      <Text variant="sectionTitle" uppercase color={colors.white}>
+      <Text
+        variant="displayStep"
+        uppercase
+        color={colors.white}
+        style={displaySize(type.displayStep, width)}
+      >
         {copy.title}
       </Text>
 
+      {/* Order summary */}
+      <View style={styles.block}>
+        <SectionTitle>{copy.orderSummary}</SectionTitle>
+        <ActionRow
+          icon={Ticket}
+          label={copy.basket(
+            bookingCopy.summaryBar.tickets(totals.ticketCount),
+            bookingCopy.summaryBar.addons(totals.addonCount),
+          )}
+          action={copy.view}
+          onAction={onSummary}
+        />
+      </View>
+
       {/* Delivery */}
       <View style={styles.block}>
-        <Text variant="titleBody" uppercase>
-          {copy.delivery}
-        </Text>
+        <SectionTitle>{copy.delivery}</SectionTitle>
         {hasMerch ? (
-          <>
-            <Text variant="bodyS" color={colors.contentSecondary}>
-              {copy.deliveryHint}
-            </Text>
-            <View style={styles.row}>
-              <View style={styles.rowBody}>
-                <Text variant="bodyBold">{copy.deliveryMethod}</Text>
-                <Text variant="bodyS" color={colors.contentSecondary}>
-                  {describe(delivery)}
-                </Text>
-              </View>
-              <Button
-                label={delivery ? copy.edit : copy.add}
-                onPress={onDelivery}
-              />
-            </View>
-          </>
+          <ActionRow
+            icon={Delivery}
+            label={copy.deliveryMethod}
+            sub={delivery ? describe(delivery) : copy.deliveryHint}
+            action={delivery ? copy.edit : copy.add}
+            onAction={onDelivery}
+          />
         ) : (
           <Text variant="bodyS" color={colors.contentSecondary}>
             {copy.deliveryNone}
@@ -95,14 +123,13 @@ export function CheckoutStep({
         )}
       </View>
 
-      {/* Payment */}
+      {/* Pay with */}
       <View style={styles.block}>
-        <Text variant="titleBody" uppercase>
-          {copy.payWith}
-        </Text>
+        <SectionTitle>{copy.payWith}</SectionTitle>
 
-        <View style={styles.walletRow}>
-          <Text variant="body" style={styles.walletLabel}>
+        <View style={styles.row}>
+          <Wallet width={24} height={24} />
+          <Text variant="body" style={styles.rowLabel}>
             {copy.wallet}
           </Text>
           <Text variant="bodySBold" color={colors.contentSecondary}>
@@ -111,33 +138,31 @@ export function CheckoutStep({
           <Switch on={wallet} onChange={onWallet} label={copy.wallet} />
         </View>
 
-        {copy.payMethods.map((item) => {
-          const Mark = icon(item.icon);
-          return (
-            <Option
-              key={item.id}
-              label={item.label}
-              sub={
-                item.id === "card"
-                  ? card
-                    ? `${card.brand} •••• ${card.last4}`
-                    : copy.cardEmpty
-                  : undefined
-              }
-              selected={method === item.id}
-              onPress={() => onMethod(item.id)}
-              trailing={Mark ? <Mark width={24} height={24} /> : undefined}
-            />
-          );
-        })}
+        <Option
+          label={copy.installment}
+          selected={method === "installment"}
+          onPress={() => onMethod("installment")}
+          trailing={<Installment width={24} height={24} />}
+        />
+        <Option
+          label={copy.applePay}
+          selected={method === "apple-pay"}
+          onPress={() => onMethod("apple-pay")}
+          trailing={<ApplePay width={24} height={24} />}
+        />
+        <Option
+          label={copy.card}
+          sub={card ? `${card.brand} •••• ${card.last4}` : copy.cardEmpty}
+          selected={method === "card"}
+          onPress={() => onMethod("card")}
+          trailing={<Card width={24} height={24} />}
+        />
 
         {method === "card" && (
           <View style={styles.marks}>
             {copy.cardMarks.map((mark) => {
               const Mark = icon(mark);
-              return Mark ? (
-                <Mark key={mark} width={32} height={20} />
-              ) : null;
+              return Mark ? <Mark key={mark} width={32} height={20} /> : null;
             })}
             <View style={styles.spacer} />
             <Button label={copy.addCard} onPress={onAddCard} />
@@ -145,38 +170,25 @@ export function CheckoutStep({
         )}
       </View>
 
-      {/* Discounts */}
+      {/* Vouchers — a promo code or Beats, in one place. */}
       <View style={styles.block}>
-        <Text variant="titleBody" uppercase>
-          {copy.discounts}
-        </Text>
-        <View style={styles.row}>
-          <View style={styles.rowBody}>
-            <Text variant="bodyBold">{promo ? promo.code : copy.promo}</Text>
-            {promo && (
-              <Text variant="bodyS" color={colors.positive}>
-                {copy.promoSaved(formatMoney(totals.promo))}
-              </Text>
-            )}
-          </View>
-          {promo ? (
-            <Button
-              label={bookingCopy.promoDialog.clear}
-              icon={Trash}
-              tone="destructive"
-              onPress={onRemovePromo}
-            />
-          ) : (
-            <Button label={copy.add} onPress={onPromo} />
-          )}
-        </View>
+        <SectionTitle>{copy.vouchers}</SectionTitle>
+        <ActionRow
+          icon={Promo}
+          label={voucher ? voucher.code : copy.vouchers}
+          sub={
+            voucher
+              ? copy.promoSaved(formatMoney(totals.promo))
+              : undefined
+          }
+          action={voucher ? copy.edit : copy.add}
+          onAction={onVouchers}
+        />
       </View>
 
       {/* Price */}
       <View style={styles.block}>
-        <Text variant="titleBody" uppercase>
-          {copy.priceDetails}
-        </Text>
+        <SectionTitle>{copy.priceDetails}</SectionTitle>
         <TotalRow
           label={bookingCopy.orderSummary.subtotal}
           value={formatMoney(totals.subtotal)}
@@ -190,22 +202,34 @@ export function CheckoutStep({
         {totals.promo > 0 && (
           <TotalRow
             label={bookingCopy.confirmation.price.promo}
-            value={`− ${formatMoney(totals.promo)}`}
+            value={`-${formatMoney(totals.promo)}`}
+            tone="positive"
           />
         )}
         {totals.wallet > 0 && (
           <TotalRow
             label={bookingCopy.orderSummary.wallet}
-            value={`− ${formatMoney(totals.wallet)}`}
+            value={`-${formatMoney(totals.wallet)}`}
+            tone="positive"
           />
         )}
         <TotalRow
-          label={bookingCopy.orderSummary.total}
+          label={copy.total}
           value={formatMoney(totals.total)}
           strong
           note={bookingCopy.orderSummary.vat(formatMoney(totals.vat))}
         />
       </View>
+
+      {/* What this booking earns — the one forward-looking line on the page. */}
+      {earned > 0 && (
+        <View style={styles.earn}>
+          <Beats width={24} height={24} />
+          <Text variant="bodyS" color={colors.contentPrimary} style={styles.rowLabel}>
+            {copy.earn(earned)}
+          </Text>
+        </View>
+      )}
 
       {/* The one box that must be ticked. */}
       <Tap
@@ -216,7 +240,7 @@ export function CheckoutStep({
         style={styles.agree}
       >
         {agreed ? <CheckOn width={20} height={20} /> : <CheckOff width={20} height={20} />}
-        <Text variant="bodyS" color={colors.contentSecondary} style={styles.agreeText}>
+        <Text variant="bodyS" color={colors.contentSecondary} style={styles.rowLabel}>
           {copy.agreement}
         </Text>
       </Tap>
@@ -225,16 +249,55 @@ export function CheckoutStep({
           {copy.agreementError}
         </Text>
       )}
-
-      <Text variant="caption" color={colors.contentSecondary}>
-        {`${copy.terms} ${copy.termsLink}. ${copy.privacyLead} ${copy.privacyLink} ${copy.privacyTail}`}
-      </Text>
     </View>
   );
 }
 
-function describe(delivery: Delivery | null) {
-  if (!delivery) return bookingCopy.checkout.deliveryHint;
+/** The 18px bold heading each section of the checkout carries. */
+function SectionTitle({ children }: { children: string }) {
+  return (
+    <Text variant="titleBody" uppercase>
+      {children}
+    </Text>
+  );
+}
+
+/**
+ * A row that states something and offers one thing to do about it: a mark, a
+ * label over an optional sub-line, and a button on the right.
+ */
+function ActionRow({
+  icon: Mark,
+  label,
+  sub,
+  action,
+  onAction,
+}: {
+  icon: React.FC<SvgProps>;
+  label: string;
+  sub?: string;
+  action: string;
+  onAction: () => void;
+}) {
+  return (
+    <View style={styles.row}>
+      <Mark width={24} height={24} />
+      <View style={styles.rowBody}>
+        <Text variant="body" numberOfLines={1}>
+          {label}
+        </Text>
+        {sub && (
+          <Text variant="bodyS" color={colors.contentSecondary} numberOfLines={2}>
+            {sub}
+          </Text>
+        )}
+      </View>
+      <Button label={action} onPress={onAction} />
+    </View>
+  );
+}
+
+function describe(delivery: DeliveryChoice) {
   if (delivery.kind === "pickup") return delivery.point;
   return `${delivery.address}, ${delivery.city}, ${delivery.country}`;
 }
@@ -242,15 +305,21 @@ function describe(delivery: Delivery | null) {
 const styles = StyleSheet.create({
   step: { gap: space.xl },
   block: { gap: space.m },
+
   row: { flexDirection: "row", alignItems: "center", gap: space.m },
   rowBody: { flex: 1, minWidth: 0, gap: space.xs },
-
-  walletRow: { flexDirection: "row", alignItems: "center", gap: space.m },
-  walletLabel: { flex: 1, minWidth: 0 },
+  rowLabel: { flex: 1, minWidth: 0 },
 
   marks: { flexDirection: "row", alignItems: "center", gap: space.s },
   spacer: { flex: 1 },
 
+  earn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.m,
+    padding: space.m,
+    backgroundColor: colors.overlay5,
+  },
+
   agree: { flexDirection: "row", alignItems: "flex-start", gap: space.m },
-  agreeText: { flex: 1, minWidth: 0 },
 });

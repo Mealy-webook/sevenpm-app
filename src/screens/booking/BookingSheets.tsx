@@ -14,6 +14,7 @@ import { icon } from "../../icons";
 import { image } from "../../images";
 import { Text } from "../../theme/Text";
 import { colors, radii, space } from "../../theme/tokens";
+import { loyaltyCopy, loyaltyRewards } from "../../data/account";
 import {
   bookingCopy,
   deliveryCountries,
@@ -280,26 +281,58 @@ export function OrderSummarySheet({
     </Sheet>
   );
 }
-export function PromoSheet({
+
+/**
+ * Vouchers, from Figma 346:47802 — a promo code *or* Beats, in one sheet.
+ *
+ * This is where the loyalty programme reaches into checkout, which it never
+ * did on the web build: the rewards listed are the discount rewards from
+ * SevenPM Rewards, priced in Beats, and taking one spends them. A reward you
+ * cannot afford is shown and disabled rather than hidden, because the point of
+ * seeing it is knowing what the balance is for.
+ *
+ * Only one voucher applies at a time — code or reward, not both — so choosing
+ * one clears the other.
+ */
+export function VouchersSheet({
   open,
+  subtotal,
+  beats,
   onClose,
   onApply,
 }: {
   open: boolean;
+  /** What a percentage reward is a percentage of. */
+  subtotal: number;
+  /** The Beats balance, which decides what can be taken. */
+  beats: number;
   onClose: () => void;
-  onApply: (code: string, off: number) => void;
+  onApply: (voucher: { code: string; off: number; beats?: number }) => void;
 }) {
+  const copy = bookingCopy.promoDialog;
   const [code, setCode] = useState("");
   const [invalid, setInvalid] = useState(false);
-  const copy = bookingCopy.promoDialog;
+  const [reward, setReward] = useState<string | null>(null);
+
+  const rewards = loyaltyRewards.filter((item) => item.id.startsWith("promo-"));
+  const chosen = rewards.find((item) => item.id === reward);
 
   const apply = () => {
+    if (chosen) {
+      const percent = Number(/(\d+)%/.exec(chosen.name)?.[1] ?? 0) / 100;
+      onApply({
+        code: chosen.name,
+        off: Math.round(subtotal * percent * 100) / 100,
+        beats: chosen.cost,
+      });
+      return;
+    }
     const promo = findPromo(code);
     if (!promo) {
       setInvalid(true);
       return;
     }
-    onApply(promo.code, promo.off);
+    onApply({ code: promo.code, off: promo.off });
     setCode("");
     setInvalid(false);
   };
@@ -308,15 +341,17 @@ export function PromoSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={copy.title}
+      title={bookingCopy.checkout.vouchers}
       closeLabel={copy.close}
       footer={
-        <Button
-          variant="primary"
-          label={copy.apply}
-          disabled={code.trim().length === 0}
-          onPress={apply}
-        />
+        <Dock surface="panel">
+          <Button
+            variant="primary"
+            label={copy.apply}
+            disabled={code.trim().length === 0 && !chosen}
+            onPress={apply}
+          />
+        </Dock>
       }
     >
       <Field
@@ -325,20 +360,44 @@ export function PromoSheet({
         onChange={(value) => {
           setCode(value);
           setInvalid(false);
+          if (value) setReward(null);
         }}
         error={invalid ? copy.invalid : undefined}
         trailing={
           code.length > 0 ? (
-            <Pressable
+            <Tap
               accessibilityRole="button"
               accessibilityLabel={copy.clear}
               onPress={() => setCode("")}
+              scale={0.9}
             >
               <Clear width={20} height={20} />
-            </Pressable>
+            </Tap>
           ) : undefined
         }
       />
+
+      <View style={styles.orRow}>
+        <View style={styles.rule2} />
+        <Text variant="body">{bookingCopy.checkout.or}</Text>
+        <View style={styles.rule2} />
+      </View>
+
+      <Text variant="bodyBold">{bookingCopy.checkout.useBeats}</Text>
+      {rewards.map((item) => (
+        <Option
+          key={item.id}
+          label={item.name}
+          sub={`${item.cost.toLocaleString("en-US")} ${loyaltyCopy.unit}`}
+          selected={reward === item.id}
+          disabled={beats < item.cost}
+          onPress={() => {
+            setReward(item.id);
+            setCode("");
+            setInvalid(false);
+          }}
+        />
+      ))}
     </Sheet>
   );
 }
@@ -688,20 +747,28 @@ export function Option({
   selected,
   onPress,
   trailing,
+  disabled = false,
 }: {
   label: string;
   sub?: string;
   selected: boolean;
   onPress: () => void;
   trailing?: React.ReactNode;
+  /** A choice you cannot take is shown and dimmed, not hidden. */
+  disabled?: boolean;
 }) {
   return (
     <Tap
       accessibilityRole="radio"
-      accessibilityState={{ selected }}
+      accessibilityState={{ selected, disabled }}
+      disabled={disabled}
       onPress={onPress}
       scale={0.99}
-      style={[styles.option, selected && styles.optionOn]}
+      style={[
+        styles.option,
+        selected && styles.optionOn,
+        disabled && styles.optionOff,
+      ]}
     >
       <View style={styles.optionBody}>
         <Text variant="bodyBold" numberOfLines={1}>
@@ -741,6 +808,8 @@ const styles = StyleSheet.create({
   /* The hairline the comps draw between a sheet's content and its price. */
   rule: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderTertiary },
   priceRow: { flexDirection: "row", alignItems: "center", gap: space.l },
+  orRow: { flexDirection: "row", alignItems: "center", gap: space.l },
+  rule2: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.overlay20 },
   sizes: { gap: space.s },
   sizeRow: { flexDirection: "row", flexWrap: "wrap", gap: space.s },
 
@@ -764,6 +833,7 @@ const styles = StyleSheet.create({
     borderColor: colors.overlay10,
   },
   optionOn: { borderColor: colors.contentPrimary },
+  optionOff: { opacity: 0.4 },
   optionBody: { flex: 1, minWidth: 0 },
   optionMark: {
     width: 20,

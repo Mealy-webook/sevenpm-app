@@ -280,6 +280,26 @@ export const bookingCopy = {
   },
   checkout: {
     title: "Checkout",
+    /** 346:47218. The comp writes "2 Tickets, 2 addonds"; corrected. */
+    orderSummary: "Order summary",
+    view: "View",
+    basket: (tickets: string, addons: string) => `${tickets}, ${addons}`,
+    vouchers: "Vouchers",
+    installment: "Pay in installment",
+    applePay: "Apple Pay",
+    card: "Card",
+    total: "Total",
+    includeVat: "Include VAT",
+    /**
+     * 1 Beat per dirham of tickets, which is the rule the rewards sheet
+     * states. The comp's "100 beats" against its 100 MAD of tickets agrees.
+     */
+    earn: (beats: number) => `By completing this booking you'll earn ${beats.toLocaleString("en-US")} beats!`,
+    /** The comp reads "By continuing your agree on" — corrected. */
+    dockTerms: "By continuing you agree to our",
+    payWith2: (method: string) => `Pay with ${method}`,
+    or: "OR",
+    useBeats: "Use your beats rewards",
     delivery: "Delivery",
     deliveryMethod: "Delivery method",
     deliveryHint: "Choose how you would like to get your merchandise items",

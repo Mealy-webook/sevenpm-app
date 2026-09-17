@@ -22,6 +22,7 @@ import {
   type BookingAddon,
   type BookingTicket,
 } from "../../data/booking";
+import { loyaltyBalance } from "../../data/account";
 import { getEvent } from "../../data/events";
 import { adjust, quantityOf, totals as priceCart, type Cart } from "./cart";
 import { TicketsStep } from "./TicketsStep";
@@ -33,7 +34,7 @@ import {
   DeliverySheet,
   ItemDetailsSheet,
   OrderSummarySheet,
-  PromoSheet,
+  VouchersSheet,
   TicketInfoSheet,
   type Delivery,
   type SavedCard,
@@ -85,7 +86,9 @@ export function BookingScreen() {
   const [method, setMethod] = useState("card");
   const [card, setCard] = useState<SavedCard | null>(null);
   const [wallet, setWallet] = useState(true);
-  const [promo, setPromo] = useState<{ code: string; off: number } | null>(null);
+  const [promo, setPromo] = useState<
+    { code: string; off: number; beats?: number } | null
+  >(null);
   const [agreed, setAgreed] = useState(false);
   const [agreementError, setAgreementError] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
@@ -139,11 +142,18 @@ export function BookingScreen() {
   };
 
   const LAST = 3;
+  /* On the last step the comps name the method on the button — "Pay with
+     Apple Pay" — so the press says what is about to happen rather than just
+     that something is. */
+  const payLabel = bookingCopy.checkout.payWith2(
+    bookingCopy.checkout.payMethods.find((m) => m.id === method)?.label ??
+      bookingCopy.checkout.card,
+  );
   const action = [
     bookingCopy.summaryBar.nextExtras,
     bookingCopy.extras.nextParking,
     bookingCopy.summaryBar.nextCheckout,
-    bookingCopy.summaryBar.pay,
+    payLabel,
   ][step];
 
   /* Moving on from a stage also moves the chips, so the extras chips and the
@@ -237,9 +247,9 @@ export function BookingScreen() {
               onAddCard={() => setCardOpen(true)}
               wallet={wallet}
               onWallet={setWallet}
-              promo={promo}
-              onPromo={() => setPromoOpen(true)}
-              onRemovePromo={() => setPromo(null)}
+              voucher={promo}
+              onVouchers={() => setPromoOpen(true)}
+              onSummary={() => setSummaryOpen(true)}
               agreed={agreed}
               onAgree={(value) => {
                 setAgreed(value);
@@ -350,11 +360,13 @@ export function BookingScreen() {
         onClose={() => setSummaryOpen(false)}
         totals={totals}
       />
-      <PromoSheet
+      <VouchersSheet
         open={promoOpen}
+        subtotal={totals.subtotal}
+        beats={loyaltyBalance}
         onClose={() => setPromoOpen(false)}
-        onApply={(code, off) => {
-          setPromo({ code, off });
+        onApply={(voucher) => {
+          setPromo(voucher);
           setPromoOpen(false);
         }}
       />
