@@ -49,6 +49,7 @@ export function Button({
   tone = "default",
   variant = "secondary",
   size = "s",
+  iconSide = "left",
   style,
 }: {
   label: string;
@@ -63,10 +64,31 @@ export function Button({
    * 15px one the Figma screens use on their own — "Skip" on onboarding.
    */
   size?: "s" | "m";
+  /**
+   * Figma's Button has a Left icon slot and a Right Icon slot. Which one is
+   * filled is part of the design — "Next →" trails its arrow, "Add to
+   * calendar" leads with its mark — so it is a prop rather than a constant.
+   */
+  iconSide?: "left" | "right";
   style?: ViewStyle;
 }) {
   const dock = variant !== "secondary";
   const press = usePressScale();
+
+  /* The dock marks are drawn white; on white paper they need the label's own
+     ink instead. */
+  const Mark = () =>
+    Icon ? (
+      <Icon
+        width={dock ? 20 : 16}
+        height={dock ? 20 : 16}
+        color={
+          dock && variant !== "tertiary" && variant !== "outline" && !disabled
+            ? colors.bgSecondary
+            : undefined
+        }
+      />
+    ) : null;
 
   /* The dock buttons are dark ink on light paper, except the tertiary one,
      which has no paper under it and takes the page's own content colour. */
@@ -100,19 +122,7 @@ export function Button({
         !disabled && press.style,
       ]}
     >
-      {Icon && (
-        <Icon
-          width={16}
-          height={16}
-          /* The dock marks are drawn white; on white paper they need the
-             label's own ink instead. */
-          color={
-            dock && variant !== "tertiary" && variant !== "outline" && !disabled
-              ? colors.bgSecondary
-              : undefined
-          }
-        />
-      )}
+      {Icon && iconSide === "left" && <Mark />}
       {dock ? (
         <Text variant="bodyL" color={content} style={styles.dockLabel}>
           {label}
@@ -122,6 +132,7 @@ export function Button({
           {label}
         </Text>
       )}
+      {Icon && iconSide === "right" && <Mark />}
     </AnimatedPressable>
   );
 }

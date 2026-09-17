@@ -27,9 +27,12 @@ import { colors, motion, space } from "../theme/tokens";
  * - It falls *into* the bar rather than spilling above it. The original lets
  *   the glow hang over the page; on a phone that means a haze over whatever
  *   you are scrolling, and Android clips it unpredictably anyway.
- * - There is no blur. React Native has no filter, so the softness is the
- *   gradient's own falloff plus a generous corner radius, which at this size
- *   and opacity is indistinguishable from a blurred one.
+ * - There is no blur, because React Native has no filter. The first attempt
+ *   used a rounded 48px box, which on a device read as a highlighted pill
+ *   rather than as light — a shape with edges is a shape, however soft the
+ *   gradient inside it. It is now the full width of the tab with no radius at
+ *   all, so the only edge is the vertical fade, and it reads as a wash coming
+ *   off the rail.
  *
  * The falloff is the original's: full on the selected tab, then
  * `1 - distance × 0.6`, which reaches nothing 1.67 tabs away. Driven by one
@@ -131,7 +134,7 @@ export function TabBar({
               pointerEvents="none"
             >
               <LinearGradient
-                colors={["rgba(251,235,28,0.35)", "rgba(251,235,28,0)"]}
+                colors={["rgba(251,235,28,0.22)", "rgba(251,235,28,0)"]}
                 style={StyleSheet.absoluteFill}
               />
             </Animated.View>
@@ -157,7 +160,6 @@ export function TabBar({
 }
 
 const RAIL = 48;
-const GLOW = 48;
 
 const styles = StyleSheet.create({
   bar: {
@@ -183,9 +185,8 @@ const styles = StyleSheet.create({
   spotlight: {
     position: "absolute",
     top: -space.s,
-    width: GLOW,
-    height: 72,
-    borderRadius: GLOW / 2,
-    overflow: "hidden",
+    left: 0,
+    right: 0,
+    height: 64,
   },
 });

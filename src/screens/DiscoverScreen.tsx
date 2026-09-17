@@ -269,6 +269,7 @@ export function DiscoverScreen() {
             variant="primary"
             label={discoverCopy.loadMore}
             icon={ArrowRight}
+            iconSide="right"
             onPress={() => navigation.navigate("Tabs", { screen: "News" } as never)}
           />
         </View>

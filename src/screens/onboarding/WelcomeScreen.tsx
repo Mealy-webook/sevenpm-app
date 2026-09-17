@@ -134,11 +134,15 @@ export function WelcomeScreen({ onDone }: { onDone: () => void }) {
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.bgPrimary },
   skipRow: {
-    height: 68,
+    /* The comp draws this band 68 tall with 24px padding, which leaves 20 for
+       a 40px button — in Figma the button simply overflows, and in React
+       Native it is squeezed until its label disappears. Same trap as the
+       button's own content box. The band is 68 because 40 + 14 + 14 is. */
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    padding: space.xl,
+    paddingHorizontal: space.xl,
+    paddingVertical: 14,
   },
   spacer: { flex: 1 },
 

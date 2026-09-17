@@ -236,6 +236,7 @@ export function OnboardingScreen({
           variant="primary"
           label={onboardingCopy.next}
           icon={ArrowRight}
+          iconSide="right"
           onPress={() =>
             index === steps.length - 1
               ? onDone()
@@ -317,11 +318,15 @@ function Mark({
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.bgPrimary },
   skipRow: {
-    height: 68,
+    /* The comp draws this band 68 tall with 24px padding, which leaves 20 for
+       a 40px button — in Figma the button simply overflows, and in React
+       Native it is squeezed until its label disappears. Same trap as the
+       button's own content box. The band is 68 because 40 + 14 + 14 is. */
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    flexDirection: "row",
-    padding: space.xl,
+    paddingHorizontal: space.xl,
+    paddingVertical: 14,
   },
   /* On the yellow step the 5% white fill disappears, so the control takes the
      same 5% of the ink that is actually on that screen. */
