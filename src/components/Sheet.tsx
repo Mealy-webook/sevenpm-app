@@ -13,12 +13,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Close from "../icons/ic-dialog-close.svg";
 import { Tap } from "./Tap";
 import { Text } from "../theme/Text";
-import { colors, gutter, space } from "../theme/tokens";
+import { colors, radii, space } from "../theme/tokens";
 
 /**
- * The sheet the booking and account dialogs share — ticket info (2078:45259),
- * item details (2196:11760), order summary (2213:14113), delivery, card,
- * promocode and top-up.
+ * The sheet every dialog in the app docks into, from Figma 346:47134.
  *
  * On the web these are 378px dialogs centred in the viewport. A phone has one
  * width, so the same content docks to the bottom of the screen instead and
@@ -26,8 +24,16 @@ import { colors, gutter, space } from "../theme/tokens";
  * is what tells you the sheet is a layer over your booking rather than the
  * next screen of it.
  *
- * Square, like everything else. The rounded top edge that RN sheets usually
- * carry would be the only radius on screen.
+ * **This is the third exception to the square rule**, after the switch and the
+ * saved-card face. The app comps give the drawer a 38px radius on its top two
+ * corners and a grabber above the title, and both earn their place: together
+ * they say the panel is draggable and came from below. The earlier build of
+ * this component was square on the grounds that everything else is; the comps
+ * disagree, and on this the comps are right — a square-topped panel that
+ * slides up from the bottom edge reads as a new screen, which is the one thing
+ * a sheet must not read as.
+ *
+ * Everything inside it stays square.
  */
 export function Sheet({
   open,
@@ -68,25 +74,42 @@ export function Sheet({
         />
 
         <View style={styles.sheet}>
+          {/* The grabber. It is not interactive — this sheet is dismissed by
+              its close button or by the page above it — but it is what says
+              the panel came from the bottom edge. */}
+          <View style={styles.grabberRow}>
+            <View style={styles.grabber} />
+          </View>
+
           <View style={styles.head}>
+            {/* The title is centred between two equal flexible sides, so it
+                stays centred on the screen rather than centred in whatever
+                space the close button leaves. */}
+            <View style={styles.headSide} />
             <View style={styles.headText}>
-              <Text variant="title" uppercase>
+              <Text variant="titleBody" uppercase numberOfLines={1} style={styles.headTitle}>
                 {title}
               </Text>
               {subtitle && (
-                <Text variant="caption" color={colors.contentSecondary}>
+                <Text
+                  variant="caption"
+                  color={colors.contentSecondary}
+                  style={styles.headTitle}
+                >
                   {subtitle}
                 </Text>
               )}
             </View>
-            <Tap
-              accessibilityRole="button"
-              accessibilityLabel={closeLabel}
-              onPress={onClose}
-              style={styles.close}
-            >
-              <Close width={20} height={20} />
-            </Tap>
+            <View style={[styles.headSide, styles.headActions]}>
+              <Tap
+                accessibilityRole="button"
+                accessibilityLabel={closeLabel}
+                onPress={onClose}
+                style={styles.close}
+              >
+                <Close width={20} height={20} />
+              </Tap>
+            </View>
           </View>
 
           <ScrollView
@@ -232,26 +255,45 @@ export function Field({
 }
 
 const styles = StyleSheet.create({
-  scrim: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.8)" },
-  scrimTap: { flex: 1, minHeight: 80 },
-  sheet: { maxHeight: "88%", backgroundColor: colors.bgSecondary },
+  scrim: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.7)",
+  },
+  /* The comps hold the drawer 56px clear of the top, so the page it came from
+     is always visible above it. */
+  scrimTap: { flex: 1, minHeight: 56 },
+  sheet: {
+    maxHeight: "88%",
+    backgroundColor: colors.bgSecondary,
+    borderTopLeftRadius: radii.sheet,
+    borderTopRightRadius: radii.sheet,
+    overflow: "hidden",
+  },
+
+  grabberRow: { alignItems: "center", paddingTop: 6 },
+  grabber: {
+    width: 36,
+    height: 4,
+    borderRadius: radii.pill,
+    backgroundColor: colors.overlay10,
+  },
 
   head: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: space.s,
-    paddingHorizontal: gutter,
-    paddingTop: gutter,
+    paddingHorizontal: 20,
+    paddingVertical: space.xs,
   },
-  headText: { flex: 1, minWidth: 0, gap: space.xs },
-  close: {
-    padding: 10,
-    backgroundColor: colors.overlay5,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.overlay10,
-  },
+  headSide: { flex: 1, minWidth: 0, height: 40, justifyContent: "center" },
+  headActions: { alignItems: "flex-end" },
+  headText: { flex: 1, minWidth: 0, maxWidth: 240, gap: space.xs },
+  headTitle: { textAlign: "center" },
+  /* No border on the sheet's close button — the comps drop it here. */
+  close: { padding: 10, backgroundColor: colors.overlay5 },
   body: { flexGrow: 0 },
-  bodyInner: { padding: gutter, gap: space.l },
+  bodyInner: { paddingHorizontal: 20, paddingVertical: space.l, gap: space.l },
 
   price: { gap: 2 },
   priceLine: { flexDirection: "row", alignItems: "baseline", gap: space.xs },

@@ -27,6 +27,7 @@ export function Stepper({
   onChange,
   emphasised = false,
   atZero = "add",
+  size = "s",
   addLabel = bookingCopy.tickets.add,
 }: {
   value: number;
@@ -36,9 +37,16 @@ export function Stepper({
   onChange: (by: number) => void;
   emphasised?: boolean;
   atZero?: "add" | "stepper";
+  /**
+   * `m` is the sheet's stepper (346:47150): a larger control with 20px keys
+   * and the count at 17, for a sheet where it is the only thing to press.
+   */
+  size?: "s" | "m";
   addLabel?: string;
 }) {
   const surface = emphasised ? styles.solid : styles.dim;
+  const big = size === "m";
+  const glyph = big ? 20 : 16;
 
   if (value === 0 && atZero === "add") {
     return (
@@ -62,7 +70,7 @@ export function Stepper({
   const first = value === 1;
 
   return (
-    <View style={[styles.shell, surface, styles.counter]}>
+    <View style={[styles.shell, surface, big ? styles.counterBig : styles.counter]}>
       <Tap
         accessibilityRole="button"
         accessibilityLabel={`${
@@ -73,15 +81,19 @@ export function Stepper({
         /* A 22px key dips further than a button: at this size a 3% change is
            invisible, and this is the control people press most in the flow. */
         scale={0.88}
-        style={[styles.key, empty && styles.keyOff]}
+        style={[styles.key, big && styles.keyBig, empty && styles.keyOff]}
       >
-        {first ? <Trash width={16} height={16} /> : <Minus width={16} height={16} />}
+        {first ? (
+          <Trash width={glyph} height={glyph} />
+        ) : (
+          <Minus width={glyph} height={glyph} />
+        )}
       </Tap>
 
       <Text
-        variant="bodyBold"
+        variant={big ? "bodyL" : "bodyBold"}
         accessibilityLiveRegion="polite"
-        style={styles.value}
+        style={[styles.value, big && styles.valueBig]}
       >
         {value}
       </Text>
@@ -92,9 +104,9 @@ export function Stepper({
         disabled={atMax}
         onPress={() => (empty ? onAdd() : onChange(1))}
         scale={0.88}
-        style={[styles.key, atMax && styles.keyOff]}
+        style={[styles.key, big && styles.keyBig, atMax && styles.keyOff]}
       >
-        <Plus width={16} height={16} />
+        <Plus width={glyph} height={glyph} />
       </Tap>
     </View>
   );
@@ -114,7 +126,16 @@ const styles = StyleSheet.create({
   add: { paddingHorizontal: space.m, paddingVertical: 14 },
   addLabel: { paddingHorizontal: space.xs },
   counter: { paddingHorizontal: space.s, paddingVertical: 11 },
+  /* The sheet's stepper is a plain 10% panel with no border. */
+  counterBig: { padding: space.s, borderWidth: 0, backgroundColor: colors.overlay10 },
   key: { width: 22, height: 22, alignItems: "center", justifyContent: "center" },
+  keyBig: {
+    width: 28,
+    height: 28,
+    padding: space.xs,
+    backgroundColor: colors.overlay5,
+  },
   keyOff: { opacity: 0.3 },
   value: { minWidth: 20, textAlign: "center" },
+  valueBig: { minWidth: 22, fontFamily: "Roboto_600SemiBold" },
 });

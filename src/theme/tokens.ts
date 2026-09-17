@@ -66,14 +66,21 @@ export const space = {
 
 /**
  * Square edges are the house rule — dialogs, cards, buttons, chips and tiles
- * all have none. The only exceptions are the switch track and its knob, which
- * stop reading as a switch without them.
+ * all have none. Three exceptions, and only three: the switch track and knob,
+ * which stop reading as a switch without them; the drawn card face; and the
+ * top of a bottom sheet.
  */
 export const radii = {
   none: 0,
   pill: 9999,
-  /** The saved-card face, the one drawn object that keeps its corners. */
+  /** The saved-card face, a drawn object that keeps its corners. */
   card: 24,
+  /**
+   * The bottom sheet's top two corners (346:47133). The third and last
+   * exception to the square rule: a square-topped panel sliding up from the
+   * bottom edge reads as a new screen, which is what a sheet must not be.
+   */
+  sheet: 38,
 } as const;
 
 export const fonts = {

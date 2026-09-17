@@ -23,7 +23,7 @@ import {
   type BookingTicket,
 } from "../../data/booking";
 import { getEvent } from "../../data/events";
-import { adjust, totals as priceCart, type Cart } from "./cart";
+import { adjust, quantityOf, totals as priceCart, type Cart } from "./cart";
 import { TicketsStep } from "./TicketsStep";
 import { ExtrasStep } from "./ExtrasStep";
 import { CheckoutStep } from "./CheckoutStep";
@@ -324,17 +324,24 @@ export function BookingScreen() {
 
       <TicketInfoSheet
         ticket={infoTicket}
+        quantity={infoTicket ? quantityOf(cart, infoTicket.id) : 0}
         onClose={() => setInfoTicket(null)}
+        onAdjust={(ticket, by) => addTicket(ticket.id, by)}
         onAdd={(ticket) => {
-          addTicket(ticket.id, 1);
+          /* Add to cart closes the sheet, but only adds if the stepper in it
+             has not already put one in — otherwise pressing both puts two in
+             when you asked for one. */
+          if (quantityOf(cart, ticket.id) === 0) addTicket(ticket.id, 1);
           setInfoTicket(null);
         }}
       />
       <ItemDetailsSheet
         addon={detailsAddon}
+        cart={cart}
         onClose={() => setDetailsAddon(null)}
+        onAdjust={(addon, by, size) => addAddon(addon, by, size)}
         onAdd={(addon, size) => {
-          addAddon(addon, 1, size);
+          if (quantityOf(cart, addon.id, size) === 0) addAddon(addon, 1, size);
           setDetailsAddon(null);
         }}
       />

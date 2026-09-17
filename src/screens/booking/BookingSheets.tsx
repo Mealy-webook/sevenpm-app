@@ -6,12 +6,14 @@ import Check from "../../icons/ic-check-on.svg";
 import Clear from "../../icons/ic-clear-20.svg";
 import { Button } from "../../components/Button";
 import { Chip } from "../../components/Chip";
+import { Dock } from "../../components/Dock";
 import { Field, Sheet, SheetPrice } from "../../components/Sheet";
+import { Stepper } from "../../components/Stepper";
 import { Tap } from "../../components/Tap";
 import { icon } from "../../icons";
 import { image } from "../../images";
 import { Text } from "../../theme/Text";
-import { colors, gutter, space } from "../../theme/tokens";
+import { colors, radii, space } from "../../theme/tokens";
 import {
   bookingCopy,
   deliveryCountries,
@@ -21,7 +23,7 @@ import {
   type BookingAddon,
   type BookingTicket,
 } from "../../data/booking";
-import type { Totals } from "./cart";
+import { quantityOf, type Cart, type Totals } from "./cart";
 
 /**
  * The sheets the booking journey opens. They are gathered in one module
@@ -32,14 +34,24 @@ import type { Totals } from "./cart";
  * decision it was opened to collect.
  */
 
-/** What is in a ticket — the line-up it admits you to. Figma 2078:45259. */
+/**
+ * What is in a ticket — the line-up it admits you to. Figma 346:47116.
+ *
+ * The sheet is titled with the ticket itself rather than with the word
+ * "details", so the thing you tapped is the thing named at the top.
+ */
 export function TicketInfoSheet({
   ticket,
+  quantity,
   onClose,
+  onAdjust,
   onAdd,
 }: {
   ticket: BookingTicket | null;
+  /** How many are already in the basket, so the sheet opens in step with it. */
+  quantity: number;
   onClose: () => void;
+  onAdjust: (ticket: BookingTicket, by: number) => void;
   onAdd: (ticket: BookingTicket) => void;
 }) {
   return (
@@ -50,27 +62,18 @@ export function TicketInfoSheet({
       closeLabel={bookingCopy.ticketInfo.close}
       footer={
         ticket ? (
-          <View style={styles.dock}>
-            <SheetPrice
-              price={ticket.price}
-              wasPrice={ticket.wasPrice}
-              discount={ticket.discount}
-              suffix={bookingCopy.ticketInfo.perPerson}
-              format={formatMoney}
-            />
+          <Dock surface="panel">
             <Button
               variant="primary"
               label={bookingCopy.ticketInfo.addToCart}
               onPress={() => onAdd(ticket)}
-              style={styles.dockCta}
             />
-          </View>
+          </Dock>
         ) : undefined
       }
     >
-      <Text variant="bodySBold" uppercase color={colors.contentSecondary}>
-        {bookingCopy.ticketInfo.lineup}
-      </Text>
+      <Text variant="bodyBold">{bookingCopy.ticketInfo.lineup}</Text>
+
       {ticket?.lineup.map((slot, index) => (
         <View key={`${slot.name}-${index}`} style={styles.slot}>
           <Image
@@ -79,27 +82,57 @@ export function TicketInfoSheet({
             contentFit="cover"
           />
           <View style={styles.slotBody}>
-            <Text variant="bodyBold" numberOfLines={1}>
+            <Text variant="bodyS" numberOfLines={1}>
               {slot.name}
             </Text>
-            <Text variant="bodyS" color={colors.contentSecondary}>
+            <Text variant="caption" color={colors.contentSecondary}>
               {slot.time}
             </Text>
           </View>
         </View>
       ))}
+
+      {ticket && (
+        <>
+          <View style={styles.rule} />
+          <View style={styles.priceRow}>
+            <SheetPrice
+              price={ticket.price}
+              wasPrice={ticket.wasPrice}
+              discount={ticket.discount}
+              suffix={bookingCopy.ticketInfo.perPerson}
+              format={formatMoney}
+            />
+            <Stepper
+              size="m"
+              value={quantity}
+              name={ticket.name}
+              onAdd={() => onAdjust(ticket, 1)}
+              onChange={(by) => onAdjust(ticket, by)}
+            />
+          </View>
+        </>
+      )}
     </Sheet>
   );
 }
 
-/** A merchandise item and its sizes. Figma 2196:11760. */
+/** A merchandise item and its sizes. Figma 346:47132. */
 export function ItemDetailsSheet({
   addon,
+  cart,
   onClose,
+  onAdjust,
   onAdd,
 }: {
   addon: BookingAddon | null;
+  /**
+   * The basket rather than a count: the sheet owns which size is selected, so
+   * it is the only thing that can say how many of *that* size are in it.
+   */
+  cart: Cart;
   onClose: () => void;
+  onAdjust: (addon: BookingAddon, by: number, size?: string) => void;
   onAdd: (addon: BookingAddon, size?: string) => void;
 }) {
   const [size, setSize] = useState<string | undefined>();
@@ -116,20 +149,13 @@ export function ItemDetailsSheet({
       closeLabel={bookingCopy.extras.close}
       footer={
         addon ? (
-          <View style={styles.dock}>
-            <SheetPrice
-              price={addon.price}
-              wasPrice={addon.wasPrice}
-              discount={addon.discount}
-              format={formatMoney}
-            />
+          <Dock surface="panel">
             <Button
               variant="primary"
               label={bookingCopy.extras.addToCart}
               onPress={() => onAdd(addon, size)}
-              style={styles.dockCta}
             />
-          </View>
+          </Dock>
         ) : undefined
       }
     >
@@ -140,12 +166,14 @@ export function ItemDetailsSheet({
           contentFit="cover"
         />
       )}
-      <Text variant="bodyL">{addon?.name}</Text>
+
+      <Text variant="titleBody" uppercase>
+        {addon?.name}
+      </Text>
+
       {addon?.sizes && (
-        <View style={styles.sizes}>
-          <Text variant="bodySBold" color={colors.contentSecondary}>
-            {bookingCopy.extras.size}
-          </Text>
+        <>
+          <Text variant="bodyBold">{bookingCopy.extras.size}</Text>
           <View style={styles.sizeRow}>
             {addon.sizes.map((option) => (
               <Chip
@@ -156,13 +184,34 @@ export function ItemDetailsSheet({
               />
             ))}
           </View>
-        </View>
+        </>
+      )}
+
+      {addon && (
+        <>
+          <View style={styles.rule} />
+          <View style={styles.priceRow}>
+            <SheetPrice
+              price={addon.price}
+              wasPrice={addon.wasPrice}
+              discount={addon.discount}
+              format={formatMoney}
+            />
+            <Stepper
+              size="m"
+              value={quantityOf(cart, addon.id, size)}
+              name={addon.name}
+              onAdd={() => onAdjust(addon, 1, size)}
+              onChange={(by) => onAdjust(addon, by, size)}
+            />
+          </View>
+        </>
       )}
     </Sheet>
   );
 }
 
-/** Everything in the basket, priced. Figma 2213:14113. */
+/** Everything in the basket, priced. Figma 346:47155. */
 export function OrderSummarySheet({
   open,
   onClose,
@@ -210,12 +259,15 @@ export function OrderSummarySheet({
         </Section>
       )}
 
+      <View style={styles.rule} />
+
       <View style={styles.totals}>
         <TotalRow label={copy.subtotal} value={formatMoney(totals.subtotal)} />
         {totals.wallet > 0 && (
           <TotalRow
             label={copy.wallet}
-            value={`− ${formatMoney(totals.wallet)}`}
+            value={`-${formatMoney(totals.wallet)}`}
+            tone="positive"
           />
         )}
         <TotalRow
@@ -228,8 +280,6 @@ export function OrderSummarySheet({
     </Sheet>
   );
 }
-
-/** The promo code. Figma 2146:7159 / 7509 / 7842. */
 export function PromoSheet({
   open,
   onClose,
@@ -568,6 +618,11 @@ function LineRow({
   const Mark = icon(path);
   return (
     <View style={styles.line}>
+      {/* The comp leads with the count — "1x", before the mark — so a summary
+          reads as a list of quantities rather than of things. */}
+      <Text variant="bodyS" color={colors.contentSecondary}>
+        {qty}x
+      </Text>
       {Mark && <Mark width={16} height={16} />}
       <View style={styles.lineBody}>
         <Text variant="bodyS" numberOfLines={2}>
@@ -579,9 +634,6 @@ function LineRow({
           </Text>
         )}
       </View>
-      <Text variant="caption" color={colors.contentSecondary}>
-        × {qty}
-      </Text>
       <Text variant="bodySBold">{amount}</Text>
     </View>
   );
@@ -593,11 +645,14 @@ export function TotalRow({
   value,
   strong = false,
   note,
+  tone = "default",
 }: {
   label: string;
   value: string;
   strong?: boolean;
   note?: string;
+  /** `positive` is money coming back — a credit, a discount. */
+  tone?: "default" | "positive";
 }) {
   return (
     <View style={styles.total}>
@@ -609,7 +664,11 @@ export function TotalRow({
         >
           {label}
         </Text>
-        <Text variant={strong ? "bodyL" : "body"} style={strong && styles.semibold}>
+        <Text
+          variant={strong ? "bodyL" : "body"}
+          color={tone === "positive" ? colors.positive : undefined}
+          style={strong && styles.semibold}
+        >
           {value}
         </Text>
       </View>
@@ -665,24 +724,23 @@ export function Option({
 }
 
 const styles = StyleSheet.create({
-  dock: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.m,
-    padding: gutter,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.borderTertiary,
-  },
-  dockCta: { flex: 1 },
   pressed: { opacity: 0.7 },
   semibold: { fontFamily: "Roboto_600SemiBold" },
   right: { textAlign: "right" },
 
   slot: { flexDirection: "row", alignItems: "center", gap: space.m },
-  slotPortrait: { width: 48, height: 48, backgroundColor: colors.bgTertiary },
+  slotPortrait: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.pill,
+    backgroundColor: colors.bgTertiary,
+  },
   slotBody: { flex: 1, minWidth: 0 },
 
-  itemShot: { width: "100%", height: 220, backgroundColor: colors.bgTertiary },
+  itemShot: { width: "100%", height: 277, backgroundColor: colors.bgTertiary },
+  /* The hairline the comps draw between a sheet's content and its price. */
+  rule: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderTertiary },
+  priceRow: { flexDirection: "row", alignItems: "center", gap: space.l },
   sizes: { gap: space.s },
   sizeRow: { flexDirection: "row", flexWrap: "wrap", gap: space.s },
 
@@ -690,12 +748,7 @@ const styles = StyleSheet.create({
   line: { flexDirection: "row", alignItems: "center", gap: space.s },
   lineBody: { flex: 1, minWidth: 0 },
 
-  totals: {
-    gap: space.s,
-    paddingTop: space.l,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.borderTertiary,
-  },
+  totals: { gap: space.s },
   total: { gap: 2 },
   totalLine: { flexDirection: "row", alignItems: "baseline", gap: space.m },
   totalLabel: { flex: 1, minWidth: 0 },
