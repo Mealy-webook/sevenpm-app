@@ -11,6 +11,7 @@ import { image } from "../images";
 import { Text } from "../theme/Text";
 import { colors, gutter, space } from "../theme/tokens";
 import type { RootParamList } from "../navigation/RootNavigator";
+import { TAB_BAR_CLEARANCE } from "../navigation/TabBar";
 import { newsArticles, newsCategories, newsCopy } from "../data/news";
 
 /**
@@ -38,7 +39,12 @@ export function NewsScreen() {
 
   return (
     <Page>
-      <NavBar title={newsCopy.title} onBack={navigation.goBack} />
+      {/* News is both a tab root and a push from Discover's "Load more", so
+          the back control appears only when there is somewhere to go back to. */}
+      <NavBar
+        title={newsCopy.title}
+        onBack={navigation.canGoBack() ? navigation.goBack : undefined}
+      />
 
       <ScrollView contentContainerStyle={styles.body}>
         <Text variant="body" color={colors.contentSecondary}>
@@ -157,7 +163,8 @@ export function ArticleScreen() {
 }
 
 const styles = StyleSheet.create({
-  body: { padding: gutter, paddingBottom: space.section, gap: space.l },
+  /* News is a tab, and the bar floats over it. */
+  body: { padding: gutter, paddingBottom: TAB_BAR_CLEARANCE, gap: space.l },
   chips: { flexDirection: "row", gap: space.s, paddingRight: gutter },
 
   row: {

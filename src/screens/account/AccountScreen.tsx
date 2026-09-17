@@ -18,6 +18,7 @@ import { icon } from "../../icons";
 import { Text } from "../../theme/Text";
 import { colors, displaySize, space, type } from "../../theme/tokens";
 import type { RootParamList } from "../../navigation/RootNavigator";
+import { TAB_BAR_CLEARANCE } from "../../navigation/TabBar";
 import { homeStory } from "../../data/home";
 import {
   accountUser,
@@ -70,7 +71,7 @@ export function AccountScreen() {
       style={styles.page}
       contentContainerStyle={{
         paddingTop: insets.top + space.s,
-        paddingBottom: space.section,
+        paddingBottom: TAB_BAR_CLEARANCE,
       }}
     >
       {/* The balance sits where a screen title's action would. */}

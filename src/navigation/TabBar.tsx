@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { Animated, Pressable, StyleSheet, View } from "react-native";
+import { Animated, Platform, Pressable, StyleSheet, View } from "react-native";
+import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
@@ -34,6 +35,18 @@ import { colors } from "../theme/tokens";
  *
  * The icons are filled rather than stroked, so the active weight is carried by
  * colour alone instead of by the source's `strokeWidth`.
+ *
+ * **It floats.** The bar is positioned over the screen rather than laid out
+ * below it, so content scrolls underneath and the glass has something to blur.
+ * That means it no longer reserves any height, and every tab screen has to pay
+ * for its own clearance — `useBottomTabBarHeight()` gives them the figure, and
+ * `TAB_BAR_CLEARANCE` is what a screen should add to its scroll padding.
+ *
+ * The glass is a real blur (`expo-blur`) with a dark tint and a thin fill over
+ * it, replacing the flat 90% black the source used — the source sits on a
+ * fixed page and has nothing to blur. On Android the blur is the experimental
+ * implementation and degrades to the fill alone if it is unavailable, which
+ * still reads correctly, just flatter.
  *
  * **It has no labels**, because the source has none. That is a real departure
  * from the Figma comps, which label all five. The names are still on every
@@ -104,8 +117,17 @@ export function TabBar({
            around it. */
         { paddingBottom: Math.max(insets.bottom - 14, GAP) },
       ]}
+      pointerEvents="box-none"
     >
       <View style={styles.bar}>
+        <BlurView
+          intensity={40}
+          tint="dark"
+          experimentalBlurMethod="dimezisBlurView"
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+        <View style={[StyleSheet.absoluteFill, styles.glass]} pointerEvents="none" />
         {/* The rail, on the bar's top edge. */}
         <Animated.View
           style={[
@@ -174,6 +196,7 @@ export function TabBar({
   );
 }
 
+
 const ITEM = 48;
 const GAP = 8;
 const PITCH = ITEM + GAP * 2;
@@ -184,6 +207,12 @@ const LIGHT_HEADROOM = 28;
 const DURATION = 400;
 /** The source's `transitionDelay: '0.1s'` on the active item's light. */
 const LIGHT_DELAY = 100;
+
+/**
+ * What a tab screen must add to the bottom of its scroll so its last row is
+ * not hidden under the bar. The bar floats, so nothing reserves this for them.
+ */
+export const TAB_BAR_CLEARANCE = LIGHT_HEADROOM + ITEM + 12 * 2 + 24;
 /** The source's `from-white/40`. */
 const LIGHT_ALPHA = 0.4;
 /* Tailwind's gray-500, which is what the source dims an inactive icon to. */
@@ -203,21 +232,36 @@ const styles = StyleSheet.create({
    * where the shape begins and has faded to almost nothing 28pt above that,
    * which is what this is. The bar now costs 120pt instead of 154.
    */
-  dock: { alignItems: "center", paddingTop: LIGHT_HEADROOM },
+  dock: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    paddingTop: LIGHT_HEADROOM,
+  },
   bar: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: GAP,
     paddingVertical: 12,
-    backgroundColor: "rgba(0,0,0,0.9)",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.overlay10,
     borderRadius: 6,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOpacity: 0.35,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     elevation: 8,
+  },
+  /* A thin fill over the blur. Without it the glass is too transparent for
+     white icons to hold against bright artwork scrolling underneath. */
+  glass: {
+    backgroundColor: Platform.select({
+      ios: "rgba(0,0,0,0.35)",
+      default: "rgba(0,0,0,0.6)",
+    }),
   },
   rail: {
     position: "absolute",

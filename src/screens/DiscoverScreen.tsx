@@ -19,6 +19,7 @@ import { image } from "../images";
 import { Text } from "../theme/Text";
 import { colors, displaySize, radii, space, type } from "../theme/tokens";
 import type { RootParamList } from "../navigation/RootNavigator";
+import { TAB_BAR_CLEARANCE } from "../navigation/TabBar";
 import { loyaltyBalance } from "../data/account";
 import { useWatchedStories } from "./watchedStories";
 import {
@@ -79,7 +80,8 @@ export function DiscoverScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: space.xl }}>
+      {/* The bar floats over this screen, so the last row buys its own room. */}
+      <ScrollView contentContainerStyle={{ paddingBottom: TAB_BAR_CLEARANCE }}>
         {/* Stories */}
         <ScrollView
           horizontal

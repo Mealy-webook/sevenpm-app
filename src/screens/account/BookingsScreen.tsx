@@ -13,6 +13,7 @@ import { image } from "../../images";
 import { Text } from "../../theme/Text";
 import { colors, gutter, space } from "../../theme/tokens";
 import type { RootParamList } from "../../navigation/RootNavigator";
+import { TAB_BAR_CLEARANCE } from "../../navigation/TabBar";
 import { bookings, bookingsCopy } from "../../data/account";
 
 /**
@@ -39,7 +40,7 @@ export function BookingsScreen() {
       style={styles.page}
       contentContainerStyle={[
         styles.body,
-        { paddingTop: insets.top + space.l, paddingBottom: space.section },
+        { paddingTop: insets.top + space.l, paddingBottom: TAB_BAR_CLEARANCE },
       ]}
     >
       <Text variant="sectionTitle" uppercase>
