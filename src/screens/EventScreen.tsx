@@ -14,11 +14,9 @@ import { useNavigation, useRoute, type RouteProp } from "@react-navigation/nativ
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import ArrowLeft from "../icons/ic-arrow-left-20.svg";
-import Clock from "../icons/ic-clock-16.svg";
 import MapPin from "../icons/ic-map-pin.svg";
 import Minus from "../icons/ic-minus.svg";
 import Navigate from "../icons/ic-navigate-20.svg";
-import Pin from "../icons/ic-pin-16.svg";
 import Plus from "../icons/ic-plus.svg";
 import ShareIcon from "../icons/ic-share-20.svg";
 import { Button } from "../components/Button";
@@ -35,24 +33,51 @@ import { bookingConfig } from "../data/booking";
 import { getEvent, type ArtistGroup } from "../data/events";
 
 /**
- * The event page, from Figma 410:6401 — 390 × 3357 of it.
+ * The event page, from Figma 410:6401.
  *
- * The comp's running order is: what it is, when the gates open, what a ticket
- * costs, who is playing, where it is, what it looks like, what you may bring,
- * and what people ask. The page is a single scroll with the artwork square at
- * the top rather than a hero with a docked action, so the "Get your ticket"
- * press lives on each ticket rather than at the bottom of the screen.
+ * Two things about this page are not like the rest of the app, and both are
+ * deliberate in the comp.
  *
- * The ticket cards are stubs: a panel with a bite taken out of each side at
- * the shoulder. Figma draws that as a subtracted shape; here it is the panel
- * plus two circles in the page colour, which is the same picture and survives
- * a change of card height.
+ * The tickets are **paper**: a grey stub holding a sheet of textured white
+ * card, with the type in near-black. Every other surface in this system is
+ * dark with light type, and the inversion is the point — a ticket should look
+ * like an object you were handed, not like another panel. The paper is the
+ * comp's own artwork, cut to shape with its corner notches already in the
+ * alpha, so the shape survives whatever height the content needs.
  *
- * Sponsors are **not** in this comp. They are kept, last, because a festival's
+ * And the schedule tiles have no panels. They are three columns divided by
+ * hairlines, which is why they read as one band of facts rather than as three
+ * cards.
+ *
+ * Sponsors are not in this comp. They are kept, last, because a festival's
  * sponsor billing is usually contractual and dropping it is not a decision a
- * port should make quietly — but it is the one block on this page with no
- * comp behind it.
+ * port should make quietly — it is the one block here with no comp behind it.
  */
+
+/**
+ * The line-up photography ships with the app comps and is not in the web
+ * build, whose artist entries are numbered placeholders. Names and set times
+ * still come from the shared data; only the faces are local to this file.
+ */
+const LINEUP = [
+  "/assets/lineup-1.jpg",
+  "/assets/lineup-2.jpg",
+  "/assets/lineup-3.jpg",
+  "/assets/lineup-4.jpg",
+  "/assets/lineup-5.jpg",
+  "/assets/lineup-6.jpg",
+  "/assets/lineup-7.jpg",
+  "/assets/lineup-8.jpg",
+  "/assets/lineup-9.jpg",
+];
+
+const GALLERY = [
+  "/assets/event-gallery-1.jpg",
+  "/assets/event-gallery-2.jpg",
+  "/assets/event-gallery-3.jpg",
+  "/assets/event-gallery-4.jpg",
+];
+
 export function EventScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -75,13 +100,12 @@ export function EventScreen() {
     );
   }
 
-  const artists = event.artistDays[day];
   const book = () => navigation.navigate("Booking", { slug: event.slug });
+  const heading = displaySize(type.displayStep, width);
 
   return (
     <Page>
       <ScrollView contentContainerStyle={{ paddingBottom: space.section }}>
-        {/* The artwork is square and the page starts on top of it. */}
         <View style={{ height: width }}>
           <Image
             source={image("/assets/event-hero.jpg")}
@@ -98,37 +122,38 @@ export function EventScreen() {
 
         {/* Name, when, where, what. */}
         <View style={[styles.section, styles.overlap]}>
-          <Text
-            variant="displayStep"
-            uppercase
-            color={colors.white}
-            style={displaySize(type.displayStep, width)}
-          >
+          <Text variant="displayStep" uppercase color={colors.white} style={heading}>
             {event.name}
           </Text>
 
-          <View style={styles.metaRow}>
-            <Clock width={16} height={16} />
-            <Text variant="bodyS" color={colors.contentSecondary}>
-              {bookingConfig.sessionTime}
-            </Text>
-          </View>
-          <View style={styles.metaRow}>
-            <Pin width={16} height={16} />
-            <Text variant="bodyS" color={colors.contentSecondary} numberOfLines={2}>
+          {/* The time is the accent, and the venue is a link. Neither carries
+              an icon in the comp — the colour and the underline do that job. */}
+          <Text variant="bodySBold" color={colors.brand}>
+            {bookingConfig.sessionTime}
+          </Text>
+          <Tap
+            accessibilityRole="link"
+            onPress={() => Linking.openURL(event.venue.directionsUrl)}
+            scale={0.99}
+          >
+            <Text variant="bodySBold" style={styles.link}>
               {event.venue.name}
             </Text>
-          </View>
+          </Tap>
 
-          <Text variant="body" color={colors.contentSecondary}>
+          <Text variant="body" style={styles.intro}>
             {event.intro}
           </Text>
 
+          {/* Three columns divided by hairlines — no panels. */}
           <View style={styles.tiles}>
-            {event.schedule.map((tile) => {
+            {event.schedule.map((tile, index) => {
               const Mark = icon(tile.icon);
               return (
-                <View key={tile.label} style={styles.tile}>
+                <View
+                  key={tile.label}
+                  style={[styles.tile, index > 0 && styles.tileDivided]}
+                >
                   {Mark && <Mark width={24} height={24} />}
                   <Text variant="caption" color={colors.contentSecondary}>
                     {tile.label}
@@ -139,53 +164,54 @@ export function EventScreen() {
             })}
           </View>
 
-          <Button
-            variant="primary"
-            label={eventCopy.exploreTickets}
-            onPress={book}
-          />
+          <Button variant="brand" label={eventCopy.exploreTickets} onPress={book} />
         </View>
 
-        {/* The headline figure, then the stubs. */}
+        {/* Tickets */}
         <View style={styles.section}>
-          {event.stat && (
-            <View style={styles.stat}>
-              <Text
-                variant="displayCard"
-                color={colors.white}
-                style={displaySize(type.displayCard, width)}
-              >
-                {event.stat.value}
-              </Text>
-              <Text variant="bodyBold" color={colors.contentSecondary}>
-                {event.stat.label}
-              </Text>
-            </View>
-          )}
-
+          <Text variant="displayStep" uppercase color={colors.white} style={heading}>
+            {eventCopy.tickets}
+          </Text>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.rail}
+        >
           {event.ticketTiers.map((tier) => (
             <View key={tier.id} style={styles.stub}>
-              {/* The bite out of each shoulder. */}
-              <View style={[styles.notch, styles.notchLeft]} />
-              <View style={[styles.notch, styles.notchRight]} />
-
+              <Image
+                source={image("/assets/ticket-paper.png")}
+                style={StyleSheet.absoluteFill}
+                contentFit="fill"
+              />
               <View style={styles.stubBody}>
-                <Text variant="caption" color={colors.contentSecondary}>
-                  {tier.kicker}
+                <Text
+                  variant="captionBold"
+                  uppercase
+                  color={colors.ink900}
+                  style={styles.kicker}
+                >
+                  {`★  ${tier.kicker}  ★`}
                 </Text>
-                <Text variant="titleBody" uppercase>
+                <Text
+                  variant="displayM"
+                  uppercase
+                  color={colors.ink900}
+                  style={displaySize(type.displayM, width)}
+                >
                   {tier.title}
                 </Text>
 
                 <View style={styles.priceRow}>
-                  <Text variant="bodyS" color={colors.contentSecondary}>
+                  <Text variant="body" color={colors.ink800}>
                     {eventCopy.from}
                   </Text>
-                  <Text variant="bodyL" style={styles.semibold}>
+                  <Text variant="bodyL" color={colors.ink900} style={styles.semibold}>
                     {tier.priceFrom} {tier.currency}
                   </Text>
-                  <Text variant="caption" color={colors.contentSecondary}>
-                    / Person
+                  <Text variant="bodyS" color={colors.ink600}>
+                    {eventCopy.perPerson}
                   </Text>
                 </View>
                 {(tier.wasPrice || tier.discount) && (
@@ -193,7 +219,7 @@ export function EventScreen() {
                     {tier.wasPrice && (
                       <Text
                         variant="caption"
-                        color={colors.contentSecondary}
+                        color={colors.ink600}
                         style={styles.struck}
                       >
                         {tier.wasPrice} {tier.currency}
@@ -206,16 +232,28 @@ export function EventScreen() {
                     )}
                   </View>
                 )}
-              </View>
 
-              <Button label={tier.cta} onPress={book} />
+                {/* Dark ink on paper: the button inverts with the card. */}
+                <Tap
+                  accessibilityRole="button"
+                  accessibilityLabel={tier.cta}
+                  onPress={book}
+                  style={styles.stubCta}
+                >
+                  <Text variant="bodyL" color={colors.white} style={styles.semibold}>
+                    {tier.cta}
+                  </Text>
+                </Tap>
+              </View>
             </View>
           ))}
-        </View>
+        </ScrollView>
 
         {/* Line-up */}
         <View style={styles.section}>
-          <SectionHeading width={width}>{eventCopy.lineup}</SectionHeading>
+          <Text variant="displayStep" uppercase color={colors.white} style={heading}>
+            {eventCopy.lineup}
+          </Text>
           <View style={styles.chips}>
             {event.artistDays.map((item, index) => (
               <Chip
@@ -226,31 +264,24 @@ export function EventScreen() {
               />
             ))}
           </View>
-          <View style={styles.acts}>
-            {artists.groups.flatMap(flattenArtists).map((act, index) => (
-              <View key={`${act.name}-${index}`} style={styles.act}>
-                <Image
-                  source={image(act.image)}
-                  style={styles.actPortrait}
-                  contentFit="cover"
-                  transition={300}
-                />
-                <Text variant="bodyBold" numberOfLines={1}>
-                  {act.name}
-                </Text>
-                {act.time && (
-                  <Text variant="bodyS" color={colors.contentSecondary}>
-                    {act.time}
-                  </Text>
-                )}
-              </View>
-            ))}
-          </View>
         </View>
+        {/* Circles, sized by their group: a solo act is one large one, a block
+            is four small. They run off the right edge as the comp draws them. */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.rail}
+        >
+          {event.artistDays[day].groups.map((group, gi) => (
+            <ArtistGroupView key={`${group.type}-${gi}`} group={group} index={gi} />
+          ))}
+        </ScrollView>
 
         {/* Location */}
         <View style={styles.section}>
-          <SectionHeading width={width}>{eventCopy.location}</SectionHeading>
+          <Text variant="displayStep" uppercase color={colors.white} style={heading}>
+            {eventCopy.location}
+          </Text>
           <View>
             <Image
               source={image("/assets/event-map.jpg")}
@@ -263,10 +294,15 @@ export function EventScreen() {
             </View>
           </View>
           <View style={styles.venue}>
-            <Text variant="bodyBold" style={styles.venueName}>
+            <Text
+              variant="body"
+              color={colors.contentSecondary}
+              style={styles.venueName}
+            >
               {event.venue.name}
             </Text>
             <Button
+              variant="primary"
               label={eventCopy.directions}
               icon={Navigate}
               onPress={() => Linking.openURL(event.venue.directionsUrl)}
@@ -276,17 +312,19 @@ export function EventScreen() {
 
         {/* Gallery */}
         <View style={styles.section}>
-          <SectionHeading width={width}>{eventCopy.gallery}</SectionHeading>
+          <Text variant="displayStep" uppercase color={colors.white} style={heading}>
+            {eventCopy.gallery}
+          </Text>
         </View>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.gallery}
+          contentContainerStyle={styles.rail}
         >
-          {event.gallery.map((shot) => (
+          {GALLERY.map((shot) => (
             <Image
-              key={shot.image}
-              source={image(shot.image)}
+              key={shot}
+              source={image(shot)}
               style={styles.shot}
               contentFit="cover"
               transition={300}
@@ -294,9 +332,11 @@ export function EventScreen() {
           ))}
         </ScrollView>
 
-        {/* Good to know */}
+        {/* Good to know — panels, two across. */}
         <View style={styles.section}>
-          <SectionHeading width={width}>{eventCopy.goodToKnow}</SectionHeading>
+          <Text variant="displayStep" uppercase color={colors.white} style={heading}>
+            {eventCopy.goodToKnow}
+          </Text>
           <View style={styles.infoGrid}>
             {event.infoTiles.map((info) => {
               const Mark = icon(info.icon);
@@ -313,9 +353,11 @@ export function EventScreen() {
           </View>
         </View>
 
-        {/* FAQs — the comp opens the first one, so the block shows what it is */}
+        {/* FAQs — the control is on the left, ahead of the question. */}
         <View style={styles.section}>
-          <SectionHeading width={width}>{eventCopy.faqs}</SectionHeading>
+          <Text variant="displayStep" uppercase color={colors.white} style={heading}>
+            {eventCopy.faqs}
+          </Text>
           <View>
             {event.faq.map((item, index) => {
               const open = openFaq === index;
@@ -328,21 +370,23 @@ export function EventScreen() {
                   scale={0.995}
                   style={styles.faq}
                 >
-                  <View style={styles.faqHead}>
-                    <Text variant="body" style={styles.faqQuestion}>
-                      {item.question}
-                    </Text>
+                  <View style={styles.faqMark}>
                     {open ? (
                       <Minus width={20} height={20} />
                     ) : (
                       <Plus width={20} height={20} />
                     )}
                   </View>
-                  {open && item.answer && (
-                    <Text variant="bodyS" color={colors.contentSecondary}>
-                      {item.answer}
+                  <View style={styles.faqBody}>
+                    <Text variant="bodyL" color={colors.white} style={styles.semibold}>
+                      {item.question}
                     </Text>
-                  )}
+                    {open && item.answer && (
+                      <Text variant="body" color={colors.contentSecondary}>
+                        {item.answer}
+                      </Text>
+                    )}
+                  </View>
                 </Tap>
               );
             })}
@@ -351,7 +395,9 @@ export function EventScreen() {
 
         {/* Sponsors — not in the comp; see the note at the top of this file. */}
         <View style={styles.section}>
-          <SectionHeading width={width}>{eventCopy.sponsors}</SectionHeading>
+          <Text variant="displayStep" uppercase color={colors.white} style={heading}>
+            {eventCopy.sponsors}
+          </Text>
           <View style={styles.sponsors}>
             {[event.officialSponsor, ...event.goldSponsors].map((sponsor) => {
               const Logo = icon(sponsor.logo);
@@ -369,7 +415,6 @@ export function EventScreen() {
         </View>
       </ScrollView>
 
-      {/* The bar floats over the artwork rather than sitting on a band. */}
       <View style={[styles.bar, { paddingTop: insets.top + space.s }]}>
         <Tap
           accessibilityRole="button"
@@ -395,104 +440,136 @@ export function EventScreen() {
   );
 }
 
-/** Every section on this page is titled the same way. */
-function SectionHeading({
-  children,
-  width,
+const SOLO = 200;
+const SMALL = 96;
+
+/** A solo act is one large circle; a block is a 2 × 2 of small ones. */
+function ArtistGroupView({
+  group,
+  index,
 }: {
-  children: string;
-  width: number;
+  group: ArtistGroup;
+  index: number;
 }) {
+  if (group.type === "solo") {
+    return (
+      <View style={styles.act}>
+        <Image
+          source={image(LINEUP[index % LINEUP.length])}
+          style={styles.soloCircle}
+          contentFit="cover"
+          transition={300}
+        />
+        <Text variant="bodyBold" numberOfLines={1}>
+          {group.name}
+        </Text>
+        {group.time && (
+          <Text variant="bodyS" color={colors.contentSecondary}>
+            {group.time}
+          </Text>
+        )}
+      </View>
+    );
+  }
+
   return (
-    <Text
-      variant="displayCard"
-      uppercase
-      color={colors.white}
-      style={displaySize(type.displayCard, width)}
-    >
-      {children}
-    </Text>
+    <View style={styles.quad}>
+      {group.items.map((item, i) =>
+        item ? (
+          <View key={`${item.name}-${i}`} style={styles.quadCell}>
+            <Image
+              source={image(LINEUP[(index + i + 1) % LINEUP.length])}
+              style={styles.smallCircle}
+              contentFit="cover"
+              transition={300}
+            />
+          </View>
+        ) : (
+          <View key={`gap-${i}`} style={styles.quadCell} />
+        ),
+      )}
+    </View>
   );
 }
 
-/** The comp's solo circles and 2×2 blocks are one list on a phone. */
-function flattenArtists(group: ArtistGroup) {
-  if (group.type === "solo") {
-    return [{ image: group.image, name: group.name, time: group.time }];
-  }
-  return group.items.filter((item) => item !== null);
-}
-
-const NOTCH = 24;
-
 const styles = StyleSheet.create({
   section: { paddingHorizontal: space.xl, paddingTop: space.xl, gap: space.m },
-  /* The copy starts over the foot of the square artwork. */
   overlap: { marginTop: -space.section },
   semibold: { fontFamily: "Roboto_600SemiBold" },
   struck: { textDecorationLine: "line-through" },
+  link: { textDecorationLine: "underline" },
+  intro: { marginTop: space.s },
+  rail: { gap: space.l, paddingHorizontal: space.xl, paddingTop: space.m },
 
-  metaRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
-
-  tiles: { flexDirection: "row", gap: space.s, marginTop: space.s },
-  tile: {
-    flex: 1,
-    gap: space.xs,
-    padding: space.m,
-    backgroundColor: colors.bgSecondary,
+  tiles: { flexDirection: "row", marginTop: space.m },
+  tile: { flex: 1, gap: space.xs, paddingHorizontal: space.m },
+  /* The hairline between columns is what makes them one band. */
+  tileDivided: {
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: colors.borderTertiary,
   },
 
-  stat: { flexDirection: "row", alignItems: "baseline", gap: space.s },
-
-  stub: {
-    flexDirection: "row",
+  /* Paper, not panel: the type on this card is near-black. */
+  stub: { width: 320, minHeight: 300, padding: space.xl, justifyContent: "center" },
+  stubBody: { gap: space.xs, alignItems: "center" },
+  kicker: { letterSpacing: 1.2 },
+  stubCta: {
+    marginTop: space.m,
+    alignSelf: "stretch",
     alignItems: "center",
-    gap: space.m,
-    padding: space.l,
-    backgroundColor: colors.bgSecondary,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.overlay10,
-    overflow: "hidden",
+    paddingVertical: space.l,
+    backgroundColor: colors.ink700,
   },
-  stubBody: { flex: 1, minWidth: 0, gap: space.xs },
-  notch: {
-    position: "absolute",
-    top: "50%",
-    width: NOTCH,
-    height: NOTCH,
-    marginTop: -NOTCH / 2,
-    borderRadius: radii.pill,
-    backgroundColor: colors.bgPrimary,
-  },
-  notchLeft: { left: -NOTCH / 2 },
-  notchRight: { right: -NOTCH / 2 },
-
   priceRow: { flexDirection: "row", alignItems: "baseline", gap: space.xs },
 
   chips: { flexDirection: "row", gap: space.s, flexWrap: "wrap" },
-  acts: { flexDirection: "row", flexWrap: "wrap", gap: space.l },
-  act: { width: "30%", gap: space.xs },
-  actPortrait: { width: "100%", aspectRatio: 1, backgroundColor: colors.bgSecondary },
+  act: { width: SOLO, gap: space.xs },
+  soloCircle: {
+    width: SOLO,
+    height: SOLO,
+    borderRadius: radii.pill,
+    backgroundColor: colors.bgSecondary,
+  },
+  quad: { width: SMALL * 2 + space.s, flexDirection: "row", flexWrap: "wrap", gap: space.s },
+  quadCell: { width: SMALL, height: SMALL },
+  smallCircle: {
+    width: SMALL,
+    height: SMALL,
+    borderRadius: radii.pill,
+    backgroundColor: colors.bgSecondary,
+  },
 
   map: { width: "100%", height: 180 },
   pin: { position: "absolute", left: "50%", top: 74, marginLeft: -16 },
   venue: { flexDirection: "row", alignItems: "center", gap: space.m },
   venueName: { flex: 1, minWidth: 0 },
 
-  gallery: { gap: space.m, paddingHorizontal: space.xl, paddingTop: space.m },
-  shot: { width: 240, height: 170 },
+  shot: { width: 300, height: 200 },
 
-  infoGrid: { flexDirection: "row", flexWrap: "wrap", rowGap: space.l },
-  info: { width: "50%", paddingRight: space.m, gap: space.xs },
+  infoGrid: { flexDirection: "row", flexWrap: "wrap", gap: space.m },
+  info: {
+    width: "47%",
+    gap: space.xs,
+    padding: space.l,
+    backgroundColor: colors.bgSecondary,
+  },
 
   faq: {
-    gap: space.s,
+    flexDirection: "row",
+    gap: space.m,
     paddingVertical: space.l,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.borderTertiary,
   },
-  faqHead: { flexDirection: "row", alignItems: "center", gap: space.m },
-  faqQuestion: { flex: 1, minWidth: 0 },
+  faqMark: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.overlay20,
+  },
+  faqBody: { flex: 1, minWidth: 0, gap: space.s },
 
   sponsors: { flexDirection: "row", flexWrap: "wrap", gap: space.m },
   sponsor: {

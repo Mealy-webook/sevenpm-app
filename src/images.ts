@@ -70,6 +70,21 @@ export const images: Record<string, ImageSourcePropType> = {
   "/assets/conf-qr.png": require("../assets/img/conf-qr.png"),
   "/assets/event-hero.jpg": require("../assets/img/event-hero.jpg"),
   "/assets/event-map.jpg": require("../assets/img/event-map.jpg"),
+  "/assets/ticket-paper.png": require("../assets/img/ticket-paper.png"),
+  "/assets/lineup-1.jpg": require("../assets/img/lineup-1.jpg"),
+  "/assets/lineup-2.jpg": require("../assets/img/lineup-2.jpg"),
+  "/assets/lineup-3.jpg": require("../assets/img/lineup-3.jpg"),
+  "/assets/lineup-4.jpg": require("../assets/img/lineup-4.jpg"),
+  "/assets/lineup-5.jpg": require("../assets/img/lineup-5.jpg"),
+  "/assets/lineup-6.jpg": require("../assets/img/lineup-6.jpg"),
+  "/assets/lineup-7.jpg": require("../assets/img/lineup-7.jpg"),
+  "/assets/lineup-8.jpg": require("../assets/img/lineup-8.jpg"),
+  "/assets/lineup-9.jpg": require("../assets/img/lineup-9.jpg"),
+  "/assets/event-gallery-1.jpg": require("../assets/img/event-gallery-1.jpg"),
+  "/assets/event-gallery-2.jpg": require("../assets/img/event-gallery-2.jpg"),
+  "/assets/event-gallery-3.jpg": require("../assets/img/event-gallery-3.jpg"),
+  "/assets/event-gallery-4.jpg": require("../assets/img/event-gallery-4.jpg"),
+  "/assets/event-gallery-5.jpg": require("../assets/img/event-gallery-5.jpg"),
 };
 
 export function image(path: string | undefined): ImageSourcePropType | undefined {

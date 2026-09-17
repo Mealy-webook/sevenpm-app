@@ -161,6 +161,8 @@ export const newsRows = newsArticles.slice(0, 3).map((article, index) => ({
 export const eventCopy = {
   node: "410:6401",
   exploreTickets: "Explore tickets",
+  tickets: "Tickets",
+  perPerson: "/ Person",
   getTicket: "Get your ticket",
   from: "From",
   lineup: "Line-up",

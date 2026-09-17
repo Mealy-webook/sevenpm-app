@@ -188,13 +188,15 @@ export function scaled(value: number, width: number) {
  * DESIGN-SYSTEM.md means by "size display type against the viewport".
  */
 export function displaySize(
-  style: { size: number; line: number; tracking: number },
+  /* Not every display style carries tracking — the older scale entries do
+     not — so it is optional rather than required at every call site. */
+  style: { size: number; line: number; tracking?: number },
   width: number,
 ) {
   const size = Math.round(scaled(style.size, width));
   return {
     fontSize: size,
     lineHeight: size,
-    letterSpacing: scaled(style.tracking, width),
+    letterSpacing: scaled(style.tracking ?? 0, width),
   };
 }
