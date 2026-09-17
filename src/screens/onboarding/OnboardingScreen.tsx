@@ -5,6 +5,8 @@ import {
   StyleSheet,
   useWindowDimensions,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -40,8 +42,15 @@ const ART = [AheadArt, BeatsArt, CashlessArt];
  * clips each one to its page. They are also parallaxed: the art travels at a
  * third of the pager's speed, so the copy slides over a backdrop that drifts.
  *
- * `scrollX` drives opacity and transform only, so the whole thing runs on the
- * native driver and never touches the JS thread while a finger is down.
+ * There are **two** scroll values, and the reason is not optional. `scrollX`
+ * is attached to the native driver, so everything it drives must be a property
+ * the native driver understands — opacity and transform. The progress marks
+ * animate their `width`, which it does not, and a native-driven value cannot
+ * feed a JS-only property: React Native throws
+ * "style property width is not supported by native animated module". So the
+ * scroll event also fills `scrollJS`, an ordinary value, and the marks read
+ * that one. The expensive things stay off the JS thread; three 8px views do
+ * not.
  *
  * The headline is Daltown at 104px against a 390px comp, `scaled` here so an
  * iPhone SE gets proportionally smaller type. Its line box is opened to the
@@ -59,6 +68,9 @@ export function OnboardingScreen({
   const reduced = useReducedMotion();
   const pager = useRef<ScrollView>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
+  /* The JS-side twin of `scrollX`, for the one thing the native driver cannot
+     animate. See the note above before removing it. */
+  const scrollJS = useRef(new Animated.Value(0)).current;
   const [index, setIndex] = useState(0);
 
   /* The index is still tracked, but only for the things a half-finished swipe
@@ -113,7 +125,14 @@ export function OnboardingScreen({
         scrollEventThrottle={16}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: true },
+          {
+            useNativeDriver: true,
+            listener: (event) =>
+              scrollJS.setValue(
+                (event as NativeSyntheticEvent<NativeScrollEvent>).nativeEvent
+                  .contentOffset.x,
+              ),
+          },
         )}
         onMomentumScrollEnd={(e) => onMomentumEnd(e.nativeEvent.contentOffset.x)}
       >
@@ -198,7 +217,7 @@ export function OnboardingScreen({
                     {steps.map((mark, m) => (
                       <Mark
                         key={mark.id}
-                        scrollX={scrollX}
+                        scrollJS={scrollJS}
                         range={pageRange(m)}
                         brand={brand}
                         settled={reduced ? m === index : undefined}
@@ -237,17 +256,17 @@ export function OnboardingScreen({
  * end of it — the mark is showing you where you are, so it should move while
  * you are moving.
  *
- * Width is not a native-driver property, so this one interpolation runs on the
- * JS thread. It is three small views; the backdrop and the copy, which are the
- * expensive parts, stay native.
+ * It takes the **JS-side** scroll value, because width is not a property the
+ * native driver can animate. Handing it the native one throws.
  */
 function Mark({
-  scrollX,
+  scrollJS,
   range,
   brand,
   settled,
 }: {
-  scrollX: Animated.Value;
+  /** Must be the JS-side value, never the native-driven one. */
+  scrollJS: Animated.Value;
   range: number[];
   brand: boolean;
   /** Set under reduced motion: the mark is drawn at its end state. */
@@ -270,7 +289,7 @@ function Mark({
         styles.mark,
         off,
         {
-          width: scrollX.interpolate({
+          width: scrollJS.interpolate({
             inputRange: range,
             outputRange: [8, 52, 8],
             extrapolate: "clamp",
@@ -283,7 +302,7 @@ function Mark({
           StyleSheet.absoluteFill,
           on,
           {
-            opacity: scrollX.interpolate({
+            opacity: scrollJS.interpolate({
               inputRange: range,
               outputRange: [0, 1, 0],
               extrapolate: "clamp",
