@@ -158,6 +158,21 @@ export const newsRows = newsArticles.slice(0, 3).map((article, index) => ({
   image: ["/assets/story-1.jpg", "/assets/story-3.jpg", "/assets/story-4.jpg"][index],
 }));
 
+export const eventCopy = {
+  node: "410:6401",
+  exploreTickets: "Explore tickets",
+  getTicket: "Get your ticket",
+  from: "From",
+  lineup: "Line-up",
+  location: "Location",
+  directions: "Directions",
+  gallery: "Gallery",
+  goodToKnow: "Good to know",
+  faqs: "FAQs",
+  sponsors: "Sponsors",
+  share: "Share this event",
+};
+
 export const discoverCopy = {
   node: "378:27332",
   beats: (beats: number) => `${beats.toLocaleString("en-US")} BEATS`,

@@ -120,6 +120,12 @@ export type EventDetails = {
   faq: FaqItem[];
   officialSponsor: Sponsor;
   goldSponsors: Sponsor[];
+  /**
+   * The headline figure the app's detail page puts above the tickets
+   * (Figma 410:6401). The web build has no equivalent, so it lives here
+   * rather than being derived from something that does not mean the same.
+   */
+  stat?: { value: string; label: string };
 };
 
 // Kept for the news cards on the homepage.
@@ -355,6 +361,7 @@ export const jazzablanca: EventDetails = {
         "Yes. Your wristband is scanned on the way out and back in, so you can re-enter any time before last entry at 8 PM.",
     },
   ],
+  stat: { value: "20,000+", label: "Tickets" },
   officialSponsor: { name: "Saham Bank", logo: "/assets/sponsor-saham.svg" },
   goldSponsors: [
     { name: "adidas", logo: "/assets/sponsor-adidas.svg" },

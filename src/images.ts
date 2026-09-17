@@ -68,6 +68,8 @@ export const images: Record<string, ImageSourcePropType> = {
   "/assets/story-avatar.png": require("../assets/img/story-avatar.png"),
   "/assets/event-thumb.jpg": require("../assets/img/event-thumb.jpg"),
   "/assets/conf-qr.png": require("../assets/img/conf-qr.png"),
+  "/assets/event-hero.jpg": require("../assets/img/event-hero.jpg"),
+  "/assets/event-map.jpg": require("../assets/img/event-map.jpg"),
 };
 
 export function image(path: string | undefined): ImageSourcePropType | undefined {
