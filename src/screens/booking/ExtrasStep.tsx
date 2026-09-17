@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { Image } from "expo-image";
 
 import { Chip } from "../../components/Chip";
@@ -7,7 +6,7 @@ import { Stepper } from "../../components/Stepper";
 import { Tap } from "../../components/Tap";
 import { image } from "../../images";
 import { Text } from "../../theme/Text";
-import { colors, space } from "../../theme/tokens";
+import { colors, displaySize, space, type } from "../../theme/tokens";
 import {
   addons,
   bookingCopy,
@@ -17,8 +16,13 @@ import {
 import { quantityOf, quantityOfAny, type Cart } from "./cart";
 
 /**
- * Step 2, from Figma 2078:45505 / 2212:13243: merchandise as a grid of product
- * tiles, parking as rows.
+ * Step 2, from Figma 346:46509 (merchandise) and 346:46579 (parking).
+ *
+ * The app comps split the extras in two: merchandise and parking are separate
+ * stages of the journey, and the dock reads "Next: Parking" then "Next:
+ * Checkout". The chips are still there and still jump between them, so the
+ * split is a suggested order rather than a gate — which is why the category is
+ * owned by the journey rather than by this component.
  *
  * A shirt comes in sizes, so its tile opens the details sheet instead of
  * adding straight to the basket — the basket keeps one line per size, and a
@@ -26,21 +30,30 @@ import { quantityOf, quantityOfAny, type Cart } from "./cart";
  * Parking has no sizes and adds in place.
  */
 export function ExtrasStep({
+  category,
+  onCategory,
   cart,
   onAdjust,
   onDetails,
 }: {
+  category: string;
+  onCategory: (id: string) => void;
   cart: Cart;
   onAdjust: (addon: BookingAddon, by: number, size?: string) => void;
   onDetails: (addon: BookingAddon) => void;
 }) {
-  const [category, setCategory] = useState("merchandise");
+  const { width } = useWindowDimensions();
   const shown = addons.filter((addon) => addon.category === category);
   const merch = category === "merchandise";
 
   return (
     <View style={styles.step}>
-      <Text variant="sectionTitle" uppercase color={colors.white}>
+      <Text
+        variant="displayStep"
+        uppercase
+        color={colors.white}
+        style={displaySize(type.displayStep, width)}
+      >
         {bookingCopy.extras.title}
       </Text>
 
@@ -50,7 +63,7 @@ export function ExtrasStep({
             key={item.id}
             label={item.label}
             selected={category === item.id}
-            onPress={() => setCategory(item.id)}
+            onPress={() => onCategory(item.id)}
           />
         ))}
       </View>
@@ -134,8 +147,8 @@ export function ExtrasStep({
 }
 
 const styles = StyleSheet.create({
-  step: { gap: space.xl },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: space.s },
+  step: { gap: space.l },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: space.l },
 
   grid: { flexDirection: "row", flexWrap: "wrap", gap: space.m },
   card: { width: "47%", gap: space.xs },

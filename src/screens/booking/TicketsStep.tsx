@@ -1,14 +1,12 @@
 import { useState } from "react";
-import { Linking, StyleSheet, View } from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
 
-import Clock from "../../icons/ic-clock-brand-20.svg";
-import Info from "../../icons/ic-info-16.svg";
-import Pin from "../../icons/ic-pin-16.svg";
+import Info from "../../icons/ic-info-20.svg";
 import { Chip } from "../../components/Chip";
 import { Stepper } from "../../components/Stepper";
 import { Tap } from "../../components/Tap";
 import { Text } from "../../theme/Text";
-import { colors, space } from "../../theme/tokens";
+import { colors, displaySize, space, type } from "../../theme/tokens";
 import {
   bookingCopy,
   formatMoney,
@@ -18,27 +16,25 @@ import {
 import { quantityOf, type Cart } from "./cart";
 
 /**
- * Step 1, from Figma 2138:3339 and 2024:4434: the event's name and times, the
- * admission-type chips, then one row per ticket. Each row carries an info
- * button that opens the line-up and a stepper that fills the basket.
+ * Step 1, from Figma 346:46384: the step's own title, the admission-type
+ * chips, then one row per ticket grouped under its admission type. Each row
+ * carries an info button that opens the line-up and a stepper that fills the
+ * basket.
+ *
+ * The event's name and running time are not here any more — the app comps put
+ * them in a header that every step of the journey carries, so what you are
+ * buying never leaves the screen. See `BookingHeader`.
  */
 export function TicketsStep({
-  eventName,
-  time,
-  venue,
-  venueUrl,
   cart,
   onAdjust,
   onInfo,
 }: {
-  eventName: string;
-  time: string;
-  venue: string;
-  venueUrl: string;
   cart: Cart;
   onAdjust: (id: string, by: number) => void;
   onInfo: (ticket: BookingTicket) => void;
 }) {
+  const { width } = useWindowDimensions();
   const [filter, setFilter] = useState("all");
   const groups =
     filter === "all"
@@ -52,27 +48,14 @@ export function TicketsStep({
 
   return (
     <View style={styles.step}>
-      <View style={styles.head}>
-        <Text variant="displayM" uppercase color={colors.white}>
-          {eventName}
-        </Text>
-        <View style={styles.meta}>
-          <Clock width={20} height={20} />
-          <Text variant="bodySBold" color={colors.brand}>
-            {time}
-          </Text>
-        </View>
-        <Tap
-          accessibilityRole="link"
-          onPress={() => Linking.openURL(venueUrl)}
-          style={styles.meta}
-        >
-          <Pin width={20} height={20} />
-          <Text variant="bodySBold" color={colors.white} style={styles.link}>
-            {venue}
-          </Text>
-        </Tap>
-      </View>
+      <Text
+        variant="displayStep"
+        uppercase
+        color={colors.white}
+        style={displaySize(type.displayStep, width)}
+      >
+        {bookingCopy.tickets.title}
+      </Text>
 
       <View style={styles.chips} accessibilityRole="tablist">
         {chips.map((chip) => (
@@ -137,14 +120,11 @@ export function TicketsStep({
 }
 
 const styles = StyleSheet.create({
-  step: { gap: space.xxl },
-  head: { gap: space.s },
-  meta: { flexDirection: "row", alignItems: "center", gap: space.xs },
-  link: { textDecorationLine: "underline" },
+  step: { gap: space.l },
 
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: space.s },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: space.l },
 
-  groups: { gap: space.xxl },
+  groups: { gap: space.xl },
   group: { gap: space.l },
   row: {
     flexDirection: "row",

@@ -118,6 +118,8 @@ export const type = {
   displaySection: { font: fonts.display, size: 88, line: 88, tracking: 0.88 },
   /** The festival card's name (378:27352): 48px, drawn there on 40. */
   displayCard: { font: fonts.display, size: 48, line: 48, tracking: 0.48 },
+  /** A step's own title in the booking journey (412:15124): 56px on 46. */
+  displayStep: { font: fonts.display, size: 56, line: 56, tracking: 0.56 },
   displayL: { font: fonts.display, size: 64, line: 68 },
   displayM: { font: fonts.display, size: 40, line: 44 },
 

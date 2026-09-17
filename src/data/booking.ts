@@ -226,6 +226,8 @@ export const bookingCopy = {
     restart: "Start again",
   },
   tickets: {
+    /** The step's own heading, from 412:15124. */
+    title: "Select tickets",
     all: "All",
     perPerson: "/ Person",
     add: "Add",
@@ -242,6 +244,8 @@ export const bookingCopy = {
   },
   extras: {
     title: "Upgrade your experience",
+    /** The dock's label changes as the extras split in two — 346:46509. */
+    nextParking: "Next: Parking",
     categories: [
       { id: "merchandise", label: "Merchandise" },
       { id: "parking", label: "Parking" },
