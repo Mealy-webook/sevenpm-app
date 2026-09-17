@@ -1,0 +1,117 @@
+/**
+ * Discover — the app's home screen, from Figma 378:27332.
+ *
+ * Where the comp carries placeholder content, real content from the web build
+ * is used instead and the swap is noted: a card that says "Product name" twice
+ * tells you nothing about whether the layout survives a real product name, and
+ * a news list that repeats one headline three times hides how two-line
+ * headlines stack.
+ */
+import { newsArticles } from "./news";
+import { addons, formatMoney } from "./booking";
+
+export type Story = {
+  id: string;
+  label: string;
+  image: string;
+  /** A watched story loses the brand ring for a dim one. */
+  watched?: boolean;
+};
+
+/**
+ * The comp labels the third story "Casa anifa latina"; the festival is Casa
+ * Anfa Latina, as the web build spells it. Corrected here.
+ */
+export const stories: Story[] = [
+  { id: "jazzablanca", label: "Jazzablanca", image: "/assets/story-1.jpg" },
+  { id: "tanjazz", label: "Tanjazz", image: "/assets/story-2.jpg" },
+  { id: "casa-anfa-latina", label: "Casa Anfa Latina", image: "/assets/story-3.jpg" },
+  { id: "sevenpm", label: "sevenpm", image: "/assets/story-4.jpg", watched: true },
+];
+
+export type FestivalCard = {
+  id: string;
+  name: string;
+  /** Dates in the accent colour. Undefined when content has not set them. */
+  dates?: string;
+  venue: string;
+  image: string;
+  /** Only Jazzablanca has a page behind it. */
+  slug?: string;
+};
+
+/**
+ * The comp shows the same Jazzablanca card twice. The second is filled with
+ * the other festival the poster art belongs to.
+ *
+ * Its dates are deliberately absent rather than invented — the comp does not
+ * state them and nothing in the web build does either. The card renders
+ * without the accent line until content supplies one.
+ *
+ * "02 - 11 Jullet 2026" in the comp is a misspelling of the French Juillet.
+ */
+export const festivalCards: FestivalCard[] = [
+  {
+    id: "jazzablanca",
+    name: "Jazzablanca",
+    dates: "02 - 11 Juillet 2026",
+    venue: "Anfa Park in Casablanca, Morocco",
+    image: "/assets/card-jazzablanca.jpg",
+    slug: "jazzablanca",
+  },
+  {
+    id: "tanjazz",
+    name: "Tanjazz",
+    venue: "Tangier, Morocco",
+    image: "/assets/card-tanjazz.jpg",
+  },
+];
+
+/** The comp's two "Product name / 50 MAD" tiles, filled from the real shop. */
+export const merchandise = [
+  {
+    id: addons[0].id,
+    name: addons[0].name,
+    price: formatMoney(addons[0].price),
+    image: "/assets/merch-tee-black.jpg",
+  },
+  {
+    id: addons[1].id,
+    name: addons[1].name,
+    price: formatMoney(addons[1].price),
+    image: "/assets/merch-tee-white.jpg",
+  },
+];
+
+/**
+ * The comp's gallery is six empty grey tiles. They are filled with the event
+ * photography the rest of the app already carries — a gallery of placeholders
+ * cannot show whether the row reads as a gallery.
+ */
+export const galleryTiles = [
+  "/assets/gallery-1.jpg",
+  "/assets/gallery-2.jpg",
+  "/assets/gallery-3.jpg",
+  "/assets/gallery-4.jpg",
+  "/assets/gallery-5.jpg",
+  "/assets/gallery-6.jpg",
+];
+
+/** The comp repeats one headline three times; these are the real three. */
+export const newsRows = newsArticles.slice(0, 3).map((article, index) => ({
+  id: article.slug,
+  date: article.dateLabel,
+  title: article.title,
+  image: ["/assets/story-1.jpg", "/assets/story-3.jpg", "/assets/story-4.jpg"][index],
+}));
+
+export const discoverCopy = {
+  node: "378:27332",
+  beats: (beats: number) => `${beats.toLocaleString("en-US")} BEATS`,
+  festivals: "Our iconic music festivals",
+  merchandise: "Merchandise",
+  gallery: "Gallery",
+  news: "Latest news",
+  loadMore: "Load more",
+  story: (label: string) => `${label} — story`,
+};

@@ -114,6 +114,10 @@ export const type = {
    */
   displayHero: { font: fonts.display, size: 104, line: 104, tracking: 1.04 },
   displayNotice: { font: fonts.display, size: 80, line: 80, tracking: 0 },
+  /** Section headings on Discover (378:27345): 88px, drawn there on 71. */
+  displaySection: { font: fonts.display, size: 88, line: 88, tracking: 0.88 },
+  /** The festival card's name (378:27352): 48px, drawn there on 40. */
+  displayCard: { font: fonts.display, size: 48, line: 48, tracking: 0.48 },
   displayL: { font: fonts.display, size: 64, line: 68 },
   displayM: { font: fonts.display, size: 40, line: 44 },
 
@@ -131,6 +135,8 @@ export const type = {
 
   /* Captions. */
   caption: { font: fonts.regular, size: 12, line: 16, tracking: 0.12 },
+  /** The tab bar's label — Figma calls it Caption-2. */
+  tab: { font: fonts.regular, size: 10, line: 14, tracking: 0.1 },
   captionBold: { font: fonts.bold, size: 12, line: 16, tracking: 0.12 },
 } as const;
 

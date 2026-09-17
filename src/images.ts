@@ -53,6 +53,17 @@ export const images: Record<string, ImageSourcePropType> = {
   "/assets/onb-3-venue.jpg": require("../assets/img/onb-3-venue.jpg"),
   "/assets/welcome-noise.jpg": require("../assets/img/welcome-noise.jpg"),
   "/assets/privacy-cookie.png": require("../assets/img/privacy-cookie.png"),
+
+  /* Discover. */
+  "/assets/wordmark.png": require("../assets/img/wordmark.png"),
+  "/assets/story-1.jpg": require("../assets/img/story-1.jpg"),
+  "/assets/story-2.jpg": require("../assets/img/story-2.jpg"),
+  "/assets/story-3.jpg": require("../assets/img/story-3.jpg"),
+  "/assets/story-4.jpg": require("../assets/img/story-4.jpg"),
+  "/assets/card-jazzablanca.jpg": require("../assets/img/card-jazzablanca.jpg"),
+  "/assets/card-tanjazz.jpg": require("../assets/img/card-tanjazz.jpg"),
+  "/assets/merch-tee-black.jpg": require("../assets/img/merch-tee-black.jpg"),
+  "/assets/merch-tee-white.jpg": require("../assets/img/merch-tee-white.jpg"),
 };
 
 export function image(path: string | undefined): ImageSourcePropType | undefined {

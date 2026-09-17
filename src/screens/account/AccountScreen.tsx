@@ -24,8 +24,8 @@ import { accountNav, accountUser, logoutCopy } from "../../data/account";
  * trick the web row needs, darkening a white icon with a CSS filter to make
  * it legible on yellow, which React Native has no equivalent for.
  *
- * Bookings and Rewards are tabs of their own down at the bottom of the screen;
- * they are listed here too because this is where the web build puts them and
+ * Tickets and Wallet have tabs of their own at the bottom of the screen; they
+ * are listed here too because this is where the web build puts them, and
  * because somebody looking for their tickets will look in their account.
  */
 export function AccountScreen() {
@@ -35,9 +35,9 @@ export function AccountScreen() {
 
   /** Where each of the web's sidebar rows lands on a phone. */
   const routes: Record<string, () => void> = {
-    bookings: () => navigation.navigate("Tabs", { screen: "Bookings" } as never),
-    loyalty: () => navigation.navigate("Tabs", { screen: "Rewards" } as never),
-    wallet: () => navigation.navigate("Wallet"),
+    bookings: () => navigation.navigate("Tabs", { screen: "Tickets" } as never),
+    loyalty: () => navigation.navigate("Rewards"),
+    wallet: () => navigation.navigate("Tabs", { screen: "Wallet" } as never),
     profile: () => navigation.navigate("Profile"),
     payments: () => navigation.navigate("Payments"),
   };

@@ -47,7 +47,12 @@ export function WalletScreen() {
 
   return (
     <Page>
-      <NavBar title={walletCopy.title} onBack={navigation.goBack} />
+      {/* Wallet is both a tab and a push from the account list, so the back
+          control appears only when there is something to go back to. */}
+      <NavBar
+        title={walletCopy.title}
+        onBack={navigation.canGoBack() ? navigation.goBack : undefined}
+      />
 
       <ScrollView contentContainerStyle={styles.body}>
         <View style={styles.card}>

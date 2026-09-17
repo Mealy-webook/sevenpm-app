@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 
 import BeatsBurn from "../icons/ic-beats-burn.svg";
 import BeatsEarn from "../icons/ic-beats-earn.svg";
@@ -13,6 +14,7 @@ import { Button } from "../components/Button";
 import { Chip } from "../components/Chip";
 import { Confirm } from "../components/Confirm";
 import { ListRow } from "../components/ListRow";
+import { NavBar, Page } from "../components/Screen";
 import { Sheet } from "../components/Sheet";
 import { icon } from "../icons";
 import { Text } from "../theme/Text";
@@ -45,6 +47,7 @@ import {
  */
 export function RewardsScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const [balance, setBalance] = useState(loyaltyBalance);
   const [redeemed, setRedeemed] = useState<string[]>([]);
   const [filter, setFilter] = useState("all");
@@ -69,12 +72,17 @@ export function RewardsScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.page}
-      contentContainerStyle={{ paddingBottom: space.section }}
-    >
+    <Page>
+      {/* Rewards is reached from the account list and from the Beats figure in
+          the Discover header, so it is always a push and always has a back. */}
+      <NavBar floating onBack={navigation.goBack} />
+
+      <ScrollView
+        style={styles.page}
+        contentContainerStyle={{ paddingBottom: space.section }}
+      >
       {/* Banner — the raised band the web build puts behind the greeting. */}
-      <View style={[styles.banner, { paddingTop: insets.top + space.l }]}>
+      <View style={[styles.banner, { paddingTop: insets.top + 56 }]}>
         <Text variant="displayM" uppercase color={colors.white}>
           {accountUser.name}
         </Text>
@@ -330,7 +338,8 @@ export function RewardsScreen() {
           {loyaltyHowTo.expiryBody}
         </Text>
       </Sheet>
-    </ScrollView>
+      </ScrollView>
+    </Page>
   );
 }
 
