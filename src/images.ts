@@ -1,0 +1,51 @@
+/**
+ * The photographs and posters copied out of `sevenpm-web/public/assets`,
+ * reachable by the same path the web build writes in its data files.
+ *
+ * Same reasoning as `src/icons/index.ts`: the data in `src/data` is ported
+ * from the web build unchanged and holds strings like "/assets/gallery-1.jpg".
+ * Metro will not resolve a `require` built from a variable, so every file is
+ * required once here and the map turns the path back into a source.
+ *
+ * Remote URLs (the Apple preview artwork on the playlist) pass through as a
+ * `{ uri }` source, so a component can hand `image()` anything the data holds
+ * without checking which kind it is first.
+ */
+import type { ImageSourcePropType } from "react-native";
+
+export const images: Record<string, ImageSourcePropType> = {
+  "/assets/festival-poster-1.png": require("../assets/img/festival-poster-1.png"),
+  "/assets/festival-poster-2.png": require("../assets/img/festival-poster-2.png"),
+  "/assets/festival-poster-3.png": require("../assets/img/festival-poster-3.png"),
+  "/assets/festival-poster-4.png": require("../assets/img/festival-poster-4.png"),
+  "/assets/festival-poster-5.png": require("../assets/img/festival-poster-5.png"),
+  "/assets/gallery-1.jpg": require("../assets/img/gallery-1.jpg"),
+  "/assets/gallery-2.jpg": require("../assets/img/gallery-2.jpg"),
+  "/assets/gallery-3.jpg": require("../assets/img/gallery-3.jpg"),
+  "/assets/gallery-4.jpg": require("../assets/img/gallery-4.jpg"),
+  "/assets/gallery-5.jpg": require("../assets/img/gallery-5.jpg"),
+  "/assets/gallery-6.jpg": require("../assets/img/gallery-6.jpg"),
+  "/assets/artist-1.png": require("../assets/img/artist-1.png"),
+  "/assets/artist-2.png": require("../assets/img/artist-2.png"),
+  "/assets/artist-3.png": require("../assets/img/artist-3.png"),
+  "/assets/artist-4.png": require("../assets/img/artist-4.png"),
+  "/assets/artist-5.png": require("../assets/img/artist-5.png"),
+  "/assets/artist-6.png": require("../assets/img/artist-6.png"),
+  "/assets/artist-7.png": require("../assets/img/artist-7.png"),
+  "/assets/artist-8.png": require("../assets/img/artist-8.png"),
+  "/assets/artist-9.png": require("../assets/img/artist-9.png"),
+  "/assets/merch-casa-way.jpg": require("../assets/img/merch-casa-way.jpg"),
+  "/assets/merch-arche.jpg": require("../assets/img/merch-arche.jpg"),
+  "/assets/merch-casablanca.jpg": require("../assets/img/merch-casablanca.jpg"),
+  "/assets/loc-map.jpg": require("../assets/img/loc-map.jpg"),
+  "/assets/poster-jazzablanca.jpg": require("../assets/img/poster-jazzablanca.jpg"),
+  "/assets/nav-avatar.jpg": require("../assets/img/nav-avatar.jpg"),
+  "/assets/conf-hands.png": require("../assets/img/conf-hands.png"),
+  "/assets/festival-glow.jpg": require("../assets/img/festival-glow.jpg"),
+};
+
+export function image(path: string | undefined): ImageSourcePropType | undefined {
+  if (!path) return undefined;
+  if (path.startsWith("http")) return { uri: path };
+  return images[path];
+}

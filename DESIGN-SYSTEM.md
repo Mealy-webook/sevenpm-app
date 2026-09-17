@@ -144,13 +144,60 @@ hand-written paths will not match.
 ```
 src/theme/tokens.ts     colour, space, radii, type scale, motion
 src/theme/Text.tsx      the only way to set text
-src/components/         Button, Chip
-src/screens/            RewardsScreen — the system's proving ground
-src/data/               demo content, carried over from the web build
-src/icons/              SVGs from the web build
+src/components/         Button, Chip, Stepper, Switch, Sheet, ListRow,
+                        Confirm, Screen (NavBar + Page)
+src/navigation/         the tab bar and the root stack
+src/screens/            Home, Event, Rewards
+src/screens/booking/    the journey: tickets → extras → checkout → confirmation
+src/screens/account/    Account, Bookings, Wallet, Profile, Payments
+src/data/               ported verbatim from sevenpm-web/src/data
+src/icons/index.ts      every web SVG, keyed by its web path
+src/images.ts           every web photograph, keyed by its web path
 ```
 
-`RewardsScreen` is not the app's most important screen; it is there because
-between them its blocks use the display face, the brand accent, chips, list
-rows with icon tiles, a progress track and two kinds of button, so anything
-wrong with the tokens shows up immediately.
+## 9. Data is ported, not rewritten
+
+`src/data` holds copies of the web build's data files, unchanged. That is
+deliberate: the two builds should state the same prices, the same line-up and
+the same FAQ, and the cheapest way to guarantee that is for one file to be a
+copy of the other rather than a translation of it.
+
+The cost is that the data holds web asset paths — `"/assets/ic-ticket-24.svg"`,
+`"/assets/gallery-1.jpg"` — and Metro cannot resolve a `require` built from a
+variable. So every asset is imported once in `src/icons/index.ts` and
+`src/images.ts`, and those modules turn a path back into a component or a
+source:
+
+```tsx
+const Mark = icon(tile.icon);
+<Image source={image(shot.image)} />
+```
+
+Look an asset up that way rather than rewriting the data to hold components.
+When a data file changes on the web side, copy it over again.
+
+## 10. What the phone does differently
+
+The web build is full of machinery a phone has no use for, and the port drops
+it rather than approximating it:
+
+- **The event page stands still.** No audio-driven hero spectrum, no vinyl
+  carousel, no polaroid fan measured off a 1294px group. A page that animates
+  while a thumb scrolls it is fighting the scroll.
+- **The home hero has no trail and no spacebar.** There is no cursor to follow
+  and no key to hold. What survives is the order the page states things in.
+- **Dialogs became bottom sheets.** Same content, same square edges, docked to
+  the bottom with the page still visible above — which is what says "layer
+  over your booking" rather than "next screen of it".
+- **The account sidebar became a list of pushes.** Nothing is "current" on a
+  phone, so the brand-yellow active row has no job here. That also spares the
+  CSS `brightness-0` filter it needed to keep a white icon legible on yellow,
+  which React Native has no equivalent for.
+- **Icons are not tinted.** The SVGs carry a hardcoded `#E4E4E7` rather than
+  `currentColor`, so emphasis is carried by opacity and by the label beside
+  them. Rewriting the fills would make every icon drift from its web copy.
+
+`RewardsScreen` is still the system's proving ground — between them its blocks
+use the display face, the brand accent, chips, list rows with icon tiles, a
+progress track and both button states, so anything wrong with the tokens shows
+up there first.

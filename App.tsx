@@ -1,3 +1,5 @@
+import "react-native-gesture-handler";
+
 import {
   Roboto_400Regular,
   Roboto_600SemiBold,
@@ -9,7 +11,7 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { View } from "react-native";
 
-import { RewardsScreen } from "./src/screens/RewardsScreen";
+import { RootNavigator } from "./src/navigation/RootNavigator";
 import { colors } from "./src/theme/tokens";
 
 /**
@@ -34,7 +36,7 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="light" />
       <View style={{ flex: 1, backgroundColor: colors.bgPrimary }}>
-        {ready && <RewardsScreen />}
+        {ready && <RootNavigator />}
       </View>
     </SafeAreaProvider>
   );

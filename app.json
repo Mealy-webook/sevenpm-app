@@ -24,7 +24,8 @@
     },
     "plugins": [
       "expo-font",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-image"
     ],
     "backgroundColor": "#0b0b0e"
   }

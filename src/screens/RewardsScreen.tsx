@@ -7,57 +7,62 @@ import BeatsEarn from "../icons/ic-beats-earn.svg";
 import Crown from "../icons/ic-crown-24.svg";
 import Info from "../icons/ic-info-13.svg";
 import LockSmall from "../icons/ic-lock-locked-16.svg";
-import Promocode from "../icons/ic-promocode-24.svg";
-import Ticket from "../icons/ic-ticket-24.svg";
 import TierCheck from "../icons/ic-tier-check.svg";
 import TierLock from "../icons/ic-tier-lock.svg";
 import { Button } from "../components/Button";
 import { Chip } from "../components/Chip";
+import { Confirm } from "../components/Confirm";
+import { ListRow } from "../components/ListRow";
+import { Sheet } from "../components/Sheet";
+import { icon } from "../icons";
 import { Text } from "../theme/Text";
-import { colors, gutter, radii, space } from "../theme/tokens";
+import { colors, gutter, space } from "../theme/tokens";
 import {
-  activity,
-  balance as startingBalance,
-  copy,
-  lifetime,
-  member,
-  rewards,
-  tiers,
-  type Reward,
-} from "../data/rewards";
+  accountUser,
+  loyaltyActivity,
+  loyaltyBalance,
+  loyaltyCopy,
+  loyaltyHowTo,
+  loyaltyLifetime,
+  loyaltyRewards,
+  loyaltyTiers,
+  type LoyaltyReward,
+} from "../data/account";
 
 /**
- * SevenPM Rewards, the phone version of the web build's account screen.
- *
- * It is here as the system's proving ground rather than as the app's most
- * important screen: between them these blocks use the display face, the brand
- * accent, chips, list rows with icon tiles, a progress track and two kinds of
- * button, so anything that is wrong with the tokens shows up immediately.
+ * SevenPM Rewards, from Figma 2250:10073 by way of the web build's loyalty
+ * panel — and the screen the design system was proved against, because
+ * between them these blocks use the display face, the brand accent, chips,
+ * list rows with icon tiles, a progress track and both button states, so
+ * anything wrong with the tokens shows up here first.
  *
  * Two rules carried over from the web build, both load-bearing:
  *
  * - Whether a reward can be taken is a question of Beats, not rank. Rank only
  *   files it under a chip.
- * - Membership reads off `lifetime`, so redeeming never costs you status.
+ * - Membership reads off `loyaltyLifetime`, which only ever goes up, so
+ *   redeeming never costs you status.
  */
-
-const ICONS = { promo: Promocode, ticket: Ticket, crown: Crown };
-
 export function RewardsScreen() {
   const insets = useSafeAreaInsets();
-  const [balance, setBalance] = useState(startingBalance);
+  const [balance, setBalance] = useState(loyaltyBalance);
   const [redeemed, setRedeemed] = useState<string[]>([]);
   const [filter, setFilter] = useState("all");
+  const [confirming, setConfirming] = useState<LoyaltyReward | null>(null);
+  const [howTo, setHowTo] = useState(false);
 
   const tier =
-    [...tiers].reverse().find((t) => lifetime >= t.threshold) ?? tiers[0];
-  const next = tiers.find((t) => t.threshold > lifetime);
-  const reachedIndex = tiers.findIndex((t) => t.id === tier.id);
+    [...loyaltyTiers].reverse().find((t) => loyaltyLifetime >= t.threshold) ??
+    loyaltyTiers[0];
+  const next = loyaltyTiers.find((t) => t.threshold > loyaltyLifetime);
+  const reachedIndex = loyaltyTiers.findIndex((t) => t.id === tier.id);
 
   const shown =
-    filter === "all" ? rewards : rewards.filter((r) => r.tier === filter);
+    filter === "all"
+      ? loyaltyRewards
+      : loyaltyRewards.filter((r) => r.tier === filter);
 
-  const redeem = (reward: Reward) => {
+  const redeem = (reward: LoyaltyReward) => {
     if (redeemed.includes(reward.id) || balance < reward.cost) return;
     setBalance((current) => current - reward.cost);
     setRedeemed((current) => [...current, reward.id]);
@@ -66,21 +71,21 @@ export function RewardsScreen() {
   return (
     <ScrollView
       style={styles.page}
-      contentContainerStyle={{ paddingBottom: insets.bottom + space.section }}
+      contentContainerStyle={{ paddingBottom: space.section }}
     >
       {/* Banner — the raised band the web build puts behind the greeting. */}
       <View style={[styles.banner, { paddingTop: insets.top + space.l }]}>
         <Text variant="displayM" uppercase color={colors.white}>
-          {member.name}
+          {accountUser.name}
         </Text>
 
         <View style={styles.memberRow}>
           <View style={styles.memberChip}>
             <Crown width={24} height={24} />
-            <Text variant="bodyBold">{copy.memberLabel(tier.name)}</Text>
+            <Text variant="bodyBold">{loyaltyCopy.memberLabel(tier.name)}</Text>
           </View>
           <Text variant="caption" color={colors.contentSecondary}>
-            {member.since}
+            {loyaltyCopy.memberSince}
           </Text>
         </View>
 
@@ -92,24 +97,35 @@ export function RewardsScreen() {
                 {balance.toLocaleString("en-US")}
               </Text>
               <Text variant="displayL" uppercase color={colors.brand}>
-                {copy.unit}
+                {loyaltyCopy.unit}
               </Text>
             </View>
-            <Button label={copy.howItWorks} icon={Info} />
+            <Button
+              label={loyaltyCopy.howTo}
+              icon={Info}
+              onPress={() => setHowTo(true)}
+            />
           </View>
 
           <Text variant="body" color={colors.contentSecondary}>
             {next
-              ? copy.toNext(next.threshold - lifetime, next.name)
-              : copy.topTier}
+              ? `${loyaltyCopy.toNextLead} ${loyaltyCopy.toNext(
+                  next.threshold - loyaltyLifetime,
+                )} ${next.name} ${loyaltyCopy.toNextTail}`
+              : loyaltyCopy.topTier}
+          </Text>
+
+          {/* Beats expire, so the card says when and how many. */}
+          <Text variant="caption" color={colors.contentSecondary}>
+            {loyaltyCopy.expiry(loyaltyCopy.expiring, loyaltyCopy.expiresAt)}
           </Text>
 
           {/* Membership track. Reached stops are brand yellow with a tick;
               the rest are outlined with a lock. The rail between two reached
               stops is white, so the journey so far reads as one line. */}
           <View style={styles.track}>
-            {tiers.map((item, index) => {
-              const reached = lifetime >= item.threshold;
+            {loyaltyTiers.map((item, index) => {
+              const reached = loyaltyLifetime >= item.threshold;
               return (
                 <View key={item.id} style={styles.trackCell}>
                   {index > 0 && (
@@ -154,7 +170,7 @@ export function RewardsScreen() {
       {/* Rewards */}
       <View style={styles.section}>
         <Text variant="sectionTitle" uppercase>
-          {copy.title}
+          {loyaltyCopy.title}
         </Text>
 
         <ScrollView
@@ -162,94 +178,158 @@ export function RewardsScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chips}
         >
-          {[{ id: "all", name: copy.allMemberships }, ...tiers].map((chip) => (
-            <Chip
-              key={chip.id}
-              label={chip.name}
-              selected={filter === chip.id}
-              onPress={() => setFilter(chip.id)}
-            />
-          ))}
+          {[{ id: "all", name: loyaltyCopy.allMemberships }, ...loyaltyTiers].map(
+            (chip) => (
+              <Chip
+                key={chip.id}
+                label={chip.name}
+                selected={filter === chip.id}
+                onPress={() => setFilter(chip.id)}
+              />
+            ),
+          )}
         </ScrollView>
 
-        <View style={styles.rows}>
-          {shown.map((reward) => {
-            const Icon = ICONS[reward.icon];
-            const taken = redeemed.includes(reward.id);
-            const affordable = balance >= reward.cost;
-            return (
-              <View key={reward.id} style={styles.row}>
-                <View style={styles.tile}>
-                  <Icon width={24} height={24} />
-                </View>
-                <View style={styles.rowBody}>
-                  <Text variant="body" numberOfLines={1}>
-                    {reward.name}
-                  </Text>
-                  <Text variant="bodyS" color={colors.contentSecondary}>
-                    {reward.cost.toLocaleString("en-US")} {copy.unit}
-                  </Text>
-                </View>
-
-                {taken ? (
-                  <Text variant="bodySBold" color={colors.positive}>
-                    Redeemed
-                  </Text>
-                ) : affordable ? (
-                  <Button label={copy.redeem} onPress={() => redeem(reward)} />
-                ) : (
-                  <Button label={copy.locked} icon={LockSmall} disabled />
-                )}
-              </View>
-            );
-          })}
-        </View>
+        {shown.length === 0 ? (
+          <Text variant="bodyBold" color={colors.contentSecondary}>
+            {loyaltyCopy.empty}
+          </Text>
+        ) : (
+          <View style={styles.rows}>
+            {shown.map((reward) => {
+              const taken = redeemed.includes(reward.id);
+              const affordable = balance >= reward.cost;
+              return (
+                <ListRow
+                  key={reward.id}
+                  icon={icon(reward.icon)}
+                  label={reward.name}
+                  sub={`${reward.cost.toLocaleString("en-US")} ${loyaltyCopy.unit}`}
+                  trailing={
+                    taken ? (
+                      <Text variant="bodySBold" color={colors.positive}>
+                        {loyaltyCopy.redeemed}
+                      </Text>
+                    ) : affordable ? (
+                      <Button
+                        label={loyaltyCopy.redeem}
+                        onPress={() => setConfirming(reward)}
+                      />
+                    ) : (
+                      <Button
+                        label={loyaltyCopy.locked}
+                        icon={LockSmall}
+                        disabled
+                      />
+                    )
+                  }
+                />
+              );
+            })}
+          </View>
+        )}
       </View>
 
       {/* Ledger */}
       <View style={styles.section}>
         <Text variant="sectionTitle" uppercase>
-          {copy.activityTitle}
+          {loyaltyCopy.activityTitle}
         </Text>
         <Text variant="bodyBold" color={colors.contentSecondary}>
-          {copy.today}
+          {loyaltyCopy.today}
         </Text>
 
         <View>
-          {activity.map((entry) => (
-            <View key={entry.id} style={styles.row}>
-              <View style={styles.tile}>
-                {entry.kind === "earn" ? (
-                  <BeatsEarn width={24} height={24} />
-                ) : (
-                  <BeatsBurn width={24} height={24} />
-                )}
-              </View>
-              <View style={styles.rowBody}>
-                <Text variant="body" numberOfLines={1}>
-                  {entry.label}
+          {loyaltyActivity.map((entry) => (
+            <ListRow
+              key={entry.id}
+              icon={entry.kind === "earn" ? BeatsEarn : BeatsBurn}
+              label={entry.label}
+              sub={entry.time}
+              trailing={
+                <Text
+                  variant="bodyBold"
+                  color={
+                    entry.kind === "earn"
+                      ? colors.positive
+                      : colors.contentPrimary
+                  }
+                >
+                  {entry.kind === "earn"
+                    ? loyaltyCopy.earned(entry.beats)
+                    : loyaltyCopy.beats(entry.beats)}
                 </Text>
-                <Text variant="bodyS" color={colors.contentSecondary}>
-                  {entry.time}
-                </Text>
-              </View>
-              <Text
-                variant="bodyBold"
-                color={
-                  entry.kind === "earn" ? colors.positive : colors.contentPrimary
-                }
-              >
-                {entry.kind === "earn" ? "+" : ""}
-                {Math.abs(entry.beats).toLocaleString("en-US")} {copy.unit}
-              </Text>
-            </View>
+              }
+            />
           ))}
         </View>
 
         <Text variant="caption" color={colors.contentSecondary}>
-          {copy.note}
+          {loyaltyCopy.note}
         </Text>
       </View>
+
+      {/* Spending Beats is not undoable, so it is asked before it is done. */}
+      <Confirm
+        open={confirming !== null}
+        title={loyaltyCopy.confirmTitle}
+        body={
+          confirming
+            ? loyaltyCopy.confirmBody(confirming.name, confirming.cost)
+            : ""
+        }
+        cancel={loyaltyCopy.cancel}
+        confirm={loyaltyCopy.redeem}
+        onCancel={() => setConfirming(null)}
+        onConfirm={() => {
+          if (confirming) redeem(confirming);
+          setConfirming(null);
+        }}
+      />
+
+      <Sheet
+        open={howTo}
+        onClose={() => setHowTo(false)}
+        title={loyaltyHowTo.title}
+        closeLabel={loyaltyHowTo.done}
+        footer={
+          <Button
+            variant="primary"
+            label={loyaltyHowTo.done}
+            onPress={() => setHowTo(false)}
+          />
+        }
+      >
+        <Text variant="body" color={colors.contentSecondary}>
+          {loyaltyHowTo.intro}
+        </Text>
+
+        <Text variant="titleBody" uppercase>
+          {loyaltyHowTo.earnTitle}
+        </Text>
+        {loyaltyHowTo.earn.map((way) => (
+          <ListRow
+            key={way.id}
+            icon={icon(way.icon)}
+            label={way.label}
+            sub={way.detail}
+          />
+        ))}
+
+        <Text variant="titleBody" uppercase>
+          {loyaltyHowTo.membershipTitle}
+        </Text>
+        <Text variant="body" color={colors.contentSecondary}>
+          {loyaltyHowTo.membershipBody}
+        </Text>
+
+        <Text variant="titleBody" uppercase>
+          {loyaltyHowTo.expiryTitle}
+        </Text>
+        <Text variant="body" color={colors.contentSecondary}>
+          {loyaltyHowTo.expiryBody}
+        </Text>
+      </Sheet>
     </ScrollView>
   );
 }
@@ -307,15 +387,5 @@ const styles = StyleSheet.create({
 
   section: { paddingHorizontal: gutter, paddingTop: space.section, gap: space.l },
   chips: { flexDirection: "row", gap: 10, paddingRight: gutter },
-  rows: { gap: space.m },
-  row: { flexDirection: "row", alignItems: "center", gap: space.l, height: 66 },
-  tile: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.bgTertiary,
-    borderRadius: radii.none,
-  },
-  rowBody: { flex: 1, minWidth: 0 },
+  rows: { gap: space.xs },
 });
