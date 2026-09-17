@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
+  Animated,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
@@ -21,6 +22,7 @@ import { colors, displaySize, radii, space, type } from "../theme/tokens";
 import type { RootParamList } from "../navigation/RootNavigator";
 import { TAB_BAR_CLEARANCE } from "../navigation/TabBar";
 import { useTabBarScroll } from "../navigation/tabBarScroll";
+import { Reveal, ScrollProvider, usePageScroll } from "../theme/scroll";
 import { loyaltyBalance } from "../data/account";
 import { useWatchedStories } from "./watchedStories";
 import {
@@ -31,6 +33,9 @@ import {
   newsRows,
   stories,
 } from "../data/discover";
+
+/** How far a poster drifts inside its card as the rail moves. */
+const PARALLAX = 26;
 
 /* Card and tile figures come straight off the comp's 390px frame. */
 const CARD_WIDTH = 289;
@@ -56,6 +61,10 @@ export function DiscoverScreen() {
   const [card, setCard] = useState(0);
   const watched = useWatchedStories();
   const tabScroll = useTabBarScroll();
+  /* One onScroll per scroll view, so the tab bar's shrink rides along with
+     the page's own scroll value. */
+  const { scrollY, props: scrollProps } = usePageScroll(tabScroll.onScroll);
+  const cardsX = useRef(new Animated.Value(0)).current;
 
   const heading = displaySize(type.displaySection, width);
   const cardName = displaySize(type.displayCard, width);
@@ -83,9 +92,10 @@ export function DiscoverScreen() {
       </View>
 
       {/* The bar floats over this screen, so the last row buys its own room. */}
-      <ScrollView
+      <ScrollProvider value={scrollY}>
+      <Animated.ScrollView
         contentContainerStyle={{ paddingBottom: TAB_BAR_CLEARANCE }}
-        {...tabScroll}
+        {...scrollProps}
       >
         {/* Stories */}
         <ScrollView
@@ -120,22 +130,27 @@ export function DiscoverScreen() {
         </ScrollView>
 
         {/* Festivals */}
-        <View style={styles.section}>
+        <Reveal style={styles.section}>
           <Text variant="displaySection" uppercase color={colors.white} style={heading}>
             {discoverCopy.festivals}
           </Text>
 
-          <ScrollView
+          <Animated.ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             snapToInterval={cardStep}
             decelerationRate="fast"
             contentContainerStyle={styles.cards}
+            scrollEventThrottle={16}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { x: cardsX } } }],
+              { useNativeDriver: true },
+            )}
             onMomentumScrollEnd={(e: NativeSyntheticEvent<NativeScrollEvent>) =>
               setCard(Math.round(e.nativeEvent.contentOffset.x / cardStep))
             }
           >
-            {festivalCards.map((festival) => (
+            {festivalCards.map((festival, index) => (
               <Tap
                 key={festival.id}
                 accessibilityRole="button"
@@ -149,12 +164,37 @@ export function DiscoverScreen() {
                 scale={0.985}
                 style={styles.card}
               >
-                <Image
-                  source={image(festival.image)}
-                  style={styles.cardMedia}
-                  contentFit="cover"
-                  transition={200}
-                />
+                <View style={styles.cardMedia}>
+                  <Animated.View
+                    style={[
+                      StyleSheet.absoluteFill,
+                      {
+                        transform: [
+                          {
+                            /* A third of the rail's speed, the other way, so
+                               the poster looks like it sits behind the card
+                               rather than on it. */
+                            translateX: cardsX.interpolate({
+                              inputRange: [
+                                (index - 1) * cardStep,
+                                (index + 1) * cardStep,
+                              ],
+                              outputRange: [-PARALLAX, PARALLAX],
+                              extrapolate: "clamp",
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  >
+                    <Image
+                      source={image(festival.image)}
+                      style={styles.cardPoster}
+                      contentFit="cover"
+                      transition={200}
+                    />
+                  </Animated.View>
+                </View>
                 <View>
                   <Text
                     variant="displayCard"
@@ -177,7 +217,7 @@ export function DiscoverScreen() {
                 </View>
               </Tap>
             ))}
-          </ScrollView>
+          </Animated.ScrollView>
 
           <View style={styles.marks}>
             {festivalCards.map((festival, index) => (
@@ -190,10 +230,10 @@ export function DiscoverScreen() {
               />
             ))}
           </View>
-        </View>
+        </Reveal>
 
         {/* Merchandise */}
-        <View style={styles.section}>
+        <Reveal style={styles.section}>
           <Text variant="displaySection" uppercase color={colors.white} style={heading}>
             {discoverCopy.merchandise}
           </Text>
@@ -215,10 +255,10 @@ export function DiscoverScreen() {
               </View>
             ))}
           </View>
-        </View>
+        </Reveal>
 
         {/* Gallery */}
-        <View style={styles.section}>
+        <Reveal style={styles.section}>
           <Text variant="displaySection" uppercase color={colors.white} style={heading}>
             {discoverCopy.gallery}
           </Text>
@@ -243,10 +283,10 @@ export function DiscoverScreen() {
               ))}
             </View>
           </ScrollView>
-        </View>
+        </Reveal>
 
         {/* News */}
-        <View style={styles.section}>
+        <Reveal style={styles.section}>
           <Text variant="displaySection" uppercase color={colors.white} style={heading}>
             {discoverCopy.news}
           </Text>
@@ -279,8 +319,9 @@ export function DiscoverScreen() {
             iconSide="right"
             onPress={() => navigation.navigate("Tabs", { screen: "News" } as never)}
           />
-        </View>
-      </ScrollView>
+        </Reveal>
+      </Animated.ScrollView>
+      </ScrollProvider>
     </View>
   );
 }
@@ -338,7 +379,10 @@ const styles = StyleSheet.create({
     width: "100%",
     aspectRatio: MEDIA_RATIO,
     backgroundColor: colors.bgTertiary,
+    overflow: "hidden",
   },
+  /* Wider than its frame, so there is something to drift into. */
+  cardPoster: { width: `${100 + (PARALLAX * 2 * 100) / CARD_WIDTH}%`, height: "100%" },
 
   marks: { flexDirection: "row", gap: space.s, alignItems: "center" },
   mark: { width: 8, height: 8 },

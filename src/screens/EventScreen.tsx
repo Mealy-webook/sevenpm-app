@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Animated,
   Linking,
   ScrollView,
   Share,
@@ -26,6 +27,7 @@ import { Tap } from "../components/Tap";
 import { icon } from "../icons";
 import { image } from "../images";
 import { Text } from "../theme/Text";
+import { Reveal, ScrollProvider, usePageScroll } from "../theme/scroll";
 import { colors, displaySize, radii, space, type } from "../theme/tokens";
 import type { RootParamList } from "../navigation/RootNavigator";
 import { eventCopy } from "../data/discover";
@@ -87,6 +89,7 @@ export function EventScreen() {
 
   const [day, setDay] = useState(0);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const { scrollY, props: scrollProps } = usePageScroll();
 
   if (!event) {
     return (
@@ -105,8 +108,36 @@ export function EventScreen() {
 
   return (
     <Page>
-      <ScrollView contentContainerStyle={{ paddingBottom: space.section }}>
-        <View style={{ height: width }}>
+      <ScrollProvider value={scrollY}>
+        <Animated.ScrollView
+          contentContainerStyle={{ paddingBottom: space.section }}
+          {...scrollProps}
+        >
+        {/* The artwork holds its ground as the page leaves — it travels at a
+            third of the scroll — and pulling down past the top stretches it
+            rather than exposing the page colour behind. */}
+        <Animated.View
+          style={{
+            height: width,
+            transform: [
+              {
+                translateY: scrollY.interpolate({
+                  inputRange: [0, width],
+                  outputRange: [0, width * 0.34],
+                  extrapolateLeft: "extend",
+                  extrapolateRight: "clamp",
+                }),
+              },
+              {
+                scale: scrollY.interpolate({
+                  inputRange: [-width, 0],
+                  outputRange: [2.4, 1],
+                  extrapolateRight: "clamp",
+                }),
+              },
+            ],
+          }}
+        >
           <Image
             source={image("/assets/event-hero.jpg")}
             style={StyleSheet.absoluteFill}
@@ -118,10 +149,10 @@ export function EventScreen() {
             locations={[0.45, 1]}
             style={StyleSheet.absoluteFill}
           />
-        </View>
+        </Animated.View>
 
         {/* Name, when, where, what. */}
-        <View style={[styles.section, styles.overlap]}>
+        <Reveal style={[styles.section, styles.overlap]}>
           <Text variant="displayStep" uppercase color={colors.white} style={heading}>
             {event.name}
           </Text>
@@ -165,14 +196,14 @@ export function EventScreen() {
           </View>
 
           <Button variant="brand" label={eventCopy.exploreTickets} onPress={book} />
-        </View>
+        </Reveal>
 
         {/* Tickets */}
-        <View style={styles.section}>
+        <Reveal style={styles.section}>
           <Text variant="displayStep" uppercase color={colors.white} style={heading}>
             {eventCopy.tickets}
           </Text>
-        </View>
+        </Reveal>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -250,7 +281,7 @@ export function EventScreen() {
         </ScrollView>
 
         {/* Line-up */}
-        <View style={styles.section}>
+        <Reveal style={styles.section}>
           <Text variant="displayStep" uppercase color={colors.white} style={heading}>
             {eventCopy.lineup}
           </Text>
@@ -264,7 +295,7 @@ export function EventScreen() {
               />
             ))}
           </View>
-        </View>
+        </Reveal>
         {/* Circles, sized by their group: a solo act is one large one, a block
             is four small. They run off the right edge as the comp draws them. */}
         <ScrollView
@@ -278,7 +309,7 @@ export function EventScreen() {
         </ScrollView>
 
         {/* Location */}
-        <View style={styles.section}>
+        <Reveal style={styles.section}>
           <Text variant="displayStep" uppercase color={colors.white} style={heading}>
             {eventCopy.location}
           </Text>
@@ -308,14 +339,14 @@ export function EventScreen() {
               onPress={() => Linking.openURL(event.venue.directionsUrl)}
             />
           </View>
-        </View>
+        </Reveal>
 
         {/* Gallery */}
-        <View style={styles.section}>
+        <Reveal style={styles.section}>
           <Text variant="displayStep" uppercase color={colors.white} style={heading}>
             {eventCopy.gallery}
           </Text>
-        </View>
+        </Reveal>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -333,7 +364,7 @@ export function EventScreen() {
         </ScrollView>
 
         {/* Good to know — panels, two across. */}
-        <View style={styles.section}>
+        <Reveal style={styles.section}>
           <Text variant="displayStep" uppercase color={colors.white} style={heading}>
             {eventCopy.goodToKnow}
           </Text>
@@ -351,10 +382,10 @@ export function EventScreen() {
               );
             })}
           </View>
-        </View>
+        </Reveal>
 
         {/* FAQs — the control is on the left, ahead of the question. */}
-        <View style={styles.section}>
+        <Reveal style={styles.section}>
           <Text variant="displayStep" uppercase color={colors.white} style={heading}>
             {eventCopy.faqs}
           </Text>
@@ -391,10 +422,10 @@ export function EventScreen() {
               );
             })}
           </View>
-        </View>
+        </Reveal>
 
         {/* Sponsors — not in the comp; see the note at the top of this file. */}
-        <View style={styles.section}>
+        <Reveal style={styles.section}>
           <Text variant="displayStep" uppercase color={colors.white} style={heading}>
             {eventCopy.sponsors}
           </Text>
@@ -412,8 +443,9 @@ export function EventScreen() {
               );
             })}
           </View>
-        </View>
-      </ScrollView>
+        </Reveal>
+        </Animated.ScrollView>
+      </ScrollProvider>
 
       <View style={[styles.bar, { paddingTop: insets.top + space.s }]}>
         <Tap
