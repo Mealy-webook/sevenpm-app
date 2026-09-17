@@ -1,8 +1,9 @@
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import Minus from "../icons/ic-minus-16.svg";
 import Plus from "../icons/ic-plus-16.svg";
 import Trash from "../icons/ic-trash-16.svg";
+import { Tap } from "./Tap";
 import { Text } from "../theme/Text";
 import { colors, space } from "../theme/tokens";
 import { bookingConfig, bookingCopy } from "../data/booking";
@@ -41,22 +42,17 @@ export function Stepper({
 
   if (value === 0 && atZero === "add") {
     return (
-      <Pressable
+      <Tap
         accessibilityRole="button"
         accessibilityLabel={`${addLabel} — ${name}`}
         onPress={onAdd}
-        style={({ pressed }) => [
-          styles.shell,
-          surface,
-          styles.add,
-          pressed && styles.pressed,
-        ]}
+        style={[styles.shell, surface, styles.add]}
       >
         <Plus width={16} height={16} />
         <Text variant="bodyBold" style={styles.addLabel}>
           {addLabel}
         </Text>
-      </Pressable>
+      </Tap>
     );
   }
 
@@ -67,21 +63,20 @@ export function Stepper({
 
   return (
     <View style={[styles.shell, surface, styles.counter]}>
-      <Pressable
+      <Tap
         accessibilityRole="button"
         accessibilityLabel={`${
           first ? bookingCopy.tickets.remove : bookingCopy.tickets.fewer
         } — ${name}`}
         disabled={empty}
         onPress={() => onChange(-1)}
-        style={({ pressed }) => [
-          styles.key,
-          empty && styles.keyOff,
-          pressed && !empty && styles.pressed,
-        ]}
+        /* A 22px key dips further than a button: at this size a 3% change is
+           invisible, and this is the control people press most in the flow. */
+        scale={0.88}
+        style={[styles.key, empty && styles.keyOff]}
       >
         {first ? <Trash width={16} height={16} /> : <Minus width={16} height={16} />}
-      </Pressable>
+      </Tap>
 
       <Text
         variant="bodyBold"
@@ -91,19 +86,16 @@ export function Stepper({
         {value}
       </Text>
 
-      <Pressable
+      <Tap
         accessibilityRole="button"
         accessibilityLabel={`${bookingCopy.tickets.more} — ${name}`}
         disabled={atMax}
         onPress={() => (empty ? onAdd() : onChange(1))}
-        style={({ pressed }) => [
-          styles.key,
-          atMax && styles.keyOff,
-          pressed && !atMax && styles.pressed,
-        ]}
+        scale={0.88}
+        style={[styles.key, atMax && styles.keyOff]}
       >
         <Plus width={16} height={16} />
-      </Pressable>
+      </Tap>
     </View>
   );
 }
@@ -124,6 +116,5 @@ const styles = StyleSheet.create({
   counter: { paddingHorizontal: space.s, paddingVertical: 11 },
   key: { width: 22, height: 22, alignItems: "center", justifyContent: "center" },
   keyOff: { opacity: 0.3 },
-  pressed: { opacity: 0.7 },
   value: { minWidth: 20, textAlign: "center" },
 });

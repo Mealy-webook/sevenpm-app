@@ -15,6 +15,7 @@ import { useNavigation, useRoute, type RouteProp } from "@react-navigation/nativ
 import Close from "../icons/ic-close.svg";
 import Send from "../icons/ic-send-outline-20.svg";
 import { Button } from "../components/Button";
+import { Tap } from "../components/Tap";
 import { image } from "../images";
 import { Text } from "../theme/Text";
 import { colors, radii, space } from "../theme/tokens";
@@ -146,14 +147,14 @@ export function StoryScreen() {
             </Text>
           </View>
 
-          <Pressable
+          <Tap
             accessibilityRole="button"
             accessibilityLabel={storyCopy.close}
             onPress={navigation.goBack}
-            style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+            style={styles.iconButton}
           >
             <Close width={20} height={20} />
-          </Pressable>
+          </Tap>
         </View>
       </LinearGradient>
 
@@ -182,13 +183,13 @@ export function StoryScreen() {
           {current.caption}
         </Text>
         <Button variant="brand" size="m" label={storyCopy.explore} />
-        <Pressable
+        <Tap
           accessibilityRole="button"
           accessibilityLabel={storyCopy.share}
-          style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+          style={styles.iconButton}
         >
           <Send width={20} height={20} />
-        </Pressable>
+        </Tap>
       </View>
     </View>
   );
@@ -196,7 +197,6 @@ export function StoryScreen() {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.bgPrimary },
-  pressed: { opacity: 0.7 },
 
   shade: { position: "absolute", left: 0, right: 0, top: 0, zIndex: 2, gap: space.l },
   bars: {

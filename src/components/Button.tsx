@@ -1,8 +1,11 @@
-import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
+import { Animated, Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import type { SvgProps } from "react-native-svg";
 
 import { Text } from "../theme/Text";
+import { usePressScale } from "../theme/motion";
 import { colors, space } from "../theme/tokens";
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /**
  * The system has three buttons, and which one to reach for is decided by the
@@ -55,6 +58,7 @@ export function Button({
   style?: ViewStyle;
 }) {
   const dock = variant !== "secondary";
+  const press = usePressScale();
 
   /* The dock buttons are dark ink on light paper, except the tertiary one,
      which has no paper under it and takes the page's own content colour. */
@@ -69,20 +73,23 @@ export function Button({
           : colors.contentPrimary;
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={[
         styles.base,
         dock ? styles.dock : size === "m" ? styles.medium : styles.small,
         !disabled && variant === "primary" && styles.primary,
         !disabled && variant === "brand" && styles.brand,
         variant === "outline" && styles.outline,
         disabled && (dock ? styles.dockDisabled : styles.disabled),
-        pressed && !disabled && styles.pressed,
         style,
+        /* A disabled control does not answer the finger. */
+        !disabled && press.style,
       ]}
     >
       {Icon && (
@@ -109,7 +116,7 @@ export function Button({
           </Text>
         </View>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -147,6 +154,5 @@ const styles = StyleSheet.create({
      rather than as an outlined control you cannot press. */
   disabled: { borderColor: "transparent" },
   dockDisabled: { backgroundColor: colors.overlay5 },
-  pressed: { opacity: 0.85 },
   box: { height: 16, justifyContent: "center", paddingHorizontal: space.xs },
 });

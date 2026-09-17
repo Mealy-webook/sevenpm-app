@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 
 import { Chip } from "../../components/Chip";
 import { Stepper } from "../../components/Stepper";
+import { Tap } from "../../components/Tap";
 import { image } from "../../images";
 import { Text } from "../../theme/Text";
 import { colors, space } from "../../theme/tokens";
@@ -59,12 +60,13 @@ export function ExtrasStep({
           {shown.map((addon) => {
             const count = quantityOfAny(cart, addon.id);
             return (
-              <Pressable
+              <Tap
                 key={addon.id}
                 accessibilityRole="button"
                 accessibilityLabel={bookingCopy.extras.openDetails(addon.name)}
                 onPress={() => onDetails(addon)}
-                style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+                scale={0.98}
+                style={styles.card}
               >
                 <View>
                   <Image
@@ -101,7 +103,7 @@ export function ExtrasStep({
                     {addon.discount}
                   </Text>
                 )}
-              </Pressable>
+              </Tap>
             );
           })}
         </View>
@@ -134,7 +136,6 @@ export function ExtrasStep({
 const styles = StyleSheet.create({
   step: { gap: space.xl },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.s },
-  pressed: { opacity: 0.8 },
 
   grid: { flexDirection: "row", flexWrap: "wrap", gap: space.m },
   card: { width: "47%", gap: space.xs },

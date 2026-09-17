@@ -7,6 +7,7 @@ import Clear from "../../icons/ic-clear-20.svg";
 import { Button } from "../../components/Button";
 import { Chip } from "../../components/Chip";
 import { Field, Sheet, SheetPrice } from "../../components/Sheet";
+import { Tap } from "../../components/Tap";
 import { icon } from "../../icons";
 import { image } from "../../images";
 import { Text } from "../../theme/Text";
@@ -636,15 +637,12 @@ export function Option({
   trailing?: React.ReactNode;
 }) {
   return (
-    <Pressable
+    <Tap
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.option,
-        selected && styles.optionOn,
-        pressed && styles.pressed,
-      ]}
+      scale={0.99}
+      style={[styles.option, selected && styles.optionOn]}
     >
       <View style={styles.optionBody}>
         <Text variant="bodyBold" numberOfLines={1}>
@@ -662,7 +660,7 @@ export function Option({
       ) : (
         <View style={styles.optionMark} />
       )}
-    </Pressable>
+    </Tap>
   );
 }
 

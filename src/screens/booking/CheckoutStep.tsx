@@ -1,10 +1,11 @@
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import CheckOff from "../../icons/ic-check-off.svg";
 import CheckOn from "../../icons/ic-check-on.svg";
 import Trash from "../../icons/ic-trash-red-16.svg";
 import { Button } from "../../components/Button";
 import { Switch } from "../../components/Switch";
+import { Tap } from "../../components/Tap";
 import { icon } from "../../icons";
 import { Text } from "../../theme/Text";
 import { colors, space } from "../../theme/tokens";
@@ -207,17 +208,18 @@ export function CheckoutStep({
       </View>
 
       {/* The one box that must be ticked. */}
-      <Pressable
+      <Tap
         accessibilityRole="checkbox"
         accessibilityState={{ checked: agreed }}
         onPress={() => onAgree(!agreed)}
-        style={({ pressed }) => [styles.agree, pressed && styles.pressed]}
+        scale={0.99}
+        style={styles.agree}
       >
         {agreed ? <CheckOn width={20} height={20} /> : <CheckOff width={20} height={20} />}
         <Text variant="bodyS" color={colors.contentSecondary} style={styles.agreeText}>
           {copy.agreement}
         </Text>
-      </Pressable>
+      </Tap>
       {agreementError && !agreed && (
         <Text variant="caption" color={colors.negative}>
           {copy.agreementError}
@@ -251,5 +253,4 @@ const styles = StyleSheet.create({
 
   agree: { flexDirection: "row", alignItems: "flex-start", gap: space.m },
   agreeText: { flex: 1, minWidth: 0 },
-  pressed: { opacity: 0.7 },
 });

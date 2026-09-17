@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Pressable,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
@@ -15,6 +14,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import ArrowRight from "../icons/ic-arrow-right-20.svg";
 import { Button } from "../components/Button";
+import { Tap } from "../components/Tap";
 import { image } from "../images";
 import { Text } from "../theme/Text";
 import { colors, displaySize, radii, space, type } from "../theme/tokens";
@@ -85,12 +85,12 @@ export function DiscoverScreen() {
           contentContainerStyle={styles.stories}
         >
           {stories.map((story) => (
-            <Pressable
+            <Tap
               key={story.id}
               accessibilityRole="button"
               accessibilityLabel={discoverCopy.story(story.label)}
               onPress={() => navigation.navigate("Story", { id: story.id })}
-              style={({ pressed }) => [styles.story, pressed && styles.pressed]}
+              style={styles.story}
             >
               <View style={[styles.ring, story.watched && styles.ringWatched]}>
                 <Image
@@ -103,7 +103,7 @@ export function DiscoverScreen() {
               <Text variant="bodyS" numberOfLines={1} style={styles.storyLabel}>
                 {story.label}
               </Text>
-            </Pressable>
+            </Tap>
           ))}
         </ScrollView>
 
@@ -124,7 +124,7 @@ export function DiscoverScreen() {
             }
           >
             {festivalCards.map((festival) => (
-              <Pressable
+              <Tap
                 key={festival.id}
                 accessibilityRole="button"
                 accessibilityLabel={festival.name}
@@ -133,7 +133,9 @@ export function DiscoverScreen() {
                   festival.slug &&
                   navigation.navigate("Event", { slug: festival.slug })
                 }
-                style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+                /* A 289px card dips less than a 72px story ring. */
+                scale={0.985}
+                style={styles.card}
               >
                 <Image
                   source={image(festival.image)}
@@ -161,7 +163,7 @@ export function DiscoverScreen() {
                     {festival.venue}
                   </Text>
                 </View>
-              </Pressable>
+              </Tap>
             ))}
           </ScrollView>
 
@@ -272,7 +274,6 @@ export function DiscoverScreen() {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.bgPrimary },
-  pressed: { opacity: 0.8 },
 
   header: {
     flexDirection: "row",

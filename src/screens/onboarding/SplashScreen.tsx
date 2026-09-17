@@ -1,16 +1,11 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  AccessibilityInfo,
-  Animated,
-  Easing,
-  StyleSheet,
-  View,
-} from "react-native";
+import { useEffect, useRef } from "react";
+import { Animated, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { image } from "../../images";
 import { Text } from "../../theme/Text";
+import { easeIn, useEntrance, useReducedMotion } from "../../theme/motion";
 import { colors, motion, space } from "../../theme/tokens";
 import { splashCopy } from "../../data/onboarding";
 
@@ -27,23 +22,20 @@ import { splashCopy } from "../../data/onboarding";
  * this same size on this same ground, so when it is dismissed and this takes
  * over, the only thing that should change is that the credit line appears.
  *
- * The one piece of motion is the exit. It obeys reduced motion by holding the
- * settled screen for the same beat instead, per DESIGN-SYSTEM.md §5.
+ * So the mark itself never moves while the screen is up — moving it would
+ * give away that a handoff happened. The only things that do move are the
+ * credit line, which arrives a beat later, and the exit, where the whole
+ * screen lifts very slightly as it fades and lets the app open out from
+ * under it.
+ *
+ * Reduced motion holds the settled screen for the same beat instead, per
+ * DESIGN-SYSTEM.md §5.
  */
 export function SplashScreen({ onDone }: { onDone: () => void }) {
   const insets = useSafeAreaInsets();
-  const [reduced, setReduced] = useState<boolean | null>(null);
+  const reduced = useReducedMotion();
   const fade = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    let alive = true;
-    AccessibilityInfo.isReduceMotionEnabled().then((value) => {
-      if (alive) setReduced(value);
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const credit = useEntrance(motion.base, motion.fast);
 
   useEffect(() => {
     if (reduced === null) return;
@@ -57,8 +49,8 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
       Animated.delay(motion.slow),
       Animated.timing(fade, {
         toValue: 0,
-        duration: motion.fast,
-        easing: Easing.bezier(...motion.easeIn),
+        duration: motion.base,
+        easing: easeIn,
         useNativeDriver: true,
       }),
     ]);
@@ -69,7 +61,22 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
   }, [reduced, fade, onDone]);
 
   return (
-    <Animated.View style={[styles.page, { opacity: fade }]}>
+    <Animated.View
+      style={[
+        styles.page,
+        {
+          opacity: fade,
+          transform: [
+            {
+              scale: fade.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1.04, 1],
+              }),
+            },
+          ],
+        },
+      ]}
+    >
       <View style={styles.middle}>
         <Image
           source={image("/assets/logo-mark.png")}
@@ -79,7 +86,23 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
         />
       </View>
 
-      <View style={[styles.foot, { paddingBottom: insets.bottom + space.xl }]}>
+      <Animated.View
+        style={[
+          styles.foot,
+          { paddingBottom: insets.bottom + space.xl },
+          {
+            opacity: credit,
+            transform: [
+              {
+                translateY: credit.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [8, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
         <Text
           variant="body"
           color={colors.contentSecondary}
@@ -87,7 +110,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
         >
           {splashCopy.poweredBy}
         </Text>
-      </View>
+      </Animated.View>
     </Animated.View>
   );
 }

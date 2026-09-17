@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ArrowLeft from "../icons/ic-arrow-left-20.svg";
+import { Tap } from "./Tap";
 import { Text } from "../theme/Text";
 import { colors, gutter, space } from "../theme/tokens";
 
@@ -38,14 +39,14 @@ export function NavBar({
       pointerEvents="box-none"
     >
       {onBack && (
-        <Pressable
+        <Tap
           accessibilityRole="button"
           accessibilityLabel="Back"
           onPress={onBack}
-          style={({ pressed }) => [styles.back, pressed && styles.pressed]}
+          style={styles.back}
         >
           <ArrowLeft width={20} height={20} />
-        </Pressable>
+        </Tap>
       )}
       {title && (
         <Text variant="titleBody" uppercase numberOfLines={1} style={styles.title}>
@@ -82,7 +83,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.overlay10,
   },
-  pressed: { opacity: 0.7 },
   title: { flex: 1, minWidth: 0 },
   right: { flexDirection: "row", alignItems: "center", gap: space.s },
 });

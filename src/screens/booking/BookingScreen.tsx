@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -8,6 +8,7 @@ import ChevronDown from "../../icons/ic-chevron-down-16.svg";
 import Lock from "../../icons/ic-lock-16.svg";
 import { Button } from "../../components/Button";
 import { NavBar, Page } from "../../components/Screen";
+import { Tap } from "../../components/Tap";
 import { Text } from "../../theme/Text";
 import { colors, gutter, space } from "../../theme/tokens";
 import type { RootParamList } from "../../navigation/RootNavigator";
@@ -258,11 +259,11 @@ export function BookingScreen() {
               </Text>
             ) : (
               <>
-                <Pressable
+                <Tap
                   accessibilityRole="button"
                   accessibilityLabel={bookingCopy.summaryBar.open}
                   onPress={() => setSummaryOpen(true)}
-                  style={({ pressed }) => [styles.barOpen, pressed && styles.pressed]}
+                  style={styles.barOpen}
                 >
                   <Text variant="bodyBold" numberOfLines={1}>
                     {[
@@ -274,7 +275,7 @@ export function BookingScreen() {
                       .join(", ")}
                   </Text>
                   <ChevronDown width={16} height={16} />
-                </Pressable>
+                </Tap>
                 <View style={styles.barTotal}>
                   <Text variant="bodyS" color={colors.contentSecondary}>
                     {bookingCopy.summaryBar.total}
@@ -376,5 +377,4 @@ const styles = StyleSheet.create({
   barTotal: { flexDirection: "row", alignItems: "baseline", gap: space.xs },
   barCta: { flex: 1 },
   semibold: { fontFamily: "Roboto_600SemiBold" },
-  pressed: { opacity: 0.7 },
 });

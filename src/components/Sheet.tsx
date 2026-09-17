@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Close from "../icons/ic-dialog-close.svg";
+import { Tap } from "./Tap";
 import { Text } from "../theme/Text";
 import { colors, gutter, space } from "../theme/tokens";
 
@@ -78,14 +79,14 @@ export function Sheet({
                 </Text>
               )}
             </View>
-            <Pressable
+            <Tap
               accessibilityRole="button"
               accessibilityLabel={closeLabel}
               onPress={onClose}
-              style={({ pressed }) => [styles.close, pressed && styles.pressed]}
+              style={styles.close}
             >
               <Close width={20} height={20} />
-            </Pressable>
+            </Tap>
           </View>
 
           <ScrollView
@@ -249,8 +250,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.overlay10,
   },
-  pressed: { opacity: 0.7 },
-
   body: { flexGrow: 0 },
   bodyInner: { padding: gutter, gap: space.l },
 

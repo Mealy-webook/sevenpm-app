@@ -1,4 +1,4 @@
-import { StyleSheet, View, useWindowDimensions } from "react-native";
+import { Animated, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -16,6 +16,11 @@ import { colors, scaled } from "../../theme/tokens";
  * simply covering, because in all three the subject is deliberately off
  * centre — the saxophone is placed to the right of the headline, not behind
  * it — and `cover` would recentre them.
+ *
+ * All three are mounted at once and stacked; which one you see is a matter of
+ * opacity, and the opacity is driven by how far the pager has been dragged.
+ * That is the whole trick behind the crossfade — see `Backdrop` in
+ * OnboardingScreen.
  */
 
 /** Step 1 (341:1331) — the saxophonist, bled off the left edge. */

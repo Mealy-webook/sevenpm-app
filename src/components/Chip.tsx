@@ -1,7 +1,10 @@
-import { Pressable, StyleSheet } from "react-native";
+import { Animated, Pressable, StyleSheet } from "react-native";
 
 import { Text } from "../theme/Text";
+import { usePressScale } from "../theme/motion";
 import { colors, space } from "../theme/tokens";
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /**
  * A filter chip. Selected swaps the dim border for a full-strength one and
@@ -18,15 +21,19 @@ export function Chip({
   selected: boolean;
   onPress: () => void;
 }) {
+  const press = usePressScale();
+
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="tab"
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={[styles.base, selected ? styles.on : styles.off]}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={[styles.base, selected ? styles.on : styles.off, press.style]}
     >
       <Text variant="bodyBold">{label}</Text>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 

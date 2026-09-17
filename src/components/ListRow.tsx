@@ -1,9 +1,12 @@
-import { Pressable, StyleSheet, View } from "react-native";
+import { Animated, Pressable, StyleSheet, View } from "react-native";
 import type { SvgProps } from "react-native-svg";
 
 import ChevronRight from "../icons/ic-chevron-right-20.svg";
 import { Text } from "../theme/Text";
+import { usePressScale } from "../theme/motion";
 import { colors, space } from "../theme/tokens";
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /**
  * The list row the account and rewards screens are built from: a 40px tile
@@ -35,6 +38,7 @@ export function ListRow({
   tone?: "default" | "destructive";
 }) {
   const ink = tone === "destructive" ? colors.negative : colors.contentPrimary;
+  const press = usePressScale(0.99);
 
   const body = (
     <>
@@ -66,19 +70,22 @@ export function ListRow({
   if (!onPress) return <View style={styles.row}>{body}</View>;
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      /* A row is wide, so it dips less than a button — the same 3% on a
+         350px row reads as the whole list lurching. */
+      style={[styles.row, press.style]}
     >
       {body}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: space.l, height: 66 },
-  pressed: { opacity: 0.7 },
   tile: {
     width: 40,
     height: 40,

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Linking, Pressable, StyleSheet, View } from "react-native";
+import { Linking, StyleSheet, View } from "react-native";
 
 import Clock from "../../icons/ic-clock-brand-20.svg";
 import Info from "../../icons/ic-info-16.svg";
 import Pin from "../../icons/ic-pin-16.svg";
 import { Chip } from "../../components/Chip";
 import { Stepper } from "../../components/Stepper";
+import { Tap } from "../../components/Tap";
 import { Text } from "../../theme/Text";
 import { colors, space } from "../../theme/tokens";
 import {
@@ -61,16 +62,16 @@ export function TicketsStep({
             {time}
           </Text>
         </View>
-        <Pressable
+        <Tap
           accessibilityRole="link"
           onPress={() => Linking.openURL(venueUrl)}
-          style={({ pressed }) => [styles.meta, pressed && styles.pressed]}
+          style={styles.meta}
         >
           <Pin width={20} height={20} />
           <Text variant="bodySBold" color={colors.white} style={styles.link}>
             {venue}
           </Text>
-        </Pressable>
+        </Tap>
       </View>
 
       <View style={styles.chips} accessibilityRole="tablist">
@@ -102,14 +103,14 @@ export function TicketsStep({
                     >
                       {ticket.name}
                     </Text>
-                    <Pressable
+                    <Tap
                       accessibilityRole="button"
                       accessibilityLabel={bookingCopy.tickets.info(ticket.name)}
                       onPress={() => onInfo(ticket)}
-                      style={({ pressed }) => pressed && styles.pressed}
+                      scale={0.9}
                     >
                       <Info width={20} height={20} />
-                    </Pressable>
+                    </Tap>
                   </View>
                   <View style={styles.price}>
                     <Text variant="bodyBold">{formatMoney(ticket.price)}</Text>
@@ -140,7 +141,6 @@ const styles = StyleSheet.create({
   head: { gap: space.s },
   meta: { flexDirection: "row", alignItems: "center", gap: space.xs },
   link: { textDecorationLine: "underline" },
-  pressed: { opacity: 0.7 },
 
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.s },
 

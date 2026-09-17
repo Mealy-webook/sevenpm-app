@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { Chip } from "../components/Chip";
+import { Tap } from "../components/Tap";
 import { NavBar, Page } from "../components/Screen";
 import { image } from "../images";
 import { Text } from "../theme/Text";
@@ -61,12 +62,13 @@ export function NewsScreen() {
 
         <View>
           {shown.map((article) => (
-            <Pressable
+            <Tap
               key={article.slug}
               accessibilityRole="button"
               accessibilityLabel={article.title}
               onPress={() => navigation.navigate("Article", { slug: article.slug })}
-              style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+              scale={0.99}
+              style={styles.row}
             >
               <Image
                 source={image(article.image)}
@@ -85,7 +87,7 @@ export function NewsScreen() {
                   {article.readingTime}
                 </Text>
               </View>
-            </Pressable>
+            </Tap>
           ))}
         </View>
       </ScrollView>
@@ -157,7 +159,6 @@ export function ArticleScreen() {
 const styles = StyleSheet.create({
   body: { padding: gutter, paddingBottom: space.section, gap: space.l },
   chips: { flexDirection: "row", gap: space.s, paddingRight: gutter },
-  pressed: { opacity: 0.7 },
 
   row: {
     flexDirection: "row",

@@ -168,7 +168,14 @@ export function RootNavigator() {
   return (
     <NavigationContainer theme={theme}>
       <Stack.Navigator
-        screenOptions={{ headerShown: false, contentStyle: styles.page }}
+        screenOptions={{
+          headerShown: false,
+          contentStyle: styles.page,
+          /* Android's default is a fade up and iOS's is a slide from the
+             right. Pinned so a push is the same gesture on both, and so the
+             back swipe matches what the push looked like. */
+          animation: "slide_from_right",
+        }}
       >
         <Stack.Screen name="Tabs" component={Tabs} />
         <Stack.Screen name="Event" component={EventScreen} />
