@@ -106,6 +106,12 @@ export function BookingScreen() {
     [cart, wallet, promo],
   );
 
+  /* 1 Beat per dirham of tickets — the rule SevenPM Rewards states. */
+  const earnedBeats = totals.ticketLines.reduce(
+    (sum, line) => sum + line.amount,
+    0,
+  );
+
   const hasMerch = totals.addonLines.some(
     (line) => getAddon(line.id)?.category === "merchandise",
   );
@@ -179,6 +185,8 @@ export function BookingScreen() {
           totals={totals}
           delivery={delivery}
           orderNumber={orderNumber}
+          beatsEarned={earnedBeats}
+          beatsBalance={loyaltyBalance + earnedBeats}
           onViewBooking={() => {
             navigation.goBack();
             navigation.navigate("Tabs");

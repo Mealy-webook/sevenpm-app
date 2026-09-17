@@ -395,8 +395,15 @@ export const bookingCopy = {
     apply: "Apply",
     invalid: "Oops! Invalid code",
   },
-  /** Confirmation — Figma 2192:5369 and 2213:16229. */
+  /** Confirmation — Figma 346:47554. */
   confirmation: {
+    /** The header states the new balance; the line under it, the change. */
+    balance: (beats: number) => `${beats.toLocaleString("en-US")} Beats`,
+    earned: (beats: number) =>
+      `Congrats! 🎉 you've earned ${beats.toLocaleString("en-US")} beats`,
+    orderDetails: "Order Details",
+    ticketCount: (count: number) =>
+      `${count} ${count === 1 ? "ticket" : "tickets"}`,
     title: "Let's turn up the volume!",
     body: (event: string) =>
       `Your tickets to ${event} are confirmed. Get ready for an epic night of music and memories.`,
