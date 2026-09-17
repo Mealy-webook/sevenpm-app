@@ -8,6 +8,7 @@ import ChevronLeft from "../../icons/ic-arrow-left-20.svg";
 import Lock from "../../icons/ic-lock-16.svg";
 import { Button } from "../../components/Button";
 import { Dock } from "../../components/Dock";
+import { Odometer } from "../../components/Odometer";
 import { Page } from "../../components/Screen";
 import { Tap } from "../../components/Tap";
 import { BookingHeader } from "./BookingHeader";
@@ -22,6 +23,7 @@ import {
   type BookingAddon,
   type BookingTicket,
 } from "../../data/booking";
+import { tap } from "../../theme/haptics";
 import { loyaltyBalance } from "../../data/account";
 import { getEvent } from "../../data/events";
 import { adjust, quantityOf, totals as priceCart, type Cart } from "./cart";
@@ -130,17 +132,23 @@ export function BookingScreen() {
     setLeft(bookingConfig.holdSeconds);
   };
 
-  const addTicket = (id: string, by: number) =>
+  const addTicket = (id: string, by: number) => {
+    tap.pick();
     setCart((current) => adjust(current, "ticket", id, by));
+  };
 
-  const addAddon = (addon: BookingAddon, by: number, size?: string) =>
+  const addAddon = (addon: BookingAddon, by: number, size?: string) => {
+    tap.pick();
     setCart((current) => adjust(current, "addon", addon.id, by, size));
+  };
 
   const pay = () => {
     if (!agreed) {
+      tap.refuse();
       setAgreementError(true);
       return;
     }
+    tap.commit();
     setOrderNumber(
       `SPM-${Math.floor(100000 + Math.random() * 900000)}`,
     );
@@ -302,9 +310,13 @@ export function BookingScreen() {
                     onPress={() => setSummaryOpen(true)}
                     style={styles.total}
                   >
-                    <Text variant="bodyL" style={styles.semibold}>
-                      {formatMoney(totals.total)}
-                    </Text>
+                    {/* It travels to its new figure as the basket changes —
+                        this is the number you are watching while you tap. */}
+                    <Odometer
+                      value={formatMoney(totals.total)}
+                      variant="bodyL"
+                      textStyle={styles.semibold}
+                    />
                     <ChevronDown width={16} height={16} />
                   </Tap>
                 </>

@@ -15,10 +15,12 @@ import { Button } from "../components/Button";
 import { Chip } from "../components/Chip";
 import { Confirm } from "../components/Confirm";
 import { Dock } from "../components/Dock";
+import { Odometer } from "../components/Odometer";
 import { Page } from "../components/Screen";
 import { Sheet } from "../components/Sheet";
 import { Tap } from "../components/Tap";
 import { icon } from "../icons";
+import { tap } from "../theme/haptics";
 import { Text } from "../theme/Text";
 import { colors, displaySize, space, type } from "../theme/tokens";
 import {
@@ -72,6 +74,7 @@ export function RewardsScreen() {
 
   const redeem = (reward: LoyaltyReward) => {
     if (redeemed.includes(reward.id) || balance < reward.cost) return;
+    tap.commit();
     setBalance((current) => current - reward.cost);
     setRedeemed((current) => [...current, reward.id]);
   };
@@ -104,9 +107,13 @@ export function RewardsScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: space.section }}>
         <View style={styles.head}>
           <View style={styles.figure}>
-            <Text variant="displayStep" color={colors.white} style={display}>
-              {balance.toLocaleString("en-US")}
-            </Text>
+            <Odometer
+              value={balance.toLocaleString("en-US")}
+              variant="displayStep"
+              color={colors.white}
+              textStyle={display}
+              height={display.lineHeight}
+            />
             <Text variant="displayStep" uppercase color={colors.brand} style={display}>
               {loyaltyCopy.unit}
             </Text>

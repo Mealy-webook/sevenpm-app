@@ -8,6 +8,7 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import type { SvgProps } from "react-native-svg";
 
 import { image } from "../images";
+import { tap } from "../theme/haptics";
 import { tabBarShrink } from "./tabBarScroll";
 import { ease, useReducedMotion } from "../theme/motion";
 import { colors } from "../theme/tokens";
@@ -208,6 +209,7 @@ export function TabBar({
                   canPreventDefault: true,
                 });
                 if (!focused && !event.defaultPrevented) {
+                  tap.tick();
                   navigation.navigate(route.name as never);
                 }
               }}

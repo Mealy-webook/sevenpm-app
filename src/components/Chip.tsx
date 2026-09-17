@@ -1,6 +1,7 @@
 import { Animated, Pressable, StyleSheet } from "react-native";
 
 import { Text } from "../theme/Text";
+import { tap as haptic } from "../theme/haptics";
 import { usePressScale } from "../theme/motion";
 import { colors, space } from "../theme/tokens";
 
@@ -27,7 +28,10 @@ export function Chip({
     <AnimatedPressable
       accessibilityRole="tab"
       accessibilityState={{ selected }}
-      onPress={onPress}
+      onPress={() => {
+        haptic.tick();
+        onPress();
+      }}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
       style={[styles.base, selected ? styles.on : styles.off, press.style]}

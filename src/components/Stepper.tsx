@@ -3,8 +3,10 @@ import { StyleSheet, View } from "react-native";
 import Minus from "../icons/ic-minus-16.svg";
 import Plus from "../icons/ic-plus-16.svg";
 import Trash from "../icons/ic-trash-16.svg";
+import { Odometer } from "./Odometer";
 import { Tap } from "./Tap";
 import { Text } from "../theme/Text";
+import { tap as haptic } from "../theme/haptics";
 import { colors, space } from "../theme/tokens";
 import { bookingConfig, bookingCopy } from "../data/booking";
 
@@ -77,7 +79,10 @@ export function Stepper({
           first ? bookingCopy.tickets.remove : bookingCopy.tickets.fewer
         } — ${name}`}
         disabled={empty}
-        onPress={() => onChange(-1)}
+        onPress={() => {
+          haptic.tick();
+          onChange(-1);
+        }}
         /* A 22px key dips further than a button: at this size a 3% change is
            invisible, and this is the control people press most in the flow. */
         scale={0.88}
@@ -90,19 +95,23 @@ export function Stepper({
         )}
       </Tap>
 
-      <Text
+      {/* Pressing + is the one place in this flow where a number changes
+          under your finger, so it should look like it moved. */}
+      <Odometer
+        value={value}
         variant={big ? "bodyL" : "bodyBold"}
-        accessibilityLiveRegion="polite"
-        style={[styles.value, big && styles.valueBig]}
-      >
-        {value}
-      </Text>
+        textStyle={big ? styles.valueBig : undefined}
+        style={styles.value}
+      />
 
       <Tap
         accessibilityRole="button"
         accessibilityLabel={`${bookingCopy.tickets.more} — ${name}`}
         disabled={atMax}
-        onPress={() => (empty ? onAdd() : onChange(1))}
+        onPress={() => {
+          haptic.tick();
+          empty ? onAdd() : onChange(1);
+        }}
         scale={0.88}
         style={[styles.key, big && styles.keyBig, atMax && styles.keyOff]}
       >
