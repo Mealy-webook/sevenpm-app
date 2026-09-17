@@ -12,6 +12,7 @@ import { Text } from "../theme/Text";
 import { colors, gutter, space } from "../theme/tokens";
 import type { RootParamList } from "../navigation/RootNavigator";
 import { TAB_BAR_CLEARANCE } from "../navigation/TabBar";
+import { useTabBarScroll } from "../navigation/tabBarScroll";
 import { newsArticles, newsCategories, newsCopy } from "../data/news";
 
 /**
@@ -31,6 +32,7 @@ import { newsArticles, newsCategories, newsCopy } from "../data/news";
 export function NewsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
   const [category, setCategory] = useState<string>(newsCategories[0]);
+  const tabScroll = useTabBarScroll();
 
   const shown =
     category === "All"
@@ -46,7 +48,7 @@ export function NewsScreen() {
         onBack={navigation.canGoBack() ? navigation.goBack : undefined}
       />
 
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView contentContainerStyle={styles.body} {...tabScroll}>
         <Text variant="body" color={colors.contentSecondary}>
           {newsCopy.description}
         </Text>

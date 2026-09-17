@@ -20,6 +20,7 @@ import { Text } from "../theme/Text";
 import { colors, displaySize, radii, space, type } from "../theme/tokens";
 import type { RootParamList } from "../navigation/RootNavigator";
 import { TAB_BAR_CLEARANCE } from "../navigation/TabBar";
+import { useTabBarScroll } from "../navigation/tabBarScroll";
 import { loyaltyBalance } from "../data/account";
 import { useWatchedStories } from "./watchedStories";
 import {
@@ -54,6 +55,7 @@ export function DiscoverScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
   const [card, setCard] = useState(0);
   const watched = useWatchedStories();
+  const tabScroll = useTabBarScroll();
 
   const heading = displaySize(type.displaySection, width);
   const cardName = displaySize(type.displayCard, width);
@@ -81,7 +83,10 @@ export function DiscoverScreen() {
       </View>
 
       {/* The bar floats over this screen, so the last row buys its own room. */}
-      <ScrollView contentContainerStyle={{ paddingBottom: TAB_BAR_CLEARANCE }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: TAB_BAR_CLEARANCE }}
+        {...tabScroll}
+      >
         {/* Stories */}
         <ScrollView
           horizontal

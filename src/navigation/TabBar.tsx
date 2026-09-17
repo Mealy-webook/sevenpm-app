@@ -2,11 +2,13 @@ import { useEffect, useRef } from "react";
 import { Animated, Platform, Pressable, StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import type { SvgProps } from "react-native-svg";
 
 import { image } from "../images";
+import { tabBarShrink } from "./tabBarScroll";
 import { ease, useReducedMotion } from "../theme/motion";
 import { colors } from "../theme/tokens";
 
@@ -42,11 +44,29 @@ import { colors } from "../theme/tokens";
  * for its own clearance — `useBottomTabBarHeight()` gives them the figure, and
  * `TAB_BAR_CLEARANCE` is what a screen should add to its scroll padding.
  *
- * The glass is a real blur (`expo-blur`) with a dark tint and a thin fill over
- * it, replacing the flat 90% black the source used — the source sits on a
- * fixed page and has nothing to blur. On Android the blur is the experimental
- * implementation and degrades to the fill alone if it is unavailable, which
- * still reads correctly, just flatter.
+ * The glass is a real blur (`expo-blur`) with a dark tint and a fill over it,
+ * replacing the flat 90% black the source used — the source sits on a fixed
+ * pale page and never has anything moving behind it. On Android the blur is
+ * the experimental implementation and degrades to the fill alone if it is
+ * unavailable, which still reads correctly, just flatter.
+ *
+ * **The fill is a contrast floor, not a look.** Measured against a pale poster
+ * scrolling underneath, icons need 3:1 to be legible (WCAG, non-text). At the
+ * 0.35 fill this started with, the *active white* icon managed only 2.9:1 and
+ * the source's `gray-500` inactive managed 1.7:1 — and grey gets worse as the
+ * fill rises, because it converges with the bar. So the fill is 0.55, which
+ * puts white at 5.5:1, and inactive icons are white at 60% rather than a fixed
+ * grey, which holds 3.1:1 in the same worst case and improves from there as
+ * the content behind gets darker.
+ *
+ * A scrim under the whole bar does the rest: it sits behind the blur, so the
+ * blur samples content that has already been darkened, and it softens the edge
+ * where bright artwork meets the bar.
+ *
+ * **It draws itself in while you read.** Scrolling down shrinks it and takes a
+ * little of its weight away; scrolling up brings it straight back. The bar is
+ * never more than one gesture from full size, so nothing is hidden — it just
+ * stops competing with the thing you are reading. See `useTabBarScroll`.
  *
  * **It has no labels**, because the source has none. That is a real departure
  * from the Figma comps, which label all five. The names are still on every
@@ -119,7 +139,31 @@ export function TabBar({
       ]}
       pointerEvents="box-none"
     >
-      <View style={styles.bar}>
+      {/* Behind the bar, so the blur samples content already darkened. */}
+      <LinearGradient
+        colors={["rgba(11,11,14,0)", "rgba(11,11,14,0.75)"]}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+      <Animated.View
+        style={[
+          styles.bar,
+          {
+            transform: [
+              {
+                scale: tabBarShrink.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1, 0.86],
+                }),
+              },
+            ],
+            opacity: tabBarShrink.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1, 0.82],
+            }),
+          },
+        ]}
+      >
         <BlurView
           intensity={40}
           tint="dark"
@@ -191,7 +235,7 @@ export function TabBar({
             </Pressable>
           );
         })}
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -215,8 +259,13 @@ const LIGHT_DELAY = 100;
 export const TAB_BAR_CLEARANCE = LIGHT_HEADROOM + ITEM + 12 * 2 + 24;
 /** The source's `from-white/40`. */
 const LIGHT_ALPHA = 0.4;
-/* Tailwind's gray-500, which is what the source dims an inactive icon to. */
-const INACTIVE = "#6b7280";
+/**
+ * The source dims an inactive icon to Tailwind's gray-500. That works on its
+ * fixed pale page and fails here: against the bar over bright content it
+ * measures 1.7:1, and darkening the bar makes it worse, not better. White at
+ * 60% keeps the same *relationship* to the bar whatever is behind it.
+ */
+const INACTIVE = "rgba(255,255,255,0.6)";
 
 const styles = StyleSheet.create({
   /**
@@ -259,8 +308,11 @@ const styles = StyleSheet.create({
      white icons to hold against bright artwork scrolling underneath. */
   glass: {
     backgroundColor: Platform.select({
-      ios: "rgba(0,0,0,0.35)",
-      default: "rgba(0,0,0,0.6)",
+      /* 0.55 is the floor that keeps a white icon at 5.5:1 over a pale
+         backdrop; see the note at the top before lowering it. */
+      ios: "rgba(0,0,0,0.55)",
+      /* Heavier, because the Android blur may not render at all. */
+      default: "rgba(0,0,0,0.72)",
     }),
   },
   rail: {

@@ -14,6 +14,7 @@ import { Text } from "../../theme/Text";
 import { colors, gutter, space } from "../../theme/tokens";
 import type { RootParamList } from "../../navigation/RootNavigator";
 import { TAB_BAR_CLEARANCE } from "../../navigation/TabBar";
+import { useTabBarScroll } from "../../navigation/tabBarScroll";
 import { bookings, bookingsCopy } from "../../data/account";
 
 /**
@@ -27,6 +28,7 @@ export function BookingsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
   const [filter, setFilter] = useState<string>(bookingsCopy.filters[0]);
+  const tabScroll = useTabBarScroll();
 
   const now = Date.now();
   const shown = bookings.filter((booking) =>
@@ -38,6 +40,7 @@ export function BookingsScreen() {
   return (
     <ScrollView
       style={styles.page}
+      {...tabScroll}
       contentContainerStyle={[
         styles.body,
         { paddingTop: insets.top + space.l, paddingBottom: TAB_BAR_CLEARANCE },

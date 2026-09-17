@@ -19,6 +19,7 @@ import { Text } from "../../theme/Text";
 import { colors, displaySize, space, type } from "../../theme/tokens";
 import type { RootParamList } from "../../navigation/RootNavigator";
 import { TAB_BAR_CLEARANCE } from "../../navigation/TabBar";
+import { useTabBarScroll } from "../../navigation/tabBarScroll";
 import { homeStory } from "../../data/home";
 import {
   accountUser,
@@ -51,6 +52,7 @@ export function AccountScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
   const [loggingOut, setLoggingOut] = useState(false);
   const [rated, setRated] = useState<string | null>(null);
+  const tabScroll = useTabBarScroll();
 
   const tier =
     [...loyaltyTiers].reverse().find((t) => loyaltyLifetime >= t.threshold) ??
@@ -69,6 +71,7 @@ export function AccountScreen() {
   return (
     <ScrollView
       style={styles.page}
+      {...tabScroll}
       contentContainerStyle={{
         paddingTop: insets.top + space.s,
         paddingBottom: TAB_BAR_CLEARANCE,
