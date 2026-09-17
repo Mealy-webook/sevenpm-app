@@ -14,8 +14,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { View } from "react-native";
 
 import { RootNavigator } from "./src/navigation/RootNavigator";
-import { OnboardingScreen } from "./src/screens/OnboardingScreen";
-import { SplashReveal } from "./src/screens/SplashReveal";
+import { FirstRun } from "./src/screens/onboarding/FirstRun";
+import { SplashScreen } from "./src/screens/onboarding/SplashScreen";
 import { hasSeenIntro, rememberIntroSeen } from "./src/storage";
 import { colors } from "./src/theme/tokens";
 
@@ -35,8 +35,8 @@ NativeSplash.preventAutoHideAsync().catch(() => {});
  * either a flash of the app behind the intro or an intro that appears after
  * the app has already drawn.
  *
- * Then `SplashReveal` picks up the same mark on the same ground the OS splash
- * was showing, and hands over to the intro or straight to the app.
+ * Then the app's own splash picks up the same mark on the same ground the OS
+ * splash was showing, and hands over to the first run or straight to the app.
  */
 export default function App() {
   const [fontsReady] = useFonts({
@@ -71,10 +71,10 @@ export default function App() {
       <View style={{ flex: 1, backgroundColor: colors.bgPrimary }}>
         {ready && (
           <>
-            {seenIntro ? <RootNavigator /> : <OnboardingScreen onDone={finishIntro} />}
+            {seenIntro ? <RootNavigator /> : <FirstRun onDone={finishIntro} />}
             {/* Drawn over whatever is behind it and removed when it fades, so
                 the first screen is already laid out when it goes. */}
-            {!revealed && <SplashReveal onDone={() => setRevealed(true)} />}
+            {!revealed && <SplashScreen onDone={() => setRevealed(true)} />}
           </>
         )}
       </View>

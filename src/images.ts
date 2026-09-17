@@ -42,6 +42,17 @@ export const images: Record<string, ImageSourcePropType> = {
   "/assets/nav-avatar.jpg": require("../assets/img/nav-avatar.jpg"),
   "/assets/conf-hands.png": require("../assets/img/conf-hands.png"),
   "/assets/festival-glow.jpg": require("../assets/img/festival-glow.jpg"),
+
+  /* First run. The photography is exported from the app Figma file rather
+     than the web build, and is the only art in the app that has no equivalent
+     on the web — those screens do not exist there. */
+  "/assets/logo-mark.png": require("../assets/img/logo-mark.png"),
+  "/assets/onb-1-sax.jpg": require("../assets/img/onb-1-sax.jpg"),
+  "/assets/onb-2-crowd.jpg": require("../assets/img/onb-2-crowd.jpg"),
+  "/assets/onb-2-card.jpg": require("../assets/img/onb-2-card.jpg"),
+  "/assets/onb-3-venue.jpg": require("../assets/img/onb-3-venue.jpg"),
+  "/assets/welcome-noise.jpg": require("../assets/img/welcome-noise.jpg"),
+  "/assets/privacy-cookie.png": require("../assets/img/privacy-cookie.png"),
 };
 
 export function image(path: string | undefined): ImageSourcePropType | undefined {

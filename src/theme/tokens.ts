@@ -101,6 +101,19 @@ export const fonts = {
 export const type = {
   /* Display — Daltown, uppercase, always. */
   displayXL: { font: fonts.display, size: 160, line: 168 },
+  /**
+   * The onboarding headline, from the app Figma (341:1338 and its siblings):
+   * 104px on a 390px-wide comp, and the notice screen's 80px.
+   *
+   * Both are drawn there on a line box tighter than the size — 104/86 and
+   * 80/67 — which a browser lets overflow and React Native clips. Same rule as
+   * the rest of this scale: the line box is at least the size, and the tight
+   * rhythm is recovered with layout gaps. Size these through `displaySize()`
+   * rather than using the raw figure: 104px is measured against a 390px
+   * screen, and an iPhone SE is 375.
+   */
+  displayHero: { font: fonts.display, size: 104, line: 104, tracking: 1.04 },
+  displayNotice: { font: fonts.display, size: 80, line: 80, tracking: 0 },
   displayL: { font: fonts.display, size: 64, line: 68 },
   displayM: { font: fonts.display, size: 40, line: 44 },
 
@@ -138,3 +151,35 @@ export const motion = {
 
 /** The page gutter. The web steps 20 → 48 → 120; a phone only ever sees 20. */
 export const gutter = 20;
+
+/**
+ * The width every screen in the app Figma file is drawn against. Absolute
+ * figures taken off those comps — display sizes, the placement of the
+ * decorative artwork on the onboarding steps — are in these units.
+ */
+export const designWidth = 390;
+
+/** A figure from the comps, in the units of the screen it is drawn on. */
+export function scaled(value: number, width: number) {
+  return (value * width) / designWidth;
+}
+
+/**
+ * The display styles at the size this screen can actually hold.
+ *
+ * Daltown is condensed enough that 104px reads on a 390px screen and breaks
+ * on a 375px one, so the size travels with the viewport rather than being
+ * pinned — which is what the web build's `--display-scale` did, and what
+ * DESIGN-SYSTEM.md means by "size display type against the viewport".
+ */
+export function displaySize(
+  style: { size: number; line: number; tracking: number },
+  width: number,
+) {
+  const size = Math.round(scaled(style.size, width));
+  return {
+    fontSize: size,
+    lineHeight: size,
+    letterSpacing: scaled(style.tracking, width),
+  };
+}
