@@ -170,6 +170,70 @@ export type AccountNavItem = {
   trailing?: string;
 };
 
+/**
+ * The menu rows from Figma 359:7929. The web build's sidebar had five; this
+ * has eight, and the order is the comp's.
+ */
+export const menuNav: AccountNavItem[] = [
+  {
+    id: "bookings",
+    label: "Bookings",
+    icon: "/assets/ic-menu-bookings.svg",
+    href: "/account",
+  },
+  {
+    id: "wallet",
+    label: "Wallet",
+    icon: "/assets/ic-menu-wallet.svg",
+    href: "/account/wallet",
+    trailing: `${walletBalance} ${walletCurrency}`,
+  },
+  { id: "resale", label: "Resale", icon: "/assets/ic-menu-resale.svg", href: "#" },
+  {
+    id: "rewards",
+    label: "Sevenpm rewards",
+    icon: "/assets/ic-menu-rewards.svg",
+    href: "/account/loyalty",
+  },
+  {
+    id: "settings",
+    label: "Account settings",
+    icon: "/assets/ic-menu-settings.svg",
+    href: "/account/profile",
+  },
+  {
+    id: "payments",
+    label: "Payments",
+    icon: "/assets/ic-menu-payments.svg",
+    href: "/account/payments",
+  },
+  {
+    id: "notifications",
+    label: "Notifications",
+    icon: "/assets/ic-menu-notifications.svg",
+    href: "#",
+  },
+  {
+    id: "language",
+    label: "Language",
+    icon: "/assets/ic-menu-language.svg",
+    href: "#",
+  },
+];
+
+export const menuCopy = {
+  node: "359:7929",
+  beats: (beats: number) => `${beats.toLocaleString("en-US")} BEATS`,
+  member: (tier: string) => `${tier} Member`,
+  since: "Since 2026",
+  rateTitle: "Rate your experience",
+  rateBody: "Help us improve and make your experience more fun",
+  rates: ["Love it", "OK!", "#@#!"],
+  copyright: "Copyright ©2023 Sevenpm.com. All rights reserved.",
+  /** Nothing behind these rows yet — said once, at the foot of the list. */
+  note: "Resale, notifications and language have no screens designed yet.",
+};
+
 export const accountNav: AccountNavItem[] = [
   {
     id: "bookings",

@@ -1,15 +1,16 @@
 /**
- * Every SVG copied out of `sevenpm-web/public/assets`, reachable by the same
- * path the web build writes in its data files.
+ * Every SVG copied out of `sevenpm-web/public/assets` and exported from the
+ * app Figma file, reachable by the same path the data files write.
  *
- * The data in `src/data` is ported from that build unchanged, icons included,
- * so it carries strings like "/assets/ic-ticket-24.svg". Metro cannot resolve
- * a require from a variable, so every file is imported here once and the map
- * below turns the path back into a component. Port data verbatim and look its
- * icon up with `icon()` rather than rewriting the data to hold a component.
+ * The data in `src/data` carries strings like "/assets/ic-ticket-24.svg".
+ * Metro cannot resolve a require from a variable, so every file is imported
+ * here once and the map below turns the path back into a component. Port data
+ * verbatim and look its icon up with `icon()` rather than rewriting the data
+ * to hold a component.
  *
  * Generated from the directory listing — regenerate rather than hand-editing
- * when icons are copied over.
+ * when icons are added, or `icon()` returns undefined and the mark silently
+ * does not draw.
  */
 import type { SvgProps } from "react-native-svg";
 
@@ -62,6 +63,14 @@ import IcIcLock16 from "./ic-lock-16.svg";
 import IcIcLockLocked16 from "./ic-lock-locked-16.svg";
 import IcIcLogout from "./ic-logout.svg";
 import IcIcMapPin from "./ic-map-pin.svg";
+import IcIcMenuBookings from "./ic-menu-bookings.svg";
+import IcIcMenuLanguage from "./ic-menu-language.svg";
+import IcIcMenuNotifications from "./ic-menu-notifications.svg";
+import IcIcMenuPayments from "./ic-menu-payments.svg";
+import IcIcMenuResale from "./ic-menu-resale.svg";
+import IcIcMenuRewards from "./ic-menu-rewards.svg";
+import IcIcMenuSettings from "./ic-menu-settings.svg";
+import IcIcMenuWallet from "./ic-menu-wallet.svg";
 import IcIcMenu from "./ic-menu.svg";
 import IcIcMinus16 from "./ic-minus-16.svg";
 import IcIcMinus from "./ic-minus.svg";
@@ -76,8 +85,10 @@ import IcIcPlus20 from "./ic-plus-20.svg";
 import IcIcPlus from "./ic-plus.svg";
 import IcIcPromo24 from "./ic-promo-24.svg";
 import IcIcPromocode24 from "./ic-promocode-24.svg";
+import IcIcSendOutline20 from "./ic-send-outline-20.svg";
 import IcIcSend from "./ic-send.svg";
 import IcIcShare16 from "./ic-share-16.svg";
+import IcIcShare20 from "./ic-share-20.svg";
 import IcIcShowtime from "./ic-showtime.svg";
 import IcIcSocialFacebook from "./ic-social-facebook.svg";
 import IcIcSocialInstagram from "./ic-social-instagram.svg";
@@ -87,6 +98,11 @@ import IcIcSocialYoutube from "./ic-social-youtube.svg";
 import IcIcStar12 from "./ic-star-12.svg";
 import IcIcStar16 from "./ic-star-16.svg";
 import IcIcSwitchCheck16 from "./ic-switch-check-16.svg";
+import IcIcTabBookings from "./ic-tab-bookings.svg";
+import IcIcTabDiscover from "./ic-tab-discover.svg";
+import IcIcTabMenu from "./ic-tab-menu.svg";
+import IcIcTabNews from "./ic-tab-news.svg";
+import IcIcTabResale from "./ic-tab-resale.svg";
 import IcIcTicket16 from "./ic-ticket-16.svg";
 import IcIcTicket24 from "./ic-ticket-24.svg";
 import IcIcTicket from "./ic-ticket.svg";
@@ -164,6 +180,14 @@ export const icons: Record<string, React.FC<SvgProps>> = {
   "/assets/ic-lock-locked-16.svg": IcIcLockLocked16,
   "/assets/ic-logout.svg": IcIcLogout,
   "/assets/ic-map-pin.svg": IcIcMapPin,
+  "/assets/ic-menu-bookings.svg": IcIcMenuBookings,
+  "/assets/ic-menu-language.svg": IcIcMenuLanguage,
+  "/assets/ic-menu-notifications.svg": IcIcMenuNotifications,
+  "/assets/ic-menu-payments.svg": IcIcMenuPayments,
+  "/assets/ic-menu-resale.svg": IcIcMenuResale,
+  "/assets/ic-menu-rewards.svg": IcIcMenuRewards,
+  "/assets/ic-menu-settings.svg": IcIcMenuSettings,
+  "/assets/ic-menu-wallet.svg": IcIcMenuWallet,
   "/assets/ic-menu.svg": IcIcMenu,
   "/assets/ic-minus-16.svg": IcIcMinus16,
   "/assets/ic-minus.svg": IcIcMinus,
@@ -178,8 +202,10 @@ export const icons: Record<string, React.FC<SvgProps>> = {
   "/assets/ic-plus.svg": IcIcPlus,
   "/assets/ic-promo-24.svg": IcIcPromo24,
   "/assets/ic-promocode-24.svg": IcIcPromocode24,
+  "/assets/ic-send-outline-20.svg": IcIcSendOutline20,
   "/assets/ic-send.svg": IcIcSend,
   "/assets/ic-share-16.svg": IcIcShare16,
+  "/assets/ic-share-20.svg": IcIcShare20,
   "/assets/ic-showtime.svg": IcIcShowtime,
   "/assets/ic-social-facebook.svg": IcIcSocialFacebook,
   "/assets/ic-social-instagram.svg": IcIcSocialInstagram,
@@ -189,6 +215,11 @@ export const icons: Record<string, React.FC<SvgProps>> = {
   "/assets/ic-star-12.svg": IcIcStar12,
   "/assets/ic-star-16.svg": IcIcStar16,
   "/assets/ic-switch-check-16.svg": IcIcSwitchCheck16,
+  "/assets/ic-tab-bookings.svg": IcIcTabBookings,
+  "/assets/ic-tab-discover.svg": IcIcTabDiscover,
+  "/assets/ic-tab-menu.svg": IcIcTabMenu,
+  "/assets/ic-tab-news.svg": IcIcTabNews,
+  "/assets/ic-tab-resale.svg": IcIcTabResale,
   "/assets/ic-ticket-16.svg": IcIcTicket16,
   "/assets/ic-ticket-24.svg": IcIcTicket24,
   "/assets/ic-ticket.svg": IcIcTicket,

@@ -8,11 +8,11 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SvgProps } from "react-native-svg";
 
+import IcBookings from "../icons/ic-tab-bookings.svg";
 import IcDiscover from "../icons/ic-tab-discover.svg";
 import IcMenu from "../icons/ic-tab-menu.svg";
+import IcNews from "../icons/ic-tab-news.svg";
 import IcResale from "../icons/ic-tab-resale.svg";
-import IcTickets from "../icons/ic-tab-tickets.svg";
-import IcWallet from "../icons/ic-tab-wallet.svg";
 import { Text } from "../theme/Text";
 import { colors, space } from "../theme/tokens";
 
@@ -34,18 +34,27 @@ export type RootParamList = {
   Event: { slug: string };
   Booking: { slug: string };
   Rewards: undefined;
+  Wallet: undefined;
   Profile: undefined;
   Payments: undefined;
   Story: { id: string };
-  News: undefined;
   Article: { slug: string };
 };
 
-/** The five tabs of Figma 378:27388, in the order the comp draws them. */
+/**
+ * The five tabs, in the order the comps draw them.
+ *
+ * **Two comps disagree about this bar.** Discover (378:27388) shows
+ * Discover / Tickets / Wallet / Resale / Menu; the account screen (359:7929)
+ * shows Discover / Bookings / News / Resale / Menu. The account one is
+ * followed because it is the one that is self-consistent with the rest of the
+ * file: its menu lists Wallet as a row, so Wallet does not also need a tab,
+ * and News is a section the app now has. Flagged for the designer.
+ */
 export type TabParamList = {
   Discover: undefined;
-  Tickets: undefined;
-  Wallet: undefined;
+  Bookings: undefined;
+  News: undefined;
   Resale: undefined;
   Menu: undefined;
 };
@@ -55,8 +64,8 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 const TAB_ICONS: Record<keyof TabParamList, React.FC<SvgProps>> = {
   Discover: IcDiscover,
-  Tickets: IcTickets,
-  Wallet: IcWallet,
+  Bookings: IcBookings,
+  News: IcNews,
   Resale: IcResale,
   Menu: IcMenu,
 };
@@ -131,15 +140,11 @@ function Tabs() {
         options={{ title: "Discover" }}
       />
       <Tab.Screen
-        name="Tickets"
+        name="Bookings"
         component={BookingsScreen}
-        options={{ title: "Tickets" }}
+        options={{ title: "Bookings" }}
       />
-      <Tab.Screen
-        name="Wallet"
-        component={WalletScreen}
-        options={{ title: "Wallet" }}
-      />
+      <Tab.Screen name="News" component={NewsScreen} options={{ title: "News" }} />
       <Tab.Screen
         name="Resale"
         component={ResaleScreen}
@@ -194,8 +199,8 @@ export function RootNavigator() {
           component={StoryScreen}
           options={{ presentation: "fullScreenModal", animation: "fade" }}
         />
-        <Stack.Screen name="News" component={NewsScreen} />
         <Stack.Screen name="Article" component={ArticleScreen} />
+        <Stack.Screen name="Wallet" component={WalletScreen} />
         <Stack.Screen name="Rewards" component={RewardsScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Payments" component={PaymentsScreen} />
