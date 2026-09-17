@@ -523,6 +523,15 @@ export function DeliverySheet({
 
 export type SavedCard = { brand: string; last4: string; mark?: string };
 
+/** MM/YY is past once the last day of that month has gone. */
+function expired(value: string) {
+  const [mm, yy] = value.split("/").map(Number);
+  if (!mm || mm < 1 || mm > 12) return true;
+  const now = new Date();
+  const endOfMonth = new Date(2000 + yy, mm, 0, 23, 59, 59);
+  return endOfMonth.getTime() < now.getTime();
+}
+
 /**
  * Add a card. Figma 346:47845.
  *
@@ -555,7 +564,12 @@ export function CardSheet({
   const submit = () => {
     const next: Record<string, string> = {};
     if (digits.length < 15) next.number = copy.errors.number;
-    if (!/^\d{2}\/\d{2}$/.test(expiry)) next.expiry = copy.errors.expiry;
+    /* The comp's error is "Expire date is due", which is a card that has run
+       out rather than one typed wrongly — so the month is checked against the
+       calendar, not just against the shape of the field. */
+    if (!/^\d{2}\/\d{2}$/.test(expiry) || expired(expiry)) {
+      next.expiry = copy.errors.expiry;
+    }
     if (cvc.length < 3) next.cvc = copy.errors.cvc;
     if (name.trim().length === 0) next.name = copy.errors.name;
     setErrors(next);
