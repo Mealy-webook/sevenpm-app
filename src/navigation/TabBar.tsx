@@ -96,7 +96,15 @@ export function TabBar({
     });
 
   return (
-    <View style={[styles.dock, { paddingBottom: insets.bottom || PAD }]}>
+    <View
+      style={[
+        styles.dock,
+        /* Clear of the home indicator without sitting a whole safe area above
+           it — a floating bar only has to miss the indicator, not the band
+           around it. */
+        { paddingBottom: Math.max(insets.bottom - 14, GAP) },
+      ]}
+    >
       <View style={styles.bar}>
         {/* The rail, on the bar's top edge. */}
         <Animated.View
@@ -171,6 +179,8 @@ const GAP = 8;
 const PITCH = ITEM + GAP * 2;
 const PAD = 8 + GAP;
 const LIGHT_H = 96;
+/** How much of the light's overhang is bright enough to be worth reserving. */
+const LIGHT_HEADROOM = 28;
 const DURATION = 400;
 /** The source's `transitionDelay: '0.1s'` on the active item's light. */
 const LIGHT_DELAY = 100;
@@ -180,8 +190,20 @@ const LIGHT_ALPHA = 0.4;
 const INACTIVE = "#6b7280";
 
 const styles = StyleSheet.create({
-  /* Headroom for the half of the light that hangs above the bar. */
-  dock: { alignItems: "center", paddingTop: LIGHT_H / 2 },
+  /**
+   * Headroom for the part of the light that shows above the bar.
+   *
+   * The first version reserved the light's full overhang, 48pt, and with the
+   * safe area under it the bar was costing 154pt — 18% of the display held
+   * open for a glow. Removing it entirely does not work either: the navigator
+   * clips the tab bar's own box, so the light simply disappeared.
+   *
+   * So the headroom is the overhang the light actually needs to read, not the
+   * overhang it geometrically has. The sprite's gradient is at its strongest
+   * where the shape begins and has faded to almost nothing 28pt above that,
+   * which is what this is. The bar now costs 120pt instead of 154.
+   */
+  dock: { alignItems: "center", paddingTop: LIGHT_HEADROOM },
   bar: {
     flexDirection: "row",
     alignItems: "center",
