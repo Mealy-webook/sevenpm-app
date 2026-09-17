@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
+  PanResponder,
   Pressable,
   StyleSheet,
   useWindowDimensions,
@@ -18,9 +19,11 @@ import { Button } from "../components/Button";
 import { Tap } from "../components/Tap";
 import { image } from "../images";
 import { Text } from "../theme/Text";
-import { colors, radii, space } from "../theme/tokens";
+import { easeIn } from "../theme/motion";
+import { colors, motion, radii, space } from "../theme/tokens";
 import type { RootParamList } from "../navigation/RootNavigator";
 import { stories, storyCopy } from "../data/discover";
+import { markStoryWatched } from "./watchedStories";
 
 /**
  * The story viewer, from Figma 415:38335.
@@ -31,11 +34,15 @@ import { stories, storyCopy } from "../data/discover";
  * timer, the bar is that timer's readout, and the bars behind and ahead of it
  * are full and empty.
  *
- * Three things the comp cannot show and this adds, because a viewer without
+ * Four things the comp cannot show and this adds, because a viewer without
  * them is unusable rather than merely incomplete: tapping the right half
  * skips forward and the left half goes back, holding anywhere pauses (the
- * caption is unreadable in five seconds otherwise), and running off the end
- * closes the story.
+ * caption is unreadable in five seconds otherwise), dragging down closes it,
+ * and running off the end closes it too.
+ *
+ * The drag follows the finger and only commits past a threshold, so a hesitant
+ * pull springs back instead of dismissing — a story you are halfway through
+ * should not vanish because you brushed the screen.
  *
  * The progress bar is animation, but it is not decoration — it is the only
  * indication of how long is left — so it runs under reduced motion too.
@@ -47,9 +54,60 @@ export function StoryScreen() {
   const { params } = useRoute<RouteProp<RootParamList, "Story">>();
 
   const story = stories.find((item) => item.id === params.id) ?? stories[0];
+
+  /* Opening it is what counts as watching it — the same as everywhere else
+     that has stories, and it means the ring behind you is already grey when
+     you swipe back out. */
+  useEffect(() => {
+    markStoryWatched(story.id);
+  }, [story.id]);
   const [frame, setFrame] = useState(0);
   const [paused, setPaused] = useState(false);
   const progress = useRef(new Animated.Value(0)).current;
+
+  /* Swipe down to close. The whole viewer moves with the finger, which is what
+     makes it feel like the story is being put down rather than switched off. */
+  const drag = useRef(new Animated.Value(0)).current;
+  const pan = useRef(
+    PanResponder.create({
+      /* Claim the gesture only once it is clearly a downward drag, so the tap
+         zones and the long-press keep working. */
+      onMoveShouldSetPanResponder: (_, g) =>
+        g.dy > 8 && g.dy > Math.abs(g.dx) * 1.5,
+      onPanResponderGrant: () => setPaused(true),
+      onPanResponderMove: (_, g) => {
+        if (g.dy > 0) drag.setValue(g.dy);
+      },
+      onPanResponderRelease: (_, g) => {
+        /* Past a third of the screen, or thrown downward, it goes. */
+        if (g.dy > 140 || g.vy > 0.8) {
+          Animated.timing(drag, {
+            toValue: 900,
+            duration: motion.fast,
+            easing: easeIn,
+            useNativeDriver: true,
+          }).start(() => navigation.goBack());
+          return;
+        }
+        setPaused(false);
+        Animated.spring(drag, {
+          toValue: 0,
+          speed: 20,
+          bounciness: 4,
+          useNativeDriver: true,
+        }).start();
+      },
+      onPanResponderTerminate: () => {
+        setPaused(false);
+        Animated.spring(drag, {
+          toValue: 0,
+          speed: 20,
+          bounciness: 4,
+          useNativeDriver: true,
+        }).start();
+      },
+    }),
+  ).current;
 
   const current = story.frames[frame];
   const last = frame === story.frames.length - 1;
@@ -87,7 +145,21 @@ export function StoryScreen() {
   };
 
   return (
-    <View style={styles.page}>
+    <Animated.View
+      style={[
+        styles.page,
+        {
+          transform: [{ translateY: drag }],
+          /* It fades as it goes, so the page behind is visibly arriving. */
+          opacity: drag.interpolate({
+            inputRange: [0, 400],
+            outputRange: [1, 0.4],
+            extrapolate: "clamp",
+          }),
+        },
+      ]}
+      {...pan.panHandlers}
+    >
       <Image
         source={image(current.image)}
         style={StyleSheet.absoluteFill}
@@ -191,7 +263,7 @@ export function StoryScreen() {
           <Send width={20} height={20} />
         </Tap>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

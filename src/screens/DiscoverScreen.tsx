@@ -20,6 +20,7 @@ import { Text } from "../theme/Text";
 import { colors, displaySize, radii, space, type } from "../theme/tokens";
 import type { RootParamList } from "../navigation/RootNavigator";
 import { loyaltyBalance } from "../data/account";
+import { useWatchedStories } from "./watchedStories";
 import {
   discoverCopy,
   festivalCards,
@@ -51,6 +52,7 @@ export function DiscoverScreen() {
   const { width } = useWindowDimensions();
   const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
   const [card, setCard] = useState(0);
+  const watched = useWatchedStories();
 
   const heading = displaySize(type.displaySection, width);
   const cardName = displaySize(type.displayCard, width);
@@ -92,7 +94,10 @@ export function DiscoverScreen() {
               onPress={() => navigation.navigate("Story", { id: story.id })}
               style={styles.story}
             >
-              <View style={[styles.ring, story.watched && styles.ringWatched]}>
+              {/* Yellow while there is something new in it, grey once seen. */}
+              <View
+                style={[styles.ring, watched.has(story.id) && styles.ringWatched]}
+              >
                 <Image
                   source={image(story.image)}
                   style={styles.storyPhoto}
