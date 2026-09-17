@@ -379,6 +379,8 @@ export const bookingCopy = {
     note: "Note: we will deduct 1 MAD to ensure the card is valid, it will be refunded automatically",
     save: "Save card for future use",
     submit: "Add new card",
+    /** 346:47845 shortens the dock to just "Add". */
+    add: "Add",
     errors: {
       number: "Check the card number",
       expiry: "Expire date is due",

@@ -2,12 +2,17 @@ import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 
-import Check from "../../icons/ic-check-on.svg";
+import Camera from "../../icons/ic-camera-20.svg";
+import CheckOff from "../../icons/ic-check-off.svg";
+import CheckOn from "../../icons/ic-check-on.svg";
+import Pickup from "../../icons/ic-pin-16.svg";
 import Clear from "../../icons/ic-clear-20.svg";
 import { Button } from "../../components/Button";
 import { Chip } from "../../components/Chip";
 import { Dock } from "../../components/Dock";
 import { Field, Sheet, SheetPrice } from "../../components/Sheet";
+import { Segmented } from "../../components/Segmented";
+import { Select } from "../../components/Select";
 import { Stepper } from "../../components/Stepper";
 import { Tap } from "../../components/Tap";
 import { icon } from "../../icons";
@@ -406,7 +411,7 @@ export type Delivery =
   | { kind: "pickup"; point: string }
   | { kind: "address"; country: string; city: string; address: string };
 
-/** How merchandise gets to you. Figma 2139:4597 and 2139:4953. */
+/** How merchandise gets to you. Figma 346:47890 (pickup) and 346:47903. */
 export function DeliverySheet({
   open,
   onClose,
@@ -449,18 +454,14 @@ export function DeliverySheet({
       title={copy.title}
       subtitle={copy.subtitle}
       closeLabel={copy.close}
-      footer={<Button variant="primary" label={copy.save} onPress={save} />}
+      footer={
+        <Dock surface="panel">
+          <Button variant="primary" label={copy.save} onPress={save} />
+        </Dock>
+      }
     >
-      <View style={styles.sizeRow} accessibilityRole="tablist">
-        {copy.tabs.map((item) => (
-          <Chip
-            key={item.id}
-            label={item.label}
-            selected={tab === item.id}
-            onPress={() => setTab(item.id)}
-          />
-        ))}
-      </View>
+      {/* One question, one answer — a segmented track rather than chips. */}
+      <Segmented options={copy.tabs} value={tab} onChange={setTab} />
 
       {tab === "pickup" ? (
         <View style={styles.options}>
@@ -474,6 +475,7 @@ export function DeliverySheet({
               sub={item.hint}
               selected={point === item.label}
               onPress={() => setPoint(item.label)}
+              leading={<Pickup width={24} height={24} />}
             />
           ))}
           {errors.pickup && (
@@ -488,47 +490,25 @@ export function DeliverySheet({
             {copy.addressLabel}
           </Text>
 
-          <Text variant="bodySBold">{copy.country}</Text>
-          <View style={styles.sizeRow}>
-            {deliveryCountries.map((item) => (
-              <Chip
-                key={item.code}
-                label={item.label}
-                selected={country === item.label}
-                onPress={() => {
-                  setCountry(item.label);
-                  setCity(null);
-                }}
-              />
-            ))}
-          </View>
-          {errors.country && (
-            <Text variant="caption" color={colors.negative}>
-              {errors.country}
-            </Text>
-          )}
-
-          {cities.length > 0 && (
-            <>
-              <Text variant="bodySBold">{copy.city}</Text>
-              <View style={styles.sizeRow}>
-                {cities.map((item) => (
-                  <Chip
-                    key={item}
-                    label={item}
-                    selected={city === item}
-                    onPress={() => setCity(item)}
-                  />
-                ))}
-              </View>
-            </>
-          )}
-          {errors.city && (
-            <Text variant="caption" color={colors.negative}>
-              {errors.city}
-            </Text>
-          )}
-
+          <Select
+            label={copy.country}
+            value={country}
+            options={deliveryCountries.map((item) => item.label)}
+            error={errors.country}
+            onChange={(value) => {
+              setCountry(value);
+              setCity(null);
+            }}
+          />
+          {/* A city cannot be chosen before the country it is in. */}
+          <Select
+            label={copy.city}
+            value={city}
+            options={cities}
+            error={errors.city}
+            disabled={cities.length === 0}
+            onChange={setCity}
+          />
           <Field
             label={copy.address}
             value={address}
@@ -544,11 +524,14 @@ export function DeliverySheet({
 export type SavedCard = { brand: string; last4: string; mark?: string };
 
 /**
- * Add a card. Figma 2139:5400.
+ * Add a card. Figma 346:47845.
  *
  * Nothing here is sent anywhere and nothing is stored: the sheet hands back
  * the brand and the last four digits, and the number it was typed from is
- * dropped with the component.
+ * dropped with the component. The scan control is drawn because the comp draws
+ * it, and is dead because reading a card with the camera needs a native module
+ * this build does not have — a button that opens nothing is better than one
+ * that opens a camera and then cannot do anything with what it sees.
  */
 export function CardSheet({
   open,
@@ -564,6 +547,7 @@ export function CardSheet({
   const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
   const [name, setName] = useState("");
+  const [save, setSave] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const digits = number.replace(/\D/g, "");
@@ -597,7 +581,11 @@ export function CardSheet({
       title={copy.title}
       subtitle={copy.subtitle}
       closeLabel={copy.close}
-      footer={<Button variant="primary" label={copy.submit} onPress={submit} />}
+      footer={
+        <Dock surface="panel">
+          <Button variant="primary" label={copy.add} onPress={submit} />
+        </Dock>
+      }
     >
       <Field
         label={copy.number}
@@ -606,7 +594,16 @@ export function CardSheet({
         error={errors.number}
         keyboardType="number-pad"
         maxLength={19}
+        trailing={<Camera width={20} height={20} />}
       />
+
+      {/* What this field accepts, as the comp states it. */}
+      <View style={styles.marks}>
+        {bookingCopy.checkout.cardMarks.map((mark) => {
+          const Mark = icon(mark);
+          return Mark ? <Mark key={mark} width={32} height={20} /> : null;
+        })}
+      </View>
       <View style={styles.pair}>
         <Field
           label={copy.expiry}
@@ -636,6 +633,17 @@ export function CardSheet({
       <Text variant="caption" color={colors.contentSecondary}>
         {copy.note}
       </Text>
+
+      <Tap
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: save }}
+        onPress={() => setSave(!save)}
+        scale={0.99}
+        style={styles.saveRow}
+      >
+        {save ? <CheckOn width={20} height={20} /> : <CheckOff width={20} height={20} />}
+        <Text variant="body">{copy.save}</Text>
+      </Tap>
     </Sheet>
   );
 }
@@ -747,6 +755,7 @@ export function Option({
   selected,
   onPress,
   trailing,
+  leading,
   disabled = false,
 }: {
   label: string;
@@ -754,6 +763,8 @@ export function Option({
   selected: boolean;
   onPress: () => void;
   trailing?: React.ReactNode;
+  /** A mark before the label, as the pickup rows carry. */
+  leading?: React.ReactNode;
   /** A choice you cannot take is shown and dimmed, not hidden. */
   disabled?: boolean;
 }) {
@@ -770,6 +781,7 @@ export function Option({
         disabled && styles.optionOff,
       ]}
     >
+      {leading}
       <View style={styles.optionBody}>
         <Text variant="bodyBold" numberOfLines={1}>
           {label}
@@ -782,7 +794,7 @@ export function Option({
       </View>
       {trailing}
       {selected ? (
-        <Check width={20} height={20} />
+        <CheckOn width={20} height={20} />
       ) : (
         <View style={styles.optionMark} />
       )}
@@ -809,6 +821,8 @@ const styles = StyleSheet.create({
   rule: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderTertiary },
   priceRow: { flexDirection: "row", alignItems: "center", gap: space.l },
   orRow: { flexDirection: "row", alignItems: "center", gap: space.l },
+  marks: { flexDirection: "row", alignItems: "center", gap: space.s },
+  saveRow: { flexDirection: "row", alignItems: "center", gap: space.m },
   rule2: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.overlay20 },
   sizes: { gap: space.s },
   sizeRow: { flexDirection: "row", flexWrap: "wrap", gap: space.s },
