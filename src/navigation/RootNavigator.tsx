@@ -18,6 +18,8 @@ import { colors, space } from "../theme/tokens";
 
 import { DiscoverScreen } from "../screens/DiscoverScreen";
 import { ResaleScreen } from "../screens/ResaleScreen";
+import { StoryScreen } from "../screens/StoryScreen";
+import { ArticleScreen, NewsScreen } from "../screens/NewsScreen";
 import { EventScreen } from "../screens/EventScreen";
 import { BookingScreen } from "../screens/booking/BookingScreen";
 import { BookingsScreen } from "../screens/account/BookingsScreen";
@@ -34,6 +36,9 @@ export type RootParamList = {
   Rewards: undefined;
   Profile: undefined;
   Payments: undefined;
+  Story: { id: string };
+  News: undefined;
+  Article: { slug: string };
 };
 
 /** The five tabs of Figma 378:27388, in the order the comp draws them. */
@@ -174,6 +179,16 @@ export function RootNavigator() {
           component={BookingScreen}
           options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
         />
+        {/* A story is a full-screen player that covers the tabs, and it
+            comes up from the bottom like the booking journey rather than
+            sliding in as another page. */}
+        <Stack.Screen
+          name="Story"
+          component={StoryScreen}
+          options={{ presentation: "fullScreenModal", animation: "fade" }}
+        />
+        <Stack.Screen name="News" component={NewsScreen} />
+        <Stack.Screen name="Article" component={ArticleScreen} />
         <Stack.Screen name="Rewards" component={RewardsScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Payments" component={PaymentsScreen} />

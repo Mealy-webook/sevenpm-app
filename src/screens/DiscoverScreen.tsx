@@ -89,6 +89,7 @@ export function DiscoverScreen() {
               key={story.id}
               accessibilityRole="button"
               accessibilityLabel={discoverCopy.story(story.label)}
+              onPress={() => navigation.navigate("Story", { id: story.id })}
               style={({ pressed }) => [styles.story, pressed && styles.pressed]}
             >
               <View style={[styles.ring, story.watched && styles.ringWatched]}>
@@ -255,13 +256,13 @@ export function DiscoverScreen() {
               </View>
             ))}
           </View>
+          {/* Discover shows three stories; this opens the newsroom rather
+              than appending three more rows to a five-section home screen. */}
           <Button
             variant="primary"
             label={discoverCopy.loadMore}
             icon={ArrowRight}
-            /* Everything there is is already on screen — the comp's button
-               with nothing left to load, drawn as the dead control it is. */
-            disabled
+            onPress={() => navigation.navigate("News")}
           />
         </View>
       </ScrollView>

@@ -16,6 +16,22 @@ export type Story = {
   image: string;
   /** A watched story loses the brand ring for a dim one. */
   watched?: boolean;
+  /** Where it was posted, shown under the name in the viewer. */
+  venue: string;
+  /** How long ago, as the viewer writes it — "14h". */
+  posted: string;
+  /** The logo that sits in the viewer's header, if it has one. */
+  avatar?: string;
+  /**
+   * The frames the story plays through, one progress segment each.
+   *
+   * The comp (415:38335) draws nine segments against a single photograph,
+   * which is a placeholder for however many frames a story turns out to have.
+   * These are the real photographs the app has for each festival rather than
+   * one image repeated nine times — a viewer tested against nine copies of one
+   * frame proves nothing about whether the progress bar tracks.
+   */
+  frames: { image: string; caption: string }[];
 };
 
 /**
@@ -23,10 +39,47 @@ export type Story = {
  * Anfa Latina, as the web build spells it. Corrected here.
  */
 export const stories: Story[] = [
-  { id: "jazzablanca", label: "Jazzablanca", image: "/assets/story-1.jpg" },
-  { id: "tanjazz", label: "Tanjazz", image: "/assets/story-2.jpg" },
-  { id: "casa-anfa-latina", label: "Casa Anfa Latina", image: "/assets/story-3.jpg" },
-  { id: "sevenpm", label: "sevenpm", image: "/assets/story-4.jpg", watched: true },
+  {
+    id: "jazzablanca",
+    label: "Jazzablanca",
+    image: "/assets/story-1.jpg",
+    venue: "Anfa Park in Casablanca, Morocco",
+    posted: "14h",
+    avatar: "/assets/story-avatar.png",
+    frames: [
+      { image: "/assets/story-frame.jpg", caption: "Give & Take -Show at Comedy Pod" },
+      { image: "/assets/gallery-1.jpg", caption: "Main stage, second night" },
+      { image: "/assets/gallery-3.jpg", caption: "Anfa Park after dark" },
+    ],
+  },
+  {
+    id: "tanjazz",
+    label: "Tanjazz",
+    image: "/assets/story-2.jpg",
+    venue: "Tangier, Morocco",
+    posted: "1d",
+    frames: [
+      { image: "/assets/gallery-4.jpg", caption: "Tanjazz, opening night" },
+      { image: "/assets/gallery-5.jpg", caption: "The courtyard sessions" },
+    ],
+  },
+  {
+    id: "casa-anfa-latina",
+    label: "Casa Anfa Latina",
+    image: "/assets/story-3.jpg",
+    venue: "Casablanca, Morocco",
+    posted: "2d",
+    frames: [{ image: "/assets/gallery-2.jpg", caption: "Casa Anfa Latina" }],
+  },
+  {
+    id: "sevenpm",
+    label: "sevenpm",
+    image: "/assets/story-4.jpg",
+    watched: true,
+    venue: "Casablanca, Morocco",
+    posted: "3d",
+    frames: [{ image: "/assets/gallery-6.jpg", caption: "More music more life" }],
+  },
 ];
 
 export type FestivalCard = {
@@ -114,4 +167,15 @@ export const discoverCopy = {
   news: "Latest news",
   loadMore: "Load more",
   story: (label: string) => `${label} — story`,
+};
+
+export const storyCopy = {
+  node: "415:38335",
+  close: "Close",
+  share: "Share this story",
+  explore: "Explore",
+  /** Announced when a frame changes, since the bars are not readable. */
+  progress: (index: number, total: number) => `Frame ${index} of ${total}`,
+  /** How long each frame is on screen before the story moves on. */
+  frameMs: 5000,
 };
