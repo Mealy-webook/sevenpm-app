@@ -1,0 +1,132 @@
+/**
+ * SEVENPM design tokens, ported from the web build's `@theme` block
+ * (sevenpm-web/src/app/globals.css), which itself mirrors the Figma variable
+ * collection on "SevenPM — Web" (QoFwc4yLlCGUhMVma1ABhb).
+ *
+ * This file is the single source of truth for the app. Nothing below should
+ * be inlined at a call site: a hex or a pixel value written into a component
+ * is a value that will not move when the system does.
+ *
+ * Keep it in step with the web tokens rather than letting the two drift —
+ * see DESIGN-SYSTEM.md for what each group is for and which rules are
+ * deliberate rather than incidental.
+ */
+
+export const colors = {
+  /* Backgrounds, darkest first. `primary` is the page, `secondary` a raised
+     band, `tertiary` a control or tile sitting on top of that. */
+  bgPrimary: "#0b0b0e",
+  bgSecondary: "#18181b",
+  bgTertiary: "#252528",
+
+  /* Ink scale, used by the event surfaces rather than the account ones. */
+  ink900: "#0b0c10",
+  ink800: "#14161c",
+  ink700: "#1d2028",
+  ink600: "#2a2e39",
+
+  /* Content. `primary` is not pure white — #fff only appears on display type
+     and on the knob of a switch. */
+  contentPrimary: "#e4e4e7",
+  contentSecondary: "#a1a1aa",
+  textPrimary: "#f7f5f0",
+  textSecondary: "#a9aebb",
+  textInverse: "#14161c",
+
+  /** The one brand colour. Used sparingly: an accent, never a surface. */
+  brand: "#fbeb1c",
+
+  /* States. */
+  positive: "#22c55e",
+  negative: "#ff6c6c",
+
+  /* Borders and overlays. RN has no colour-mix, so the common alphas are
+     spelled out rather than computed. */
+  borderSecondary: "rgba(255,255,255,0.3)",
+  borderTertiary: "rgba(255,255,255,0.1)",
+  borderDimmed: "rgba(255,255,255,0.05)",
+  overlay5: "rgba(255,255,255,0.05)",
+  overlay10: "rgba(255,255,255,0.1)",
+  overlay20: "rgba(255,255,255,0.2)",
+  /** Disabled content — the one place text drops below the secondary grey. */
+  disabled: "rgba(255,255,255,0.3)",
+  white: "#ffffff",
+} as const;
+
+/** Figma's ui-elements/gaps and ui-elements/paddings, in full. */
+export const space = {
+  xs: 4,
+  s: 8,
+  m: 12,
+  l: 16,
+  xl: 24,
+  xxl: 32,
+  section: 40,
+} as const;
+
+/**
+ * Square edges are the house rule — dialogs, cards, buttons, chips and tiles
+ * all have none. The only exceptions are the switch track and its knob, which
+ * stop reading as a switch without them.
+ */
+export const radii = {
+  none: 0,
+  pill: 9999,
+  /** The saved-card face, the one drawn object that keeps its corners. */
+  card: 24,
+} as const;
+
+export const fonts = {
+  /** Daltown. Display only: headlines, big numerals, nothing under ~40px. */
+  display: "Daltown",
+  regular: "Roboto_400Regular",
+  semibold: "Roboto_600SemiBold",
+  bold: "Roboto_700Bold",
+  black: "Roboto_900Black",
+} as const;
+
+/**
+ * The type scale, straight from the Figma text styles. `size` and `line` are
+ * both absolute — this system never uses a unitless line-height multiplier,
+ * because the display faces need line boxes tighter than their own size.
+ */
+export const type = {
+  /* Display — Daltown, uppercase, always. */
+  displayXL: { font: fonts.display, size: 160, line: 116 },
+  displayL: { font: fonts.display, size: 64, line: 44 },
+  displayM: { font: fonts.display, size: 40, line: 34 },
+
+  /* Titles — Roboto Bold, uppercase, negative tracking. */
+  sectionTitle: { font: fonts.bold, size: 26, line: 32, tracking: -0.13 },
+  title: { font: fonts.bold, size: 22, line: 28, tracking: -0.11 },
+  titleBody: { font: fonts.bold, size: 18, line: 24, tracking: -0.09 },
+
+  /* Body. */
+  bodyL: { font: fonts.regular, size: 17, line: 24, tracking: 0.085 },
+  body: { font: fonts.regular, size: 15, line: 22, tracking: 0.15 },
+  bodyBold: { font: fonts.semibold, size: 15, line: 22, tracking: 0.19 },
+  bodyS: { font: fonts.regular, size: 13, line: 20, tracking: 0.13 },
+  bodySBold: { font: fonts.semibold, size: 13, line: 20, tracking: 0.16 },
+
+  /* Captions. */
+  caption: { font: fonts.regular, size: 12, line: 16, tracking: 0.12 },
+  captionBold: { font: fonts.bold, size: 12, line: 16, tracking: 0.12 },
+} as const;
+
+/**
+ * Motion. One easing curve does almost all the work on the web build — the
+ * same `cubic-bezier(0.22, 1, 0.36, 1)` — and Reanimated's `Easing.bezier`
+ * takes it directly. Durations are seconds on the web; milliseconds here.
+ */
+export const motion = {
+  /** Everything that settles: panels, rows, reveals. */
+  ease: [0.22, 1, 0.36, 1] as const,
+  /** Anything leaving under its own steam. */
+  easeIn: [0.55, 0, 1, 0.45] as const,
+  fast: 250,
+  base: 400,
+  slow: 700,
+} as const;
+
+/** The page gutter. The web steps 20 → 48 → 120; a phone only ever sees 20. */
+export const gutter = 20;
