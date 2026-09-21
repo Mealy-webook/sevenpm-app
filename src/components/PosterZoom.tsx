@@ -124,11 +124,23 @@ const PULL_EASE = Easing.out(Easing.quad);
 const RIDE_EASE = Easing.inOut(Easing.quad);
 
 /**
- * How long the page being flown to spends underneath this one, from the
- * moment it is pushed. It is what that page waits out before it does
- * anything of its own.
+ * When the page being flown to is pushed.
+ *
+ * It used to be pushed as the record set off, and mounting a screen is native
+ * work on the same thread the record is moving on — so the one move in this
+ * run that has to be watched was sharing its first moments with the building
+ * of a whole page. On a phone that is enough to make the flight jump, or miss
+ * it entirely. It is pushed while the record is still coming out of the
+ * sleeve now, half a second earlier, so by the time the record sets off the
+ * page beneath is built, laid out and still.
  */
-export const COVER_MS = HANDOVER_AT + HANDOVER_MS - TRAVEL_AT;
+const PUSH_AT = PULL_AT;
+
+/**
+ * How long that page spends underneath this one, from the moment it is
+ * pushed. It is what that page waits out before it does anything of its own.
+ */
+export const COVER_MS = HANDOVER_AT + HANDOVER_MS - PUSH_AT;
 
 export type ZoomFrom = { x: number; y: number; width: number; height: number };
 /** Where the page underneath draws its record, in window coordinates. */
@@ -286,12 +298,12 @@ export function PosterZoom({
           useNativeDriver: true,
         }),
       );
-      /* The page is pushed as the record sets off, so it is drawn, settled
-         and waiting by the time the cover comes off it. */
+      /* Pushed before the record sets off, so the flight has the thread to
+         itself and the page beneath is drawn, settled and waiting. */
       timer.current = setTimeout(() => {
         arrived.current = true;
         arrive.current?.();
-      }, TRAVEL_AT);
+      }, PUSH_AT);
     }
 
     run.current = Animated.parallel(moves);

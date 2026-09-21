@@ -86,6 +86,10 @@ import { getEvent, type ArtistGroup } from "../data/events";
  * off: the deck is asked to play, which brings the arm down onto the record,
  * and the page opens under it.
  */
+/** The page's own arrival: one lift, not a queue of them. */
+const PAGE_MS = 460;
+const PAGE_RISE = 24;
+
 /**
  * The tail — what is left to happen once the cover has come off.
  *
@@ -97,10 +101,11 @@ import { getEvent, type ArtistGroup } from "../data/events";
  * should be the part you are watching.
  */
 const ARM_AT = COVER_MS - 300;
-/** The page's own arrival: one lift, not a queue of them. */
-const PAGE_MS = 460;
-const PAGE_RISE = 24;
-const ARRIVE_PAGE = COVER_MS - 200;
+
+/* The page is settled the moment the cover clears, not a quarter second
+   after it. It mounts and lifts entirely underneath, so what you see when the
+   cover goes is a finished page rather than one still arriving. */
+const ARRIVE_PAGE = COVER_MS - PAGE_MS;
 
 /**
  * The arm, and the two angles it lives at.
