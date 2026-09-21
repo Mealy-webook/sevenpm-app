@@ -25,9 +25,13 @@ import { useReducedMotion } from "../theme/motion";
  * therefore carries its own offset and its own depth, both sprung, exactly as
  * each `SwipeCard` there owns its own motion values.
  *
- * The fan itself is the comp's (Moodboard 182:1630) rather than the web
- * component's: the two cards behind splay to opposite sides at the same tilt
- * and size, the next one to the left. Anything deeper waits out of sight.
+ * The **arrangement** is neither's. The comp fans the two cards behind out to
+ * opposite sides at the same tilt and size, with anything deeper hidden, and
+ * that reads as a front card with some decoration behind it rather than as a
+ * pile of four things you can get to. Ahmed asked for 1, 2, 3, 4. So they
+ * recede instead: each one a little smaller than the one in front of it and
+ * raised a little further, so every card in the stack shows its own top edge
+ * and you can see both how many there are and which order they are in.
  */
 
 /** The web original's numbers. */
@@ -39,12 +43,14 @@ const TILT_RANGE = 200;
 const CARD_SPRING = { stiffness: 300, damping: 30, mass: 1 };
 const STACK_SPRING = { stiffness: 260, damping: 24, mass: 1 };
 
-/** The comp's fan, by depth: front, then left, then right, then hidden. */
+/** The pile, by depth: each one behind the last, and each one still visible. */
 const DEPTHS = [0, 1, 2, 3];
-const ROTATE = ["0deg", "-10deg", "10deg", "10deg"];
-const SHIFT = [0, -22, 22, 22];
-const SCALE = [1, 0.9106, 0.9106, 0.9106];
-const FADE = [1, 1, 1, 0];
+const ROTATE = ["0deg", "0deg", "0deg", "0deg"];
+const SHIFT = [0, 0, 0, 0];
+/** How far back each one sits, and how far its top edge rides above. */
+const SCALE = [1, 0.94, 0.88, 0.82];
+const RISE = [0, -16, -30, -42];
+const FADE = [1, 1, 1, 1];
 
 export function CardStack<T>({
   items,
@@ -211,7 +217,7 @@ export function CardStack<T>({
                 transform: [
                   { perspective: 1200 },
                   { translateX: Animated.add(drag.x, from(SHIFT)) },
-                  { translateY: drag.y },
+                  { translateY: Animated.add(drag.y, from(RISE)) },
                   { rotateX },
                   { rotateY },
                   { rotate: from(ROTATE) as unknown as string },

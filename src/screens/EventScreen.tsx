@@ -607,36 +607,40 @@ export function EventScreen() {
             from that moment rather than having played it behind the cover. */}
         {pageOpen && (
         <>
-        {/* Name, when, where, what. */}
-        <Reveal
-          index={0}
-          style={styles.section}
-        >
-          <RevealWords variant="displayPage" color={colors.white} textStyle={title}>
-            {event.name}
-          </RevealWords>
+        {/* Name, when, where, what. This one section has no padding above
+            it: the comp runs the name straight off the bottom of the record,
+            and the 32 every other section carries on its top edge pushed it
+            a clear third of a line down. */}
+        <Reveal index={0} style={styles.opening}>
+          {/* The name, the pair, and the paragraph are one block at 12; the
+              tiles sit 16 off it, which is the section's own gap. */}
+          <View style={styles.blurb}>
+            <RevealWords variant="displayPage" color={colors.white} textStyle={title}>
+              {event.name}
+            </RevealWords>
 
-          {/* The time is the accent, and the venue is a link. Neither carries
-              an icon in the comp — the colour and the underline do that job —
-              and they sit as one stacked pair. */}
-          <View>
-            <Text variant="bodySBold" color={colors.brand}>
-              {bookingConfig.sessionTime}
-            </Text>
-            <Tap
-              accessibilityRole="link"
-              onPress={() => Linking.openURL(event.venue.directionsUrl)}
-              scale={0.99}
-            >
-              <Text variant="bodySBold" style={styles.link}>
-                {event.venue.name}
+            {/* The time is the accent, and the venue is a link. Neither
+                carries an icon in the comp — the colour and the underline do
+                that job — and they sit as one stacked pair. */}
+            <View>
+              <Text variant="bodySBold" color={colors.brand}>
+                {bookingConfig.sessionTime}
               </Text>
-            </Tap>
-          </View>
+              <Tap
+                accessibilityRole="link"
+                onPress={() => Linking.openURL(event.venue.directionsUrl)}
+                scale={0.99}
+              >
+                <Text variant="bodySBold" style={styles.link}>
+                  {event.venue.name}
+                </Text>
+              </Tap>
+            </View>
 
-          <Text variant="body" color={colors.contentSecondary}>
-            {event.intro}
-          </Text>
+            <Text variant="body" color={colors.contentSecondary}>
+              {event.intro}
+            </Text>
+          </View>
 
           {/* Three columns divided by hairlines — no panels. */}
           <View style={styles.tiles}>
@@ -660,8 +664,12 @@ export function EventScreen() {
           </View>
         </Reveal>
 
-        {/* Line-up */}
-        <Reveal index={1} style={styles.section}>
+        {/* Line-up. Its two rails are siblings rather than children, so
+            they can run off the right edge, which means the heading's block
+            carries the section's top padding and the last rail carries its
+            bottom one. The comp also gives this one section a 24 margin
+            where the rest have 20. */}
+        <Reveal index={1} style={styles.lineupHead}>
           <RevealWords variant="displayBlock" color={colors.white} textStyle={heading}>
             {eventCopy.lineup}
           </RevealWords>
@@ -938,10 +946,31 @@ const styles = StyleSheet.create({
     paddingVertical: space.xxl,
     gap: space.l,
   },
+  /* Except the first, which the comp gives no top padding at all — the name
+     runs straight off the bottom edge of the record. */
+  opening: {
+    paddingHorizontal: gutter,
+    paddingBottom: space.xxl,
+    gap: space.l,
+  },
+  blurb: { gap: space.m },
   semibold: { fontFamily: "Roboto_600SemiBold" },
   link: { textDecorationLine: "underline" },
-  chipRail: { gap: space.l, paddingHorizontal: gutter, paddingTop: space.m },
-  circleRail: { paddingHorizontal: gutter, paddingTop: space.xl },
+  lineupHead: {
+    paddingHorizontal: gutter + space.xs,
+    paddingTop: space.xxl,
+    gap: space.l,
+  },
+  chipRail: {
+    gap: space.l,
+    paddingHorizontal: gutter + space.xs,
+    paddingTop: space.xl,
+  },
+  circleRail: {
+    paddingHorizontal: gutter + space.xs,
+    paddingTop: space.xl,
+    paddingBottom: space.xxl,
+  },
 
   /* 24 icon, 8, label, value — centred in a 90-tall column. */
   tiles: { flexDirection: "row", marginTop: space.xs },
@@ -1012,12 +1041,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: gutter,
     paddingBottom: space.s,
   },
-  barSide: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center" },
+  /* The two sides take only what their buttons need and the name takes the
+     rest. The comp gives all three an even third, which is fine for the empty
+     slot it draws but leaves a name a third of a bar to sit in — long enough
+     for "JAZZABLA…" and no longer. The buttons are the same size as each
+     other, so the name is still centred. */
+  barSide: { flexDirection: "row", alignItems: "center" },
   barActions: { justifyContent: "flex-end" },
   barTitle: {
     flex: 1,
     minWidth: 0,
-    maxWidth: 240,
     alignItems: "center",
     paddingHorizontal: space.m,
   },
