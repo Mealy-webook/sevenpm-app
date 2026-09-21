@@ -80,6 +80,25 @@ export function useDeck(tracks: PlaylistTrack[]) {
     setIntent(on);
   }, []);
 
+  /**
+   * Sound stopped without changing what the deck is *for*.
+   *
+   * Pushing the record aside stops it, but it does not mean you asked for
+   * silence — the arm is off the record for the length of the change and the
+   * deck is still meant to be playing. `intent` stays where it was, so the
+   * page keeps drawing a deck that is on, and the sound comes back when the
+   * arm does.
+   */
+  const held = useRef(false);
+  const hold = useCallback(
+    (on: boolean) => {
+      held.current = on;
+      if (on) player.pause();
+      else if (wanted.current) player.play();
+    },
+    [player],
+  );
+
   /* A phone on silent should still play a preview it was asked for. */
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
@@ -89,13 +108,13 @@ export function useDeck(tracks: PlaylistTrack[]) {
   useEffect(() => {
     if (!source) return;
     player.replace(source);
-    if (wanted.current) player.play();
+    if (wanted.current && !held.current) player.play();
   }, [source, player]);
 
   /* And pick it up again once it has actually loaded, for the times it was
      asked for before there was anything to ask. */
   useEffect(() => {
-    if (!wanted.current || !loaded || playing) return;
+    if (!wanted.current || held.current || !loaded || playing) return;
     player.play();
   }, [loaded, playing, player]);
 
@@ -136,14 +155,16 @@ export function useDeck(tracks: PlaylistTrack[]) {
   return useMemo(
     () => ({
       track,
+      index,
       playing,
       /** What it is meant to be doing. The arm on the page follows this. */
       intent,
       step,
       play,
       toggle,
+      hold,
     }),
-    [track, playing, intent, step, play, toggle],
+    [track, index, playing, intent, step, play, toggle, hold],
   );
 }
 

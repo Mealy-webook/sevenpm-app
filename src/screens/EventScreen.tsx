@@ -88,7 +88,6 @@ import { getEvent, type ArtistGroup } from "../data/events";
  * and the page opens under it.
  */
 const ARM_AT = COVER_MS - 50;
-const ARM_MS = 900;
 const ARRIVE_PAGE = ARM_AT + 620;
 
 /**
@@ -146,6 +145,43 @@ export function deckLabel(slug: string | undefined) {
 
 /** How far the record has to be pushed before it changes what is playing. */
 const SHOVE = 72;
+/** The gap between one record and the next in the rack behind this one. */
+const RACK_GAP = 16;
+/** The push across, and the arm's swing on and off. */
+const PUSH_MS = 340;
+const ARM_MS = 620;
+
+/**
+ * One record: the disc and the label on it.
+ *
+ * `spin` is passed only to the one in the middle. The records either side of
+ * it are the next and previous tracks waiting their turn, and a record that
+ * is not under the arm does not turn.
+ */
+type Turn = { transform: { rotate: Animated.AnimatedInterpolation<string> }[] };
+
+function Record({ label, spin }: { label: string; spin?: Turn }) {
+  return (
+    <>
+      {/* Sized in per cent rather than with absoluteFill: an Image pinned
+          only by its insets falls back to the bitmap's own size, and this
+          bitmap is twice the screen. */}
+      <Animated.Image source={image("/assets/vinyl.webp")} style={[styles.disc, spin]} />
+      {/* The label is the track: change what is playing and the record is
+          wearing the new cover. Round, because a label is round and a cover
+          is square. It crossfades, for the times the track is changed from
+          the bar rather than by pushing the record aside. */}
+      <Animated.View style={[styles.discLabel, spin]}>
+        <Image
+          source={image(label)}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          transition={260}
+        />
+      </Animated.View>
+    </>
+  );
+}
 
 const ARM_W = 213.297;
 const ARM_H = 266.4;
@@ -247,77 +283,106 @@ export function EventScreen() {
     return () => scrollY.removeListener(id);
   }, [scrollY, width]);
 
+  /* The hero is a collage at the comp's own 390-wide measurements. */
+  const s = (value: number) => scaled(value, width);
+
+  /**
+   * The record answers to the hand on it.
+   *
+   * A press stops it. A push to either side slides the whole rack across —
+   * the track before it and the track after it are sitting just off each
+   * edge, so what comes into view as you push is the record you are asking
+   * for, not a guess at one.
+   *
+   * The arm comes off the moment the push is taken and stays off until the
+   * new record has arrived in the middle, because that is what has to happen
+   * for a record to be changed. The sound is held rather than stopped, so the
+   * deck is still a deck that is on, and it comes back when the arm lands.
+   *
+   * The push is only claimed once the finger is clearly sideways, so the page
+   * still scrolls under a finger that started on the record.
+   */
+  const shove = useRef(new Animated.Value(0)).current;
+  const [changing, setChanging] = useState(false);
+  const hand = useRef({
+    pitch: 0,
+    take: () => {},
+    settle: (_dir: number) => {},
+  });
+  hand.current.pitch = s(RECORD.size) + RACK_GAP;
+  hand.current.take = () => {
+    setChanging(true);
+    player.hold(true);
+  };
+  hand.current.settle = (dir: number) => {
+    if (dir === 0) {
+      setChanging(false);
+      return Animated.spring(shove, {
+        toValue: 0,
+        stiffness: 260,
+        damping: 26,
+        mass: 1,
+        useNativeDriver: true,
+      }).start();
+    }
+    /* Asking for a record is asking to hear it. The arm is held off by
+       `changing` until it has arrived, so this only decides what happens
+       when it lands. */
+    player.play();
+    Animated.timing(shove, {
+      toValue: -dir * hand.current.pitch,
+      duration: PUSH_MS,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (!finished) return;
+      /* The record that was beside it becomes the one in the middle, so the
+         rack can go back to nought without anything appearing to move. */
+      player.step(dir);
+      shove.setValue(0);
+      setChanging(false);
+    });
+  };
+
+  const hands = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
+      onPanResponderGrant: () => hand.current.take(),
+      onPanResponderMove: (_, g) => shove.setValue(g.dx),
+      onPanResponderRelease: (_, g) => {
+        const far = Math.abs(g.dx) > SHOVE || Math.abs(g.vx) > 0.5;
+        hand.current.settle(far ? (g.dx > 0 ? -1 : 1) : 0);
+      },
+      onPanResponderTerminate: () => hand.current.settle(0),
+    }),
+  ).current;
+
   /**
    * The arm is where the sound is. It lies across the record while the deck
    * is meant to be playing and goes back to its rest the moment it is not,
    * so stopping the record is a thing you watch happen rather than a thing
    * you infer from silence. It follows the deck's intent rather than what it
-   * has managed to load, so it moves the moment it is asked.
+   * has managed to load, so it moves the moment it is asked — and it is held
+   * off the record for as long as one is being changed.
+   *
+   * The sound comes back when the arm lands, not before: the needle reaching
+   * the groove is what starts a record, and doing it the other way round
+   * gives you a track playing under an arm still on its way down.
    */
+  const land = useRef(() => {});
+  land.current = () => player.hold(false);
   useEffect(() => {
+    const down = player.intent && !changing;
     Animated.timing(arm, {
-      toValue: player.intent ? 1 : 0,
+      toValue: down ? 1 : 0,
       duration: ARM_MS,
       easing: Easing.inOut(Easing.cubic),
       useNativeDriver: true,
-    }).start();
-  }, [player.intent, arm]);
-
-  /**
-   * The record answers to the hand on it: a press stops it, a push to either
-   * side puts on the track that way. The push is claimed only once it is
-   * clearly sideways, so the page still scrolls under a finger that started
-   * on the record.
-   */
-  const shove = useRef(new Animated.Value(0)).current;
-  const swap = useRef(player.step);
-  swap.current = player.step;
-  const hands = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) =>
-        Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
-      onPanResponderMove: (_, g) => shove.setValue(g.dx),
-      onPanResponderRelease: (_, g) => {
-        const far = Math.abs(g.dx) > SHOVE || Math.abs(g.vx) > 0.5;
-        if (!far) {
-          return Animated.spring(shove, {
-            toValue: 0,
-            stiffness: 260,
-            damping: 26,
-            mass: 1,
-            useNativeDriver: true,
-          }).start();
-        }
-        /* Pushed far enough: this one carries on out of the way, the next
-           one comes in from the side it was pushed towards. */
-        const way = g.dx > 0 ? 1 : -1;
-        Animated.timing(shove, {
-          toValue: way * 520,
-          duration: 200,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }).start(() => {
-          swap.current(way > 0 ? -1 : 1);
-          shove.setValue(way * -520);
-          Animated.spring(shove, {
-            toValue: 0,
-            stiffness: 200,
-            damping: 24,
-            mass: 1,
-            useNativeDriver: true,
-          }).start();
-        });
-      },
-      onPanResponderTerminate: () =>
-        Animated.spring(shove, {
-          toValue: 0,
-          stiffness: 260,
-          damping: 26,
-          mass: 1,
-          useNativeDriver: true,
-        }).start(),
-    }),
-  ).current;
+    }).start(({ finished }) => {
+      if (finished && down) land.current();
+    });
+  }, [player.intent, changing, arm]);
 
   /* The record turns because it is playing — at 33 1/3 rpm, which is 1.8s a
      revolution. The disc and its label turn as one: each spins about its own
@@ -355,12 +420,16 @@ export function EventScreen() {
 
   const book = () => navigation.navigate("Booking", { slug: event.slug });
 
-  /* The hero is a collage at the comp's own 390-wide measurements. */
-  const s = (value: number) => scaled(value, width);
-  /* The record wears the cover of whatever is on it. */
-  const label = player.track?.artworkUrl
-    ? artworkAt(player.track.artworkUrl, 600)
-    : EVENT_LABEL;
+  /* Each record wears the cover of the track it is. */
+  const coverOf = (at: number) => {
+    const many = event.playlist.length;
+    const track = event.playlist[((at % many) + many) % many];
+    return track?.artworkUrl ? artworkAt(track.artworkUrl, 600) : EVENT_LABEL;
+  };
+  const label = coverOf(player.index);
+  const before = coverOf(player.index - 1);
+  const after = coverOf(player.index + 1);
+  const rack = s(RECORD.size) + RACK_GAP;
 
   const spinning = {
     transform: [
@@ -458,11 +527,10 @@ export function EventScreen() {
               style={StyleSheet.absoluteFill}
             />
           </Animated.View>
-          {/* The record is one object you can put your hands on: press it to
-              stop it, push it aside to put the next track on. The disc and
-              its label are grouped so both move together, and the group is
-              the disc's own box so the label sits on it in the comp's
-              place. */}
+          {/* The rack. The record you are listening to is in the middle;
+              the one before it and the one after it wait just off each edge,
+              so a push brings the record you asked for into view rather than
+              something standing in for it. Only the middle one turns. */}
           <Animated.View
             style={{
               position: "absolute",
@@ -471,16 +539,21 @@ export function EventScreen() {
               width: s(RECORD.size),
               height: s(RECORD.size),
               transform: [{ translateX: shove }],
-              /* It only starts to go once it is clearly on its way out, so
-                 a push that comes back never dims. */
-              opacity: shove.interpolate({
-                inputRange: [-520, -300, 0, 300, 520],
-                outputRange: [0, 1, 1, 1, 0],
-                extrapolate: "clamp",
-              }),
             }}
             {...hands.panHandlers}
           >
+            <View
+              style={[styles.beside, { transform: [{ translateX: -rack }] }]}
+              pointerEvents="none"
+            >
+              <Record label={before} />
+            </View>
+            <View
+              style={[styles.beside, { transform: [{ translateX: rack }] }]}
+              pointerEvents="none"
+            >
+              <Record label={after} />
+            </View>
             <Tap
               accessibilityRole="button"
               accessibilityState={{ selected: player.playing }}
@@ -491,53 +564,10 @@ export function EventScreen() {
               scale={1}
               style={StyleSheet.absoluteFill}
             >
-              {/* Sized in per cent rather than with absoluteFill: an Image
-                  pinned only by its insets falls back to the bitmap's own
-                  size, and this bitmap is twice the screen. */}
-              <Animated.Image
-                source={image("/assets/vinyl.webp")}
-                style={[
-                  {
-                    position: "absolute",
-                    left: 0,
-                    top: 0,
-                    width: "100%",
-                    height: "100%",
-                    resizeMode: "contain",
-                  },
-                  spinning,
-                ]}
-              />
-              {/* The label is the track: change what is playing and the
-                  record on the deck is wearing the new cover. It crossfades,
-                  for the times the track is changed from the bar rather than
-                  by pushing the record aside. */}
-              <Animated.View
-                style={[
-                  {
-                    position: "absolute",
-                    left: `${LABEL.left * 100}%`,
-                    top: `${LABEL.top * 100}%`,
-                    width: `${LABEL.width * 100}%`,
-                    height: `${LABEL.height * 100}%`,
-                    /* A record's label is round, and a cover is square. The
-                       house rule squares everything that is not literally a
-                       circle; this is literally a circle. */
-                    borderRadius: 999,
-                    overflow: "hidden",
-                  },
-                  spinning,
-                ]}
-              >
-                <Image
-                  source={image(label)}
-                  style={StyleSheet.absoluteFill}
-                  contentFit="cover"
-                  transition={260}
-                />
-              </Animated.View>
+              <Record label={label} spin={spinning} />
             </Tap>
           </Animated.View>
+
           {/* The arm is drawn upright and laid across the disc, so it is
               turned in place inside a box the comp sizes for it. */}
           <Animated.View
@@ -905,6 +935,26 @@ function ArtistGroupView({
 
 const styles = StyleSheet.create({
   glow: { opacity: 0.4 },
+  disc: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    width: "100%",
+    height: "100%",
+    resizeMode: "contain",
+  },
+  discLabel: {
+    position: "absolute",
+    left: `${LABEL.left * 100}%`,
+    top: `${LABEL.top * 100}%`,
+    width: `${LABEL.width * 100}%`,
+    height: `${LABEL.height * 100}%`,
+    /* A record's label is round, and a cover is square. The house rule
+       squares everything that is not literally a circle; this is literally a
+       circle. */
+    borderRadius: 999,
+    overflow: "hidden",
+  },
   player: { position: "absolute", left: gutter, right: gutter, zIndex: 3 },
   section: { paddingHorizontal: gutter, paddingTop: space.xl, gap: space.m },
   semibold: { fontFamily: "Roboto_600SemiBold" },
@@ -994,5 +1044,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.overlay10,
   },
+  beside: { ...StyleSheet.absoluteFill },
   barSolid: { backgroundColor: colors.bgSecondary },
 });
