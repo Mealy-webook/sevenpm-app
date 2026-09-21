@@ -13,7 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { image } from "../images";
 import { ease, useReducedMotion } from "../theme/motion";
-import { colors, motion } from "../theme/tokens";
+import { colors, motion, scaled } from "../theme/tokens";
 
 /**
  * The poster on its own, from Figma 182:1724: 342 square, centred on the base
@@ -35,10 +35,20 @@ import { colors, motion } from "../theme/tokens";
  * on the native driver and not on the JS thread.
  */
 
-/** The comp's poster, the glow behind it, and the record it holds. */
+/**
+ * The comp's poster, the record it holds, and the bloom behind both.
+ *
+ * Measured against 469:72741 on its 390-wide frame, which puts the sleeve at
+ * 342 square with its top on 309 and the record at 322 square with its top on
+ * 173 — exactly `SLEEVE_DROP` below and `VINYL_RISE` above where this already
+ * had them. The bloom is an 834 square hung off the left at -222 and reaching
+ * the top of the screen, so it is a wash over the whole page rather than a
+ * disc of light behind the poster.
+ */
 const SIZE = 342;
-const GLOW = 340;
 const VINYL = 322;
+const GLOW = 834;
+const GLOW_X = -222;
 /**
  * Pulling the record out settles the sleeve 58 lower and leaves the record
  * standing 136 above its top edge (182:1052 against 182:1724).
@@ -289,7 +299,12 @@ export function PosterZoom({
           <Animated.View
             style={[
               styles.glow,
-              { top: 247, opacity: bloom },
+              {
+                left: scaled(GLOW_X, width),
+                width: scaled(GLOW, width),
+                height: scaled(GLOW, width),
+                opacity: bloom,
+              },
             ]}
             pointerEvents="none"
           >
@@ -430,7 +445,7 @@ const styles = StyleSheet.create({
   fill: { ...StyleSheet.absoluteFill },
   /* The detail page sits on the base surface, a shade below the app's own. */
   page: { backgroundColor: "#09090b" },
-  glow: { position: "absolute", left: -32, right: -32, height: GLOW },
+  glow: { position: "absolute", top: 0 },
   vinyl: { position: "absolute", width: VINYL, height: VINYL },
   poster: { position: "absolute", width: SIZE, height: SIZE },
 });
