@@ -86,13 +86,21 @@ import { getEvent, type ArtistGroup } from "../data/events";
  * off: the deck is asked to play, which brings the arm down onto the record,
  * and the page opens under it.
  */
-/* The arm is already on its way down as the cover lifts, so the page does
-   not appear and then start doing something. */
-const ARM_AT = COVER_MS - 120;
+/**
+ * The tail — what is left to happen once the cover has come off.
+ *
+ * It used to run half a second past that point, the arm still swinging and
+ * the page still lifting after there was nothing left covering them. Both now
+ * start well before the cover goes and finish a quarter of a second after it,
+ * so the page is settled almost as soon as you can see it. Lengthening the
+ * record's flight and shortening this were asked for together: the long part
+ * should be the part you are watching.
+ */
+const ARM_AT = COVER_MS - 300;
 /** The page's own arrival: one lift, not a queue of them. */
 const PAGE_MS = 460;
 const PAGE_RISE = 24;
-const ARRIVE_PAGE = ARM_AT + 620;
+const ARRIVE_PAGE = COVER_MS - 200;
 
 /**
  * The arm, and the two angles it lives at.
@@ -162,7 +170,7 @@ const AWAY = 0.72;
 const REACH = 0.62;
 /** The roll, and the arm's swing off the record and back onto it. */
 const PUSH_MS = 620;
-const ARM_MS = 620;
+const ARM_MS = 420;
 /** The arc is sampled this often; an interpolation between them is a chord. */
 const ARC = [-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1];
 

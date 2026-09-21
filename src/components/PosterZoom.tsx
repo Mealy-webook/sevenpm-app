@@ -71,23 +71,28 @@ const VINYL_RISE = 136;
  * it is flipped back on itself there and the poster lands the right way round
  * having gone edge-on exactly once.
  */
-const ZOOM_MS = 380;
+const ZOOM_MS = 420;
 const FLIP_AT = 220;
-const FLIP_MS = 560;
-const PULL_AT = 560;
-const PULL_MS = 500;
+const FLIP_MS = 640;
+const PULL_AT = 700;
+const PULL_MS = 640;
 
 /**
  * The ride up to the deck. It is the longest move in the run on purpose: it
  * is the one that carries a thing from one screen to another, and at half
  * this it went by before it could be read as travelling at all. It has been
- * lengthened twice at Ahmed's asking — 600, then 1000, then 1300, now 1700 —
+ * lengthened four times at Ahmed's asking — 600, 1000, 1300, 1700, now 2200 —
  * and this is the one number to change if it still goes by too fast. The
  * hand-over and everything the event page does are measured off it, so they
  * follow on their own.
+ *
+ * `TRAVEL_AT` is the other half of the same request: how long the poster has
+ * to grow, turn over and let the record out before any of this starts. The
+ * three moves before it were stretched to match, so the record still has not
+ * stopped when it sets off.
  */
-const TRAVEL_AT = 900;
-const TRAVEL_MS = 1700;
+const TRAVEL_AT = 1200;
+const TRAVEL_MS = 2200;
 /**
  * The two records are one for this stretch. It starts well before the ride
  * ends, so the page underneath is uncovered while the record is still
