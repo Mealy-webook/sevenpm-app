@@ -11,6 +11,7 @@ import {
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
+import { Record } from "./Record";
 import { glow, image } from "../images";
 import { ease, useReducedMotion } from "../theme/motion";
 import { colors, motion, scaled } from "../theme/tokens";
@@ -82,7 +83,7 @@ const PULL_MS = 500;
  * this it went by before it could be read as travelling at all.
  */
 const TRAVEL_AT = 900;
-const TRAVEL_MS = 1000;
+const TRAVEL_MS = 1300;
 /**
  * The two records are one for this stretch. It starts well before the ride
  * ends, so the page underneath is uncovered while the record is still
@@ -97,14 +98,19 @@ const HANDOVER_MS = 300;
  * thing already moving — four of them in a row is four launches and four
  * stops, which is what makes a run of overlapping moves still read as a list.
  *
- * So the two moves the record makes are eased for **continuity** instead. The
- * pull is given a shallow tail so it is still travelling when it ends, and
- * the ride is given a fast start so it takes that speed up rather than
- * building its own from nothing. Between them the record leaves the sleeve
- * and arrives on the deck without ever being still.
+ * So the pull is given a shallow tail: it is still travelling when it ends.
+ *
+ * The ride was given an ease-out to take that speed up, and that turned out
+ * to be the wrong trade. An ease-out spends two thirds of the distance in the
+ * first three tenths of the time, so a ride that lasts a second is over, to
+ * look at, in three hundred milliseconds — long enough to be missed
+ * altogether on a phone, which is exactly what Ahmed was seeing. It is eased
+ * at both ends now and runs longer, so the speed is spread across the move
+ * instead of spent at the start of it. The slow start is covered by the pull,
+ * which is still going for the first 160ms of it, so nothing stalls.
  */
 const PULL_EASE = Easing.out(Easing.quad);
-const RIDE_EASE = Easing.out(Easing.cubic);
+const RIDE_EASE = Easing.inOut(Easing.quad);
 
 /**
  * How long the page being flown to spends underneath this one, from the
@@ -120,12 +126,12 @@ export type ZoomRest = {
   y: number;
   size: number;
   /**
-   * The label that page's record wears, and where it sits on the disc as
-   * fractions of it. The record puts it on during the ride, so it arrives
-   * already dressed and the hand-over changes nothing about it.
+   * The label that page's record wears. The record puts it on during the
+   * ride, so it arrives already dressed and the hand-over changes nothing
+   * about it. Where it sits on the disc is the record's own business — both
+   * places draw the same `Record`.
    */
   label?: string;
-  labelRect?: { left: number; top: number; width: number; height: number };
 };
 
 export function PosterZoom({
@@ -362,38 +368,18 @@ export function PosterZoom({
             ]}
             pointerEvents="none"
           >
-            <Image
-              source={image("/assets/vinyl.webp")}
-              style={StyleSheet.absoluteFill}
-              contentFit="contain"
+            {/* The same record the page it is heading for draws. One
+                component, so the record you watch come out of the sleeve and
+                the record that page ends up playing cannot drift into being
+                two different objects. It puts its label on during the ride,
+                so it arrives already dressed. */}
+            <Record
+              label={restTo?.label}
+              fade={travel.interpolate({
+                inputRange: [0, 0.25, 0.8, 1],
+                outputRange: [0, 0, 1, 1],
+              })}
             />
-            {/* The label the deck's record wears, put on during the ride so
-                the record that lands is the record already there. Placed in
-                fractions of the disc, so it scales with it. */}
-            {restTo?.label && restTo.labelRect && (
-              <Animated.View
-                style={{
-                  position: "absolute",
-                  left: `${restTo.labelRect.left * 100}%`,
-                  top: `${restTo.labelRect.top * 100}%`,
-                  width: `${restTo.labelRect.width * 100}%`,
-                  height: `${restTo.labelRect.height * 100}%`,
-                  /* A label is round even when the cover it carries is not. */
-                  borderRadius: 999,
-                  overflow: "hidden",
-                  opacity: travel.interpolate({
-                    inputRange: [0, 0.25, 0.8, 1],
-                    outputRange: [0, 0, 1, 1],
-                  }),
-                }}
-              >
-                <Image
-                  source={image(restTo.label)}
-                  style={StyleSheet.absoluteFill}
-                  contentFit="cover"
-                />
-              </Animated.View>
-            )}
           </Animated.View>
 
           <Animated.View

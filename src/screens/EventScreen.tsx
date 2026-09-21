@@ -14,7 +14,7 @@ import { Image } from "expo-image";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useReducedMotion } from "../theme/motion";
+import { ease, useReducedMotion } from "../theme/motion";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
@@ -25,6 +25,7 @@ import ShareIcon from "../icons/ic-share-20.svg";
 import { Button } from "../components/Button";
 import { Chip } from "../components/Chip";
 import { Dock } from "../components/Dock";
+import { RECORD, Record } from "../components/Record";
 import { Page } from "../components/Screen";
 import { MiniPlayer, artworkAt, useDeck } from "../components/MiniPlayer";
 import { COVER_MS } from "../components/PosterZoom";
@@ -48,12 +49,10 @@ import { getEvent, type ArtistGroup } from "../data/events";
  * hairlines, which is why they read as one band of facts rather than three
  * cards.
  *
- * **Nothing on this page reveals itself.** The sections were staggered in on
- * arrival and the headings arrived a word at a time; Ahmed did not like it,
- * and the page already has one long piece of choreography at the top of it —
- * a second one running underneath while the arm is still coming down was two
- * things asking to be watched at once. The page is simply there when the
- * cover lifts.
+ * **The page arrives as one thing.** The sections used to come in one after
+ * another and the headings a word at a time, under an arm that was still
+ * coming down — two pieces of choreography competing for the same few hundred
+ * milliseconds. Now the whole of it lifts once, on a single value.
  *
  * What is *not* here, on purpose: **tickets, the location and the gallery**.
  * 410:6401 had all three and this comp draws none of them, which Ahmed
@@ -90,6 +89,9 @@ import { getEvent, type ArtistGroup } from "../data/events";
 /* The arm is already on its way down as the cover lifts, so the page does
    not appear and then start doing something. */
 const ARM_AT = COVER_MS - 120;
+/** The page's own arrival: one lift, not a queue of them. */
+const PAGE_MS = 460;
+const PAGE_RISE = 24;
 const ARRIVE_PAGE = ARM_AT + 620;
 
 /**
@@ -115,14 +117,6 @@ const ARRIVE_PAGE = ARM_AT + 620;
  * drift and the landing would show a jump.
  */
 export const EVENT_LABEL = "/assets/event-label.webp";
-const RECORD = { left: -9, top: -63, size: 408 };
-const LABEL = {
-  left: (80 - RECORD.left) / RECORD.size,
-  top: (20 - RECORD.top) / RECORD.size,
-  width: 228 / RECORD.size,
-  height: 230 / RECORD.size,
-};
-
 export function deckRect(width: number, label = EVENT_LABEL) {
   const u = (value: number) => scaled(value, width);
   return {
@@ -130,7 +124,6 @@ export function deckRect(width: number, label = EVENT_LABEL) {
     y: u(RECORD.top),
     size: u(RECORD.size),
     label,
-    labelRect: LABEL,
   };
 }
 
@@ -147,11 +140,13 @@ export function deckLabel(slug: string | undefined) {
 
 /** How far the record has to be pushed before it changes what is playing. */
 const SHOVE = 72;
-/** The gap between one record and the next in the rack behind this one. */
-const RACK_GAP = 16;
-/** The push across, and the arm's swing on and off. */
-const PUSH_MS = 340;
+/** How much of a turn a point of push is worth, and the whole turn it makes. */
+const PER_POINT = 0.7;
+const TURN = 360;
+/** The turn, the arm's swing, and how far into the turn the track changes. */
+const PUSH_MS = 700;
 const ARM_MS = 620;
+const SWAP_AT = 0.42;
 
 /**
  * One record: the disc and the label on it.
@@ -160,31 +155,6 @@ const ARM_MS = 620;
  * it are the next and previous tracks waiting their turn, and a record that
  * is not under the arm does not turn.
  */
-type Turn = { transform: { rotate: Animated.AnimatedInterpolation<string> }[] };
-
-function Record({ label, spin }: { label: string; spin?: Turn }) {
-  return (
-    <>
-      {/* Sized in per cent rather than with absoluteFill: an Image pinned
-          only by its insets falls back to the bitmap's own size, and this
-          bitmap is twice the screen. */}
-      <Animated.Image source={image("/assets/vinyl.webp")} style={[styles.disc, spin]} />
-      {/* The label is the track: change what is playing and the record is
-          wearing the new cover. Round, because a label is round and a cover
-          is square. It crossfades, for the times the track is changed from
-          the bar rather than by pushing the record aside. */}
-      <Animated.View style={[styles.discLabel, spin]}>
-        <Image
-          source={image(label)}
-          style={StyleSheet.absoluteFill}
-          contentFit="cover"
-          transition={260}
-        />
-      </Animated.View>
-    </>
-  );
-}
-
 const ARM_W = 213.297;
 const ARM_H = 266.4;
 const ARM_REST = 96.37;
@@ -244,6 +214,29 @@ export function EventScreen() {
   /* The player is not on the page until the record has gone: it is the same
      record, carried on into a bar once there is no deck left to look at. */
   const [playerUp, setPlayerUp] = useState(false);
+
+  /* The page's own arrival — one value for the whole of it. */
+  const page = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!pageOpen) return;
+    Animated.timing(page, {
+      toValue: 1,
+      duration: PAGE_MS,
+      easing: ease,
+      useNativeDriver: true,
+    }).start();
+  }, [pageOpen, page]);
+  const entering = {
+    opacity: page,
+    transform: [
+      {
+        translateY: page.interpolate({
+          inputRange: [0, 1],
+          outputRange: [PAGE_RISE, 0],
+        }),
+      },
+    ],
+  };
 
   /* One deck for the page: the arm starts it, the bar carries on with it.
      Held above the early return below, because a hook that only sometimes
@@ -306,14 +299,10 @@ export function EventScreen() {
    * The push is only claimed once the finger is clearly sideways, so the page
    * still scrolls under a finger that started on the record.
    */
-  const shove = useRef(new Animated.Value(0)).current;
+  const twist = useRef(new Animated.Value(0)).current;
   const [changing, setChanging] = useState(false);
-  const hand = useRef({
-    pitch: 0,
-    take: () => {},
-    settle: (_dir: number) => {},
-  });
-  hand.current.pitch = s(RECORD.size) + RACK_GAP;
+  const swapping = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hand = useRef({ take: () => {}, settle: (_dir: number) => {} });
   hand.current.take = () => {
     setChanging(true);
     player.hold(true);
@@ -321,7 +310,7 @@ export function EventScreen() {
   hand.current.settle = (dir: number) => {
     if (dir === 0) {
       setChanging(false);
-      return Animated.spring(shove, {
+      return Animated.spring(twist, {
         toValue: 0,
         stiffness: 260,
         damping: 26,
@@ -333,30 +322,43 @@ export function EventScreen() {
        `changing` until it has arrived, so this only decides what happens
        when it lands. */
     player.play();
-    Animated.timing(shove, {
-      toValue: -dir * hand.current.pitch,
+    /* A whole turn, so the artwork ends where it started and the wind can go
+       back to nought without anything appearing to move. What is on the
+       record changes part-way through, while it is going fast enough and the
+       label is dipped far enough that the change is not something you watch
+       happen — it is something that has happened. */
+    if (swapping.current) clearTimeout(swapping.current);
+    swapping.current = setTimeout(() => player.step(dir), PUSH_MS * SWAP_AT);
+    Animated.timing(twist, {
+      toValue: dir * TURN,
       duration: PUSH_MS,
-      easing: Easing.out(Easing.cubic),
+      easing: Easing.inOut(Easing.cubic),
       useNativeDriver: true,
     }).start(({ finished }) => {
       if (!finished) return;
-      /* The record that was beside it becomes the one in the middle, so the
-         rack can go back to nought without anything appearing to move. */
-      player.step(dir);
-      shove.setValue(0);
+      twist.setValue(0);
       setChanging(false);
     });
   };
+
+  /* The label dips as the record winds and comes back as it settles. */
+  const blur = twist.interpolate({
+    inputRange: [-TURN, -TURN * SWAP_AT, 0, TURN * SWAP_AT, TURN],
+    outputRange: [1, 0.15, 1, 0.15, 1],
+    extrapolate: "clamp",
+  });
 
   const hands = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) =>
         Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
       onPanResponderGrant: () => hand.current.take(),
-      onPanResponderMove: (_, g) => shove.setValue(g.dx),
+      onPanResponderMove: (_, g) => twist.setValue(g.dx * PER_POINT),
       onPanResponderRelease: (_, g) => {
         const far = Math.abs(g.dx) > SHOVE || Math.abs(g.vx) > 0.5;
-        hand.current.settle(far ? (g.dx > 0 ? -1 : 1) : 0);
+        /* Wind it right for the next track, as the pile on Discover is
+           pushed right for the next festival. */
+        hand.current.settle(far ? (g.dx > 0 ? 1 : -1) : 0);
       },
       onPanResponderTerminate: () => hand.current.settle(0),
     }),
@@ -430,9 +432,6 @@ export function EventScreen() {
     return track?.artworkUrl ? artworkAt(track.artworkUrl, 600) : EVENT_LABEL;
   };
   const label = coverOf(player.index);
-  const before = coverOf(player.index - 1);
-  const after = coverOf(player.index + 1);
-  const rack = s(RECORD.size) + RACK_GAP;
 
   const spinning = {
     transform: [
@@ -531,10 +530,11 @@ export function EventScreen() {
               style={StyleSheet.absoluteFill}
             />
           </Animated.View>
-          {/* The rack. The record you are listening to is in the middle;
-              the one before it and the one after it wait just off each edge,
-              so a push brings the record you asked for into view rather than
-              something standing in for it. Only the middle one turns. */}
+          {/* One record, and you change what is on it by winding it.
+              It was a rack for a while — the track before and the track after
+              waiting just off each edge, pushed sideways — and a carousel is
+              the wrong shape for a record. A record is a circle and the thing
+              you do to it is turn it. */}
           <Animated.View
             style={{
               position: "absolute",
@@ -542,22 +542,17 @@ export function EventScreen() {
               top: s(RECORD.top),
               width: s(RECORD.size),
               height: s(RECORD.size),
-              transform: [{ translateX: shove }],
+              transform: [
+                {
+                  rotate: twist.interpolate({
+                    inputRange: [-TURN, TURN],
+                    outputRange: [`-${TURN}deg`, `${TURN}deg`],
+                  }),
+                },
+              ],
             }}
             {...hands.panHandlers}
           >
-            <View
-              style={[styles.beside, { transform: [{ translateX: -rack }] }]}
-              pointerEvents="none"
-            >
-              <Record label={before} />
-            </View>
-            <View
-              style={[styles.beside, { transform: [{ translateX: rack }] }]}
-              pointerEvents="none"
-            >
-              <Record label={after} />
-            </View>
             <Tap
               accessibilityRole="button"
               accessibilityState={{ selected: player.playing }}
@@ -568,7 +563,7 @@ export function EventScreen() {
               scale={1}
               style={StyleSheet.absoluteFill}
             >
-              <Record label={label} spin={spinning} />
+              <Record label={label} spin={spinning} fade={blur} />
             </Tap>
           </Animated.View>
 
@@ -622,7 +617,7 @@ export function EventScreen() {
             until the record has landed, so each block plays its own entrance
             from that moment rather than having played it behind the cover. */}
         {pageOpen && (
-        <>
+        <Animated.View style={entering}>
         {/* Name, when, where, what. This one section has no padding above
             it: the comp runs the name straight off the bottom of the record,
             and the 32 every other section carries on its top edge pushed it
@@ -779,7 +774,7 @@ export function EventScreen() {
             })}
           </View>
         </View>
-        </>
+        </Animated.View>
         )}
         </Animated.ScrollView>
       </ScrollProvider>
@@ -937,26 +932,6 @@ function ArtistGroupView({
 
 const styles = StyleSheet.create({
   glow: { opacity: 0.4 },
-  disc: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    width: "100%",
-    height: "100%",
-    resizeMode: "contain",
-  },
-  discLabel: {
-    position: "absolute",
-    left: `${LABEL.left * 100}%`,
-    top: `${LABEL.top * 100}%`,
-    width: `${LABEL.width * 100}%`,
-    height: `${LABEL.height * 100}%`,
-    /* A record's label is round, and a cover is square. The house rule
-       squares everything that is not literally a circle; this is literally a
-       circle. */
-    borderRadius: 999,
-    overflow: "hidden",
-  },
   dock: { position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 3 },
   player: { marginHorizontal: gutter, marginBottom: space.s },
   /* The comp gives every section 32 above and below, so two of them sit 64
@@ -1080,6 +1055,5 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.overlay10,
   },
-  beside: { ...StyleSheet.absoluteFill },
   barGlass: { backgroundColor: "rgba(11,11,14,0.55)" },
 });
