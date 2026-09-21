@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 
+import Info from "../../icons/ic-info-16.svg";
+import Promo from "../../icons/ic-promo-24.svg";
 import Camera from "../../icons/ic-camera-20.svg";
 import CheckOff from "../../icons/ic-check-off.svg";
 import CheckOn from "../../icons/ic-check-on.svg";
@@ -21,6 +23,7 @@ import { Text } from "../../theme/Text";
 import { colors, radii, space } from "../../theme/tokens";
 import { loyaltyCopy, loyaltyRewards } from "../../data/account";
 import {
+  bookingConfig,
   bookingCopy,
   deliveryCountries,
   findPromo,
@@ -80,23 +83,29 @@ export function TicketInfoSheet({
     >
       <Text variant="bodyBold">{bookingCopy.ticketInfo.lineup}</Text>
 
-      {ticket?.lineup.map((slot, index) => (
-        <View key={`${slot.name}-${index}`} style={styles.slot}>
-          <Image
-            source={image(slot.image)}
-            style={styles.slotPortrait}
-            contentFit="cover"
-          />
-          <View style={styles.slotBody}>
-            <Text variant="bodyS" numberOfLines={1}>
-              {slot.name}
-            </Text>
-            <Text variant="caption" color={colors.contentSecondary}>
-              {slot.time}
-            </Text>
+      {/* One panel, rows divided by hairlines, as the comp draws the list. */}
+      <View style={styles.lineup}>
+        {ticket?.lineup.map((slot, index) => (
+          <View
+            key={`${slot.name}-${index}`}
+            style={[styles.slot, index > 0 && styles.slotDivided]}
+          >
+            <Image
+              source={image(slot.image)}
+              style={styles.slotPortrait}
+              contentFit="cover"
+            />
+            <View style={styles.slotBody}>
+              <Text variant="body" numberOfLines={1}>
+                {slot.name}
+              </Text>
+              <Text variant="bodyS" color={colors.contentSecondary}>
+                {slot.time}
+              </Text>
+            </View>
           </View>
-        </View>
-      ))}
+        ))}
+      </View>
 
       {ticket && (
         <>
@@ -113,8 +122,8 @@ export function TicketInfoSheet({
               size="m"
               value={quantity}
               name={ticket.name}
-              onAdd={() => onAdjust(ticket, 1)}
               onChange={(by) => onAdjust(ticket, by)}
+              max={bookingConfig.maxPerLine}
             />
           </View>
         </>
@@ -143,9 +152,12 @@ export function ItemDetailsSheet({
 }) {
   const [size, setSize] = useState<string | undefined>();
 
-  /* A new item opens on its first size rather than on nothing, so the dock
-     button is live the moment the sheet is up. */
-  useEffect(() => setSize(addon?.sizes?.[0]), [addon]);
+  /* A new item opens on a size rather than on nothing, so the dock button is
+     live the moment the sheet is up — on M, as the comp opens it. */
+  useEffect(
+    () => setSize(addon?.sizes?.includes("M") ? "M" : addon?.sizes?.[0]),
+    [addon],
+  );
 
   return (
     <Sheet
@@ -170,6 +182,7 @@ export function ItemDetailsSheet({
           source={image(addon.image)}
           style={styles.itemShot}
           contentFit="cover"
+          contentPosition="top"
         />
       )}
 
@@ -207,8 +220,8 @@ export function ItemDetailsSheet({
               size="m"
               value={quantityOf(cart, addon.id, size)}
               name={addon.name}
-              onAdd={() => onAdjust(addon, 1, size)}
               onChange={(by) => onAdjust(addon, by, size)}
+              max={bookingConfig.maxPerLine}
             />
           </View>
         </>
@@ -265,7 +278,7 @@ export function OrderSummarySheet({
         </Section>
       )}
 
-      <View style={styles.rule} />
+      <View style={styles.ruleDashed} />
 
       <View style={styles.totals}>
         <TotalRow label={copy.subtotal} value={formatMoney(totals.subtotal)} />
@@ -346,7 +359,7 @@ export function VouchersSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={bookingCopy.checkout.vouchers}
+      title={copy.title}
       closeLabel={copy.close}
       footer={
         <Dock surface="panel">
@@ -361,6 +374,7 @@ export function VouchersSheet({
     >
       <Field
         label={copy.label}
+        placeholder={copy.placeholder}
         value={code}
         onChange={(value) => {
           setCode(value);
@@ -389,11 +403,12 @@ export function VouchersSheet({
       </View>
 
       <Text variant="bodyBold">{bookingCopy.checkout.useBeats}</Text>
+      {/* The comp names the reward by its discount alone — "5% discount". */}
       {rewards.map((item) => (
         <Option
           key={item.id}
-          label={item.name}
-          sub={`${item.cost.toLocaleString("en-US")} ${loyaltyCopy.unit}`}
+          icon={<Promo width={24} height={24} />}
+          label={item.name.replace(/\s+promocode$/i, "")}
           selected={reward === item.id}
           disabled={beats < item.cost}
           onPress={() => {
@@ -423,7 +438,7 @@ export function DeliverySheet({
 }) {
   const copy = bookingCopy.deliveryDialog;
   const [tab, setTab] = useState("pickup");
-  const [point, setPoint] = useState<string | null>(null);
+  const [point, setPoint] = useState<string | null>(pickupPoints[0]?.label ?? null);
   const [country, setCountry] = useState<string | null>(null);
   const [city, setCity] = useState<string | null>(null);
   const [address, setAddress] = useState("");
@@ -452,7 +467,6 @@ export function DeliverySheet({
       open={open}
       onClose={onClose}
       title={copy.title}
-      subtitle={copy.subtitle}
       closeLabel={copy.close}
       footer={
         <Dock surface="panel">
@@ -465,9 +479,7 @@ export function DeliverySheet({
 
       {tab === "pickup" ? (
         <View style={styles.options}>
-          <Text variant="bodyS" color={colors.contentSecondary}>
-            {copy.pickupLabel}
-          </Text>
+          <Text variant="bodyBold">{copy.pickupLabel}</Text>
           {pickupPoints.map((item) => (
             <Option
               key={item.id}
@@ -475,7 +487,7 @@ export function DeliverySheet({
               sub={item.hint}
               selected={point === item.label}
               onPress={() => setPoint(item.label)}
-              leading={<Pickup width={24} height={24} />}
+              icon={<Pickup width={24} height={24} />}
             />
           ))}
           {errors.pickup && (
@@ -486,9 +498,7 @@ export function DeliverySheet({
         </View>
       ) : (
         <View style={styles.options}>
-          <Text variant="bodyS" color={colors.contentSecondary}>
-            {copy.addressLabel}
-          </Text>
+          <Text variant="bodyBold">{copy.addressLabel}</Text>
 
           <Select
             label={copy.country}
@@ -593,7 +603,6 @@ export function CardSheet({
       open={open}
       onClose={onClose}
       title={copy.title}
-      subtitle={copy.subtitle}
       closeLabel={copy.close}
       footer={
         <Dock surface="panel">
@@ -636,6 +645,7 @@ export function CardSheet({
           keyboardType="number-pad"
           maxLength={4}
           style={styles.half}
+          trailing={<Info width={16} height={16} />}
         />
       </View>
       <Field
@@ -655,7 +665,9 @@ export function CardSheet({
         scale={0.99}
         style={styles.saveRow}
       >
-        {save ? <CheckOn width={20} height={20} /> : <CheckOff width={20} height={20} />}
+        <View style={[styles.box, save && styles.boxOn]}>
+          {save && <View style={styles.tick} />}
+        </View>
         <Text variant="body">{copy.save}</Text>
       </Tap>
     </Sheet>
@@ -723,41 +735,56 @@ function LineRow({
 /** A row of the price block: label left, figure right. */
 export function TotalRow({
   label,
+  labelNote,
   value,
   strong = false,
+  caps = false,
   note,
   tone = "default",
 }: {
   label: string;
+  /** Small print after the label — "Include VAT" beside "TOTAL". */
+  labelNote?: string;
+  /** The checkout writes its total in capitals; the sheets do not. */
+  caps?: boolean;
   value: string;
   strong?: boolean;
   note?: string;
   /** `positive` is money coming back — a credit, a discount. */
   tone?: "default" | "positive";
 }) {
+  const color = tone === "positive" ? colors.positive : undefined;
   return (
-    <View style={styles.total}>
-      <View style={styles.totalLine}>
+    <View style={styles.totalLine}>
+      <View style={[styles.totalLabel, styles.totalLabelRow]}>
         <Text
-          variant={strong ? "bodyBold" : "body"}
-          color={strong ? colors.contentPrimary : colors.contentSecondary}
-          style={styles.totalLabel}
+          variant={strong ? "bodyL" : "bodyS"}
+          color={color ?? (strong ? colors.contentPrimary : colors.contentSecondary)}
+          uppercase={caps}
+          style={strong && styles.bold}
         >
           {label}
         </Text>
+        {labelNote && (
+          <Text variant="caption" color={colors.contentSecondary}>
+            {labelNote}
+          </Text>
+        )}
+      </View>
+      <View style={styles.totalValue}>
         <Text
-          variant={strong ? "bodyL" : "body"}
-          color={tone === "positive" ? colors.positive : undefined}
-          style={strong && styles.semibold}
+          variant={strong ? "bodyL" : "bodyS"}
+          color={color}
+          style={[styles.right, strong && styles.bold]}
         >
           {value}
         </Text>
+        {note && (
+          <Text variant="tab" color={colors.contentSecondary} style={styles.right}>
+            {note}
+          </Text>
+        )}
       </View>
-      {note && (
-        <Text variant="caption" color={colors.contentSecondary} style={styles.right}>
-          {note}
-        </Text>
-      )}
     </View>
   );
 }
@@ -766,19 +793,20 @@ export function TotalRow({
 export function Option({
   label,
   sub,
+  slot,
   selected,
   onPress,
-  trailing,
-  leading,
+  icon,
   disabled = false,
 }: {
   label: string;
   sub?: string;
+  /** Free content under the label — the card row's row of marks. */
+  slot?: React.ReactNode;
   selected: boolean;
   onPress: () => void;
-  trailing?: React.ReactNode;
-  /** A mark before the label, as the pickup rows carry. */
-  leading?: React.ReactNode;
+  /** The 24px mark before the label. */
+  icon?: React.ReactNode;
   /** A choice you cannot take is shown and dimmed, not hidden. */
   disabled?: boolean;
 }) {
@@ -795,9 +823,9 @@ export function Option({
         disabled && styles.optionOff,
       ]}
     >
-      {leading}
+      {icon}
       <View style={styles.optionBody}>
-        <Text variant="bodyBold" numberOfLines={1}>
+        <Text variant="body" numberOfLines={1}>
           {label}
         </Text>
         {sub && (
@@ -805,10 +833,11 @@ export function Option({
             {sub}
           </Text>
         )}
+        {slot}
       </View>
-      {trailing}
+      {/* The radio: a ring until chosen, then the white disc with its mark. */}
       {selected ? (
-        <CheckOn width={20} height={20} />
+        <CheckOn width={24} height={24} />
       ) : (
         <View style={styles.optionMark} />
       )}
@@ -821,7 +850,12 @@ const styles = StyleSheet.create({
   semibold: { fontFamily: "Roboto_600SemiBold" },
   right: { textAlign: "right" },
 
-  slot: { flexDirection: "row", alignItems: "center", gap: space.m },
+  lineup: { backgroundColor: colors.bgSecondary, paddingHorizontal: space.l },
+  slot: { flexDirection: "row", alignItems: "center", gap: space.l, paddingVertical: 13 },
+  slotDivided: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderTertiary,
+  },
   slotPortrait: {
     width: 40,
     height: 40,
@@ -833,6 +867,7 @@ const styles = StyleSheet.create({
   itemShot: { width: "100%", height: 277, backgroundColor: colors.bgTertiary },
   /* The hairline the comps draw between a sheet's content and its price. */
   rule: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderTertiary },
+  ruleDashed: { borderTopWidth: 1, borderStyle: "dashed", borderColor: colors.borderTertiary },
   priceRow: { flexDirection: "row", alignItems: "center", gap: space.l },
   orRow: { flexDirection: "row", alignItems: "center", gap: space.l },
   marks: { flexDirection: "row", alignItems: "center", gap: space.s },
@@ -842,34 +877,65 @@ const styles = StyleSheet.create({
   sizeRow: { flexDirection: "row", flexWrap: "wrap", gap: space.s },
 
   section: { gap: space.s },
-  line: { flexDirection: "row", alignItems: "center", gap: space.s },
+  /* Each line rules itself off underneath, as the comp's list does. */
+  line: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.s,
+    paddingVertical: space.s,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.borderTertiary,
+  },
   lineBody: { flex: 1, minWidth: 0 },
 
   totals: { gap: space.s },
-  total: { gap: 2 },
-  totalLine: { flexDirection: "row", alignItems: "baseline", gap: space.m },
+  totalLine: { flexDirection: "row", alignItems: "flex-start", gap: space.m },
   totalLabel: { flex: 1, minWidth: 0 },
+  totalLabelRow: { flexDirection: "row", alignItems: "baseline", gap: space.xs },
+  totalValue: { alignItems: "flex-end" },
+  bold: { fontFamily: "Roboto_700Bold" },
 
   options: { gap: space.m },
   option: {
     flexDirection: "row",
     alignItems: "center",
-    gap: space.m,
-    padding: space.l,
-    backgroundColor: colors.overlay5,
+    gap: space.l,
+    paddingHorizontal: space.l,
+    paddingVertical: space.m,
     borderWidth: 1,
     borderColor: colors.overlay10,
   },
-  optionOn: { borderColor: colors.contentPrimary },
+  optionOn: { borderColor: colors.contentPrimary, backgroundColor: colors.overlay10 },
   optionOff: { opacity: 0.4 },
   optionBody: { flex: 1, minWidth: 0 },
   optionMark: {
-    width: 20,
-    height: 20,
+    width: 24,
+    height: 24,
+    borderRadius: radii.pill,
     borderWidth: 1,
-    borderColor: colors.overlay20,
+    borderColor: "rgba(255,255,255,0.3)",
+    backgroundColor: "rgba(0,0,0,0.05)",
   },
 
+  box: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+    backgroundColor: "rgba(0,0,0,0.05)",
+  },
+  boxOn: { backgroundColor: colors.white, borderColor: colors.white },
+  tick: {
+    width: 6,
+    height: 11,
+    marginTop: -2,
+    borderRightWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: colors.bgPrimary,
+    transform: [{ rotate: "45deg" }],
+  },
   pair: { flexDirection: "row", gap: space.m },
   half: { flex: 1 },
 });

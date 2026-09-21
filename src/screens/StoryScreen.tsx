@@ -13,7 +13,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 
-import Close from "../icons/ic-close.svg";
 import Send from "../icons/ic-send-outline-20.svg";
 import { Button } from "../components/Button";
 import { Tap } from "../components/Tap";
@@ -218,15 +217,6 @@ export function StoryScreen() {
               {story.venue}
             </Text>
           </View>
-
-          <Tap
-            accessibilityRole="button"
-            accessibilityLabel={storyCopy.close}
-            onPress={navigation.goBack}
-            style={styles.iconButton}
-          >
-            <Close width={20} height={20} />
-          </Tap>
         </View>
       </LinearGradient>
 
@@ -250,15 +240,13 @@ export function StoryScreen() {
         />
       </View>
 
+      {/* The comp's dock: the brand action across, the share square beside it. */}
       <View style={[styles.foot, { paddingBottom: insets.bottom + space.l }]}>
-        <Text variant="bodyBold" style={styles.caption}>
-          {current.caption}
-        </Text>
-        <Button variant="brand" size="m" label={storyCopy.explore} />
+        <Button variant="brand" label={storyCopy.explore} style={styles.explore} />
         <Tap
           accessibilityRole="button"
           accessibilityLabel={storyCopy.share}
-          style={styles.iconButton}
+          style={styles.shareButton}
         >
           <Send width={20} height={20} />
         </Tap>
@@ -302,14 +290,8 @@ const styles = StyleSheet.create({
   headerText: { flex: 1, minWidth: 0 },
   headerLine: { flexDirection: "row", alignItems: "center", gap: space.s },
 
-  iconButton: {
-    padding: 10,
-    backgroundColor: colors.overlay5,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.overlay10,
-  },
 
-  zones: { ...StyleSheet.absoluteFillObject, flexDirection: "row", zIndex: 1 },
+  zones: { ...StyleSheet.absoluteFill, flexDirection: "row", zIndex: 1 },
   zone: { flex: 1 },
 
   foot: {
@@ -321,5 +303,14 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: colors.bgPrimary,
   },
-  caption: { flex: 1, minWidth: 0 },
+  explore: { flex: 1 },
+  shareButton: {
+    width: 52,
+    height: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.overlay5,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.overlay10,
+  },
 });

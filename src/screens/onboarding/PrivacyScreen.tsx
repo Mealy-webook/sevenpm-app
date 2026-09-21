@@ -48,9 +48,6 @@ export function PrivacyScreen({ onDone }: { onDone: () => void }) {
           <Text variant="body" color={colors.contentSecondary}>
             {privacyCopy.body}
           </Text>
-          <Text variant="caption" color={colors.contentSecondary}>
-            {privacyCopy.note}
-          </Text>
         </View>
       </View>
 

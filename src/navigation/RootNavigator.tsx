@@ -23,6 +23,7 @@ import { AccountScreen } from "../screens/account/AccountScreen";
 import { WalletScreen } from "../screens/account/WalletScreen";
 import { ProfileScreen } from "../screens/account/ProfileScreen";
 import { PaymentsScreen } from "../screens/account/PaymentsScreen";
+import { InstallmentsScreen } from "../screens/InstallmentsScreen";
 import { RewardsScreen } from "../screens/RewardsScreen";
 
 export type RootParamList = {
@@ -33,6 +34,7 @@ export type RootParamList = {
   Wallet: undefined;
   Profile: undefined;
   Payments: undefined;
+  Installments: { bookingId?: string } | undefined;
   Story: { id: string };
   Article: { slug: string };
 };
@@ -142,6 +144,7 @@ export function RootNavigator() {
         <Stack.Screen name="Rewards" component={RewardsScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Payments" component={PaymentsScreen} />
+        <Stack.Screen name="Installments" component={InstallmentsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

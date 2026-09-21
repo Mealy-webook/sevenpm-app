@@ -8,6 +8,7 @@ import { Tap } from "../../components/Tap";
 import { Text } from "../../theme/Text";
 import { colors, displaySize, space, type } from "../../theme/tokens";
 import {
+  bookingConfig,
   bookingCopy,
   formatMoney,
   ticketGroups,
@@ -72,7 +73,7 @@ export function TicketsStep({
         {groups.map((group) => (
           <View key={group.id} style={styles.group}>
             <Text variant="titleBody" uppercase color={colors.white}>
-              {group.label}
+              {group.title ?? group.label}
             </Text>
             {group.tickets.map((ticket) => (
               <View key={ticket.id} style={styles.row}>
@@ -107,8 +108,8 @@ export function TicketsStep({
                   atZero="stepper"
                   value={quantityOf(cart, ticket.id)}
                   name={ticket.name}
-                  onAdd={() => onAdjust(ticket.id, 1)}
                   onChange={(by) => onAdjust(ticket.id, by)}
+                  max={bookingConfig.maxPerLine}
                 />
               </View>
             ))}

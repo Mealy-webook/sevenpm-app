@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   },
   fieldOpen: { borderColor: colors.contentPrimary },
   fieldError: { borderColor: colors.negative },
-  fieldOff: { opacity: 0.6 },
+  fieldOff: {},
   fieldBody: { flex: 1, minWidth: 0 },
   flip: { transform: [{ rotate: "180deg" }] },
 

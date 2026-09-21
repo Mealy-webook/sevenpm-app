@@ -30,6 +30,8 @@ export type TicketGroup = {
   id: string;
   /** "General admission" — also the chip label. */
   label: string;
+  /** The section heading, where the comp shortens it ("VIP" for "VIP boxes"). */
+  title?: string;
   tickets: BookingTicket[];
 };
 
@@ -91,6 +93,7 @@ export const ticketGroups: TicketGroup[] = [
   {
     id: "vip",
     label: "VIP boxes",
+    title: "VIP",
     tickets: [
       {
         id: "vip-box-1",
@@ -123,21 +126,10 @@ export const addons: BookingAddon[] = [
     id: "tee-arche",
     category: "merchandise",
     name: SHIRT,
-    price: 50,
+    price: 100,
     wasPrice: 252,
     discount: "20% off",
     image: "/assets/merch-arche.jpg",
-    sizes: SIZES,
-    icon: "/assets/ic-tshirt-16.svg",
-  },
-  {
-    id: "tee-casablanca",
-    category: "merchandise",
-    name: SHIRT,
-    price: 50,
-    wasPrice: 252,
-    discount: "20% off",
-    image: "/assets/merch-casablanca.jpg",
     sizes: SIZES,
     icon: "/assets/ic-tshirt-16.svg",
   },
@@ -159,8 +151,8 @@ export const addons: BookingAddon[] = [
 
 export const bookingConfig = {
   currency: "MAD",
-  /** The comp's "9:59 to book" — the hold on the seats, in seconds. */
-  holdSeconds: 599,
+  /** The instalment counts the BNPL panel offers (435:3890 and its siblings). */
+  paymentPlans: [2, 3, 4],
   /** Nobody may buy more than this of one line in one booking. */
   maxPerLine: 10,
   /** Credit on the visitor's SEVENPM wallet, applied before anything else. */
@@ -219,11 +211,6 @@ export const bookingCopy = {
   chrome: {
     back: "Back",
     locale: "Language and currency",
-    timer: (clock: string) => `${clock} to book`,
-    expired: "Your hold has expired",
-    expiredBody:
-      "We only hold tickets for ten minutes. Start again and they are yours for another ten.",
-    restart: "Start again",
   },
   tickets: {
     /** The step's own heading, from 412:15124. */
@@ -250,7 +237,12 @@ export const bookingCopy = {
       { id: "merchandise", label: "Merchandise" },
       { id: "parking", label: "Parking" },
     ],
-    details: "Item details",
+    details: "Product details",
+    /* The comp's tiles read "Product name"; the item's own name is on its
+       details sheet. */
+    productName: "Product name",
+    add: "Add",
+    less: "Remove one",
     size: "Size",
     addToCart: "Add to cart",
     close: "Close",
@@ -258,8 +250,8 @@ export const bookingCopy = {
   },
   summaryBar: {
     tickets: (count: number) => `${count} ${count === 1 ? "Ticket" : "Tickets"}`,
-    addons: (count: number) =>
-      `${count} ${count === 1 ? "add-on" : "add-ons"}`,
+    /* The comp writes "1 addon" and "2 addon". */
+    addons: (count: number) => `${count} addon`,
     empty: "No tickets yet",
     total: "Total",
     open: "Open the order summary",
@@ -271,7 +263,7 @@ export const bookingCopy = {
     title: "Order summary",
     close: "Close",
     tickets: (count: number) => `Tickets (${count})`,
-    addons: (count: number) => `Add-ons (${count})`,
+    addons: (count: number) => `Addons (${count})`,
     size: (size: string) => `Size: ${size}`,
     subtotal: "Subtotal",
     wallet: "Wallet credit",
@@ -280,12 +272,11 @@ export const bookingCopy = {
   },
   checkout: {
     title: "Checkout",
-    /** 346:47218. The comp writes "2 Tickets, 2 addonds"; corrected. */
     orderSummary: "Order summary",
     view: "View",
-    basket: (tickets: string, addons: string) => `${tickets}, ${addons}`,
+    /** 346:47218, as written there: "2 Tickets, 2 addonds". */
+    basket: (tickets: string, addonCount: number) => `${tickets}, ${addonCount} addonds`,
     vouchers: "Vouchers",
-    installment: "Pay in installment",
     applePay: "Apple Pay",
     card: "Card",
     total: "Total",
@@ -295,8 +286,8 @@ export const bookingCopy = {
      * states. The comp's "100 beats" against its 100 MAD of tickets agrees.
      */
     earn: (beats: number) => `By completing this booking you'll earn ${beats.toLocaleString("en-US")} beats!`,
-    /** The comp reads "By continuing your agree on" — corrected. */
-    dockTerms: "By continuing you agree to our",
+    /* As the comp reads. */
+    dockTerms: "By continuing your agree on",
     payWith2: (method: string) => `Pay with ${method}`,
     or: "OR",
     useBeats: "Use your beats rewards",
@@ -307,19 +298,33 @@ export const bookingCopy = {
     add: "Add",
     edit: "Edit",
     payWith: "Pay with",
-    wallet: "Use webook credit",
+    wallet: "Use wallet credit",
+    /* Buy now pay later — 435:3886 and its expanded panel. */
+    bnpl: "Buy now pay later",
+    bnplHint: "Split into up to 4 monthly payments — no extra fees",
+    payments: "Number of payments",
+    /** The first instalment leaves now, so the comp dates it in words. */
+    today: "Today",
+    /** "2 payments (75 MAD)" — the plan chips at 435:3890. */
+    plan: (count: number, each: string) => `${count} payments (${each})`,
+    bnplNote:
+      "Your tickets are issued once the final payment clears — you will not receive them before then.",
+    protection: {
+      title: "Ticket protection",
+      hint: "Get a refund of the ticket price if you're unable to attend.",
+    },
     payMethods: [
-      {
-        id: "installment",
-        label: "Pay in installment",
-        icon: "/assets/ic-installment-24.svg",
-      },
       {
         id: "apple-pay",
         label: "Apple Pay",
         icon: "/assets/ic-applepay-24.svg",
       },
       { id: "card", label: "Card", icon: "/assets/ic-card-24.svg" },
+      {
+        id: "bnpl",
+        label: "Buy now pay later",
+        icon: "/assets/ic-split-24.svg",
+      },
     ],
     cardMarks: [
       "/assets/pay-cmi.svg",
@@ -335,18 +340,85 @@ export const bookingCopy = {
     promoRemove: "Remove the promo code",
     priceDetails: "Price details",
     agreement:
-      "I agree that reselling a ticket on any platform other than webook.com is illegal and will result in account ban, ticket cancellation, and no eligibility for ticket or value refund.",
+      "I agree that reselling a ticket on any platform is illegal and will result in account ban, ticket cancellation, and no eligibility for ticket or value refund.",
     agreementError: "We need this before you can pay",
-    terms: "By purchasing you'll agree to our",
-    termsLink: "Terms and Conditions",
+    terms: "By continuing your agree on",
+    termsLink: "terms and conditions",
     privacyLead: "Our",
     privacyLink: "Privacy Policy",
     privacyTail: "will apply.",
   },
+  /**
+   * Ticket protection — the info sheet (433:3371 and its second page
+   * 433:3390) and the confirmation for turning it off (432:3294).
+   */
+  protectionSheet: {
+    title: "Ticket protection",
+    close: "Close",
+    intro:
+      "Ticket protection lets you request a refund of the original ticket price if a qualifying emergency prevents you from attending.",
+    coveredTitle: "What\u2019s covered",
+    coveredHint: "You may request a refund in the following cases:",
+    /* The comp lists the medical row twice; kept as drawn. */
+    covered: [
+      {
+        icon: "/assets/ic-medical-24.svg",
+        label: "Medical emergency requiring hospitalization",
+        detail: "Occurred no more than 1 day before the event",
+      },
+      {
+        icon: "/assets/ic-medical-24.svg",
+        label: "Medical emergency requiring hospitalization",
+        detail: "Occurred no more than 1 day before the event",
+      },
+      {
+        icon: "/assets/ic-traffic-24.svg",
+        label: "Traffic accident",
+        detail: "Occurred no more than 2 hours before the event time",
+      },
+      {
+        icon: "/assets/ic-family-24.svg",
+        label: "Death of a first-degree relative",
+        detail:
+          "Father, mother, children, or siblings\nOccurred no more than 1 day before the event",
+      },
+    ],
+    readMore: "Read more",
+    conditionsTitle: "Important conditions",
+    conditions: [
+      "Ticket number and account details",
+      "Official traffic accident report",
+      "Certified medical report (with your name)",
+      "Death certificate",
+      "Any additional documents requested for verification",
+    ],
+    notCoveredTitle: "Not covered",
+    notCovered: [
+      "Emergencies outside the specified time limits",
+      "Requests without valid supporting documents",
+      "Incorrect, misleading, or falsified claims",
+      "Change of mind",
+    ],
+    transferTitle: "Transfer note",
+    transfer: [
+      "Ticket protection also applies to a second beneficiary if the ticket was transferred to a first-degree relative.",
+      "Refund eligibility and final approval are determined by the platform based on the submitted documents.",
+      "Once approved, your refund will be issued to your wbk wallet or your original payment method, based on your selected preference and platform policy.",
+    ],
+    fullTerms: "Read full terms and conditions",
+    gotIt: "Got it",
+  },
+  /** Turning protection off asks first — 432:3294. */
+  protectionSkip: {
+    title: "Skip ticket protection?",
+    body: "Without protection, you may not be eligible for a refund if you can\u2019t attend for a covered reason.",
+    keep: "Keep ticket protection",
+    skip: "Skip protection",
+    close: "Close",
+  },
   /** Delivery details dialog — Figma 2139:4597 and 2139:4953. */
   deliveryDialog: {
-    title: "Delivery details",
-    subtitle: "Choose how you would like to get your merchandise items",
+    title: "Delivery method",
     close: "Close",
     tabs: [
       { id: "pickup", label: "Pickup" },
@@ -367,8 +439,7 @@ export const bookingCopy = {
   },
   /** Add-new-card dialog — Figma 2139:5400, 2213:15202, 2213:15353. */
   cardDialog: {
-    title: "Add new card",
-    subtitle: "Your card details is encrypted and secured",
+    title: "New card",
     close: "Close",
     number: "Card number",
     scan: "Scan your card",
@@ -378,8 +449,7 @@ export const bookingCopy = {
     name: "Name on card",
     note: "Note: we will deduct 1 MAD to ensure the card is valid, it will be refunded automatically",
     save: "Save card for future use",
-    submit: "Add new card",
-    /** 346:47845 shortens the dock to just "Add". */
+    submit: "Add",
     add: "Add",
     errors: {
       number: "Check the card number",
@@ -390,9 +460,12 @@ export const bookingCopy = {
   },
   /** Promocode dialog — Figma 2146:7159, 2146:7509, 2146:7842. */
   promoDialog: {
-    title: "Add promocode",
+    /* The comp's sheet is titled "New card" and its empty field reads
+       "Enrer Promocode" — reproduced as drawn. */
+    title: "New card",
     close: "Close",
     label: "Promocode",
+    placeholder: "Enrer Promocode",
     clear: "Clear the code",
     apply: "Apply",
     invalid: "Oops! Invalid code",
@@ -406,7 +479,8 @@ export const bookingCopy = {
     orderDetails: "Order Details",
     ticketCount: (count: number) =>
       `${count} ${count === 1 ? "ticket" : "tickets"}`,
-    title: "Let's turn up the volume!",
+    /* Broken where the comp breaks it. */
+    title: "Let's turn up\nthe volume!",
     body: (event: string) =>
       `Your tickets to ${event} are confirmed. Get ready for an epic night of music and memories.`,
     viewBooking: "View booking",
@@ -450,6 +524,13 @@ export const bookingCopy = {
     delivery: {
       title: "Delivery information",
       method: "Delivery method",
+    },
+    /** The instalment panel at the foot of the comp (346:47554). */
+    payments: {
+      title: "Payments",
+      totalToPay: "Total to pay",
+      dueIn: (days: number) => `Due in ${days} days`,
+      make: "Make payment",
     },
     /**
      * There is no payment provider behind this build, so the confirmation is

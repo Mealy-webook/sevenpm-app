@@ -1,19 +1,23 @@
-import { Linking, ScrollView, StyleSheet, View } from "react-native";
+import { Linking, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import { Image } from "expo-image";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import Beats from "../../icons/ic-beats-earn.svg";
+import ChevronRight from "../../icons/ic-chevron-right-20.svg";
+import Close from "../../icons/ic-close.svg";
 import Calendar from "../../icons/ic-calendar-20.svg";
 import Clock from "../../icons/ic-clock-16.svg";
 import Copy from "../../icons/ic-copy-20.svg";
+import DeliveryMark from "../../icons/ic-delivery-24.svg";
 import Download from "../../icons/ic-download-16.svg";
 import Navigate from "../../icons/ic-navigate-20.svg";
 import Pin from "../../icons/ic-pin-16.svg";
 import Share from "../../icons/ic-share-16.svg";
 import { Button } from "../../components/Button";
+import { Tap } from "../../components/Tap";
 import { icon } from "../../icons";
 import { image } from "../../images";
 import { Text } from "../../theme/Text";
-import { colors, gutter, space } from "../../theme/tokens";
+import { colors, displaySize, gutter, space, type } from "../../theme/tokens";
 import { accountUser } from "../../data/account";
 import { bookingConfig, bookingCopy, formatMoney } from "../../data/booking";
 import type { EventDetails } from "../../data/events";
@@ -42,6 +46,8 @@ export function Confirmation({
   beatsEarned,
   beatsBalance,
   onViewBooking,
+  onClose,
+  installments,
 }: {
   event: EventDetails;
   totals: Totals;
@@ -51,6 +57,9 @@ export function Confirmation({
   beatsEarned: number;
   beatsBalance: number;
   onViewBooking: () => void;
+  onClose: () => void;
+  /** How many instalments this was split into, or null if paid outright. */
+  installments: number | null;
 }) {
   const copy = bookingCopy.confirmation;
   const starts = new Date(event.startsAt);
@@ -58,14 +67,12 @@ export function Confirmation({
      the booking journey already states is `bookingConfig.sessionTime`, so the
      range is taken from there rather than from a field invented here. */
   const session = bookingConfig.sessionTime;
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
-  const dateTime = starts.toLocaleString("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  /* "Wed, 11 Sep 7:00 PM", as the comp writes it: day before month, and the
+     session's own start time without its leading zero. */
+  const dateTime = `${starts.toLocaleDateString("en-US", { weekday: "short" })}, ${starts.getDate()} ${starts.toLocaleDateString("en-US", { month: "short" })} ${session.split(" - ")[0].replace(/^0/, "")}`;
 
   /* A calendar template URL is the one "add to calendar" that needs no
      permissions and works the same on both platforms. */
@@ -76,16 +83,24 @@ export function Confirmation({
   )}`;
 
   return (
-    <ScrollView contentContainerStyle={styles.page}>
-      {/* What the booking earned, before anything about the booking. */}
+    <ScrollView contentContainerStyle={[styles.page, { paddingTop: insets.top + space.s }]}>
+      {/* Close on the left, the new Beats balance on the right, and what this
+          booking added to it as a toast under the balance. */}
+      <View style={styles.topBar}>
+        <Tap
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          onPress={onClose}
+          style={styles.close}
+        >
+          <Close width={20} height={20} />
+        </Tap>
+        <Button label={copy.balance(beatsBalance)} onPress={onViewBooking} />
+      </View>
       {beatsEarned > 0 && (
-        <View style={styles.earned}>
-          <Beats width={24} height={24} />
-          <Text variant="bodyS" style={styles.flex}>
+        <View style={styles.toast}>
+          <Text variant="bodyS" color={colors.contentPrimary}>
             {copy.earned(beatsEarned)}
-          </Text>
-          <Text variant="bodySBold" color={colors.brand}>
-            {copy.balance(beatsBalance)}
           </Text>
         </View>
       )}
@@ -98,22 +113,23 @@ export function Confirmation({
       />
 
       <View style={styles.head}>
-        <Text variant="displayM" uppercase color={colors.white}>
+        <Text
+          variant="displayStep"
+          uppercase
+          color={colors.white}
+          style={[displaySize(type.displayStep, width), styles.centred]}
+        >
           {copy.title}
         </Text>
-        <Text variant="body" color={colors.contentSecondary}>
+        <Text variant="bodyS" color={colors.contentSecondary} style={styles.centred}>
           {copy.body(event.name)}
         </Text>
       </View>
 
       <View style={styles.actions}>
+        <Button variant="brand" label={copy.viewBooking} onPress={onViewBooking} />
         <Button
           variant="primary"
-          label={copy.viewBooking}
-          onPress={onViewBooking}
-          style={styles.action}
-        />
-        <Button
           label={copy.addToCalendar}
           icon={Calendar}
           onPress={() => Linking.openURL(calendarUrl)}
@@ -121,7 +137,7 @@ export function Confirmation({
       </View>
 
       {/* Order summary */}
-      <View style={styles.block}>
+      <View style={styles.panel}>
         <Text variant="titleBody" uppercase>
           {copy.summary.title}
         </Text>
@@ -130,38 +146,69 @@ export function Confirmation({
         <Row
           label={copy.summary.location}
           value={event.venue.name}
+          link
           trailing={Navigate}
+          onTrailing={() => Linking.openURL(event.venue.directionsUrl)}
         />
-        <View style={styles.buttons}>
-          <Button
-            label={copy.summary.directions}
-            icon={Navigate}
-            onPress={() => Linking.openURL(event.venue.directionsUrl)}
-          />
-          <Button label={copy.summary.share} icon={Share} />
-        </View>
+        <Button label={copy.summary.share} icon={Share} style={styles.wide} />
       </View>
 
-      {/* Where the tickets are */}
-      <View style={styles.block}>
+      {/* Price */}
+      <View style={styles.panel}>
         <Text variant="titleBody" uppercase>
-          {copy.tickets.title}
+          {copy.price.title}
         </Text>
-        <Text variant="bodyS" color={colors.contentSecondary}>
-          {copy.tickets.body(accountUser.email)}
-        </Text>
-
-        <View style={styles.qrBlock}>
-          <Image
-            source={image("/assets/conf-qr.png")}
-            style={styles.qr}
-            contentFit="contain"
+        <TotalRow
+          label={copy.price.subtotal}
+          value={formatMoney(totals.subtotal)}
+        />
+        {totals.fee > 0 && (
+          <TotalRow label={copy.price.fee} value={formatMoney(totals.fee)} />
+        )}
+        {totals.promo > 0 && (
+          <TotalRow
+            label={copy.price.promo}
+            value={`-${formatMoney(totals.promo)}`}
+            tone="positive"
           />
-          <Text variant="bodyS" color={colors.contentSecondary} style={styles.flex}>
-            {copy.tickets.scan}
-          </Text>
-        </View>
+        )}
+        {totals.wallet > 0 && (
+          <TotalRow
+            label={copy.price.wallet}
+            value={`-${formatMoney(totals.wallet)}`}
+            tone="positive"
+          />
+        )}
+        {/* The comp rules the total off from the lines it sums. */}
+        <View style={styles.rule} />
+        <TotalRow
+          label={copy.price.total}
+          value={formatMoney(totals.total)}
+          strong
+          note={copy.price.vat(formatMoney(totals.vat))}
+        />
+        <Button label={copy.price.receipt} icon={Download} style={styles.wide} />
       </View>
+
+      {/* Delivery information — only when there is something to deliver. */}
+      {delivery && (
+        <View style={styles.block}>
+          <Text variant="titleBody" uppercase>
+            {copy.delivery.title}
+          </Text>
+          <View style={styles.deliveryRow}>
+            <DeliveryMark width={24} height={24} />
+            <View style={styles.flex}>
+              <Text variant="body">{copy.delivery.method}</Text>
+              <Text variant="bodyS" color={colors.contentSecondary}>
+                {delivery.kind === "pickup"
+                  ? delivery.point
+                  : `${delivery.address}, ${delivery.city}, ${delivery.country}`}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* Order details */}
       <View style={styles.block}>
@@ -195,98 +242,98 @@ export function Confirmation({
             </View>
             <View style={styles.metaRow}>
               <Pin width={16} height={16} />
-              <Text variant="caption" color={colors.contentSecondary} numberOfLines={1}>
+              <Text variant="caption" color={colors.contentSecondary} numberOfLines={1} style={styles.underline}>
                 {event.venue.name}
               </Text>
             </View>
+            <Tap
+              accessibilityRole="link"
+              onPress={onViewBooking}
+              style={styles.countLink}
+            >
+              <Text variant="bodySBold">{copy.ticketCount(totals.ticketCount)}</Text>
+              <ChevronRight width={16} height={16} />
+            </Tap>
           </View>
-          <Button
-            label={copy.ticketCount(totals.ticketCount)}
-            onPress={onViewBooking}
-          />
         </View>
 
-        {totals.ticketLines.map((line) => (
-          <LineRow
-            key={line.key}
-            icon={line.icon}
-            name={line.name}
-            qty={line.qty}
-            amount={formatMoney(line.amount)}
-          />
-        ))}
-        {totals.addonLines.map((line) => (
-          <LineRow
-            key={line.key}
-            icon={line.icon}
-            name={line.name}
-            sub={line.size ? copy.order.size(line.size) : undefined}
-            qty={line.qty}
-            amount={formatMoney(line.amount)}
-          />
-        ))}
+        <View style={styles.lines}>
+          <Text variant="bodySBold" color={colors.contentSecondary}>
+            {copy.order.tickets(totals.ticketCount)}
+          </Text>
+          {totals.ticketLines.map((line) => (
+            <LineRow
+              key={line.key}
+              icon={line.icon}
+              name={line.name}
+              qty={line.qty}
+              amount={formatMoney(line.amount)}
+            />
+          ))}
+        </View>
+        {totals.addonLines.length > 0 && (
+          <View style={[styles.lines, styles.linesDivided]}>
+            <Text variant="bodySBold" color={colors.contentSecondary}>
+              {copy.order.addons(totals.addonCount)}
+            </Text>
+            {totals.addonLines.map((line) => (
+              <LineRow
+                key={line.key}
+                icon={line.icon}
+                name={line.name}
+                sub={line.size ? copy.order.size(line.size) : undefined}
+                qty={line.qty}
+                amount={formatMoney(line.amount)}
+              />
+            ))}
+          </View>
+        )}
       </View>
 
-      {/* Delivery */}
-      {delivery && (
+
+      {/* Paid on instalments? The comp closes on what is still owed and when. */}
+      {installments && installments > 1 && (
         <View style={styles.block}>
           <Text variant="titleBody" uppercase>
-            {copy.delivery.title}
+            {copy.payments.title}
           </Text>
-          <Row
-            label={copy.delivery.method}
-            value={
-              delivery.kind === "pickup"
-                ? delivery.point
-                : `${delivery.address}, ${delivery.city}, ${delivery.country}`
-            }
-          />
+          <View style={styles.panel}>
+            <View>
+              <Text variant="bodyS" color={colors.contentSecondary}>
+                {copy.payments.totalToPay}
+              </Text>
+              <Text variant="bodyL" style={styles.bold}>
+                {formatMoney(totals.total / installments)}
+              </Text>
+            </View>
+
+            {/* The next two instalments, side by side with a rule between. */}
+            <View style={styles.dueRow}>
+              {[7, 30].map((days, index) => (
+                <View
+                  key={days}
+                  style={[styles.due, index > 0 && styles.dueDivided]}
+                >
+                  <Text variant="bodyS" color={colors.contentSecondary}>
+                    {copy.payments.dueIn(days)}
+                  </Text>
+                  <Text variant="bodyL" style={styles.bold}>
+                    {formatMoney(totals.total / installments)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            <Button
+              variant="primary"
+              label={copy.payments.make}
+              onPress={onViewBooking}
+              style={styles.wide}
+            />
+          </View>
         </View>
       )}
 
-      {/* Price */}
-      <View style={styles.block}>
-        <Text variant="titleBody" uppercase>
-          {copy.price.title}
-        </Text>
-        <TotalRow
-          label={copy.price.subtotal}
-          value={formatMoney(totals.subtotal)}
-        />
-        {totals.fee > 0 && (
-          <TotalRow label={copy.price.fee} value={formatMoney(totals.fee)} />
-        )}
-        {totals.promo > 0 && (
-          <TotalRow
-            label={copy.price.promo}
-            value={`-${formatMoney(totals.promo)}`}
-            tone="positive"
-          />
-        )}
-        {totals.wallet > 0 && (
-          <TotalRow
-            label={copy.price.wallet}
-            value={`-${formatMoney(totals.wallet)}`}
-            tone="positive"
-          />
-        )}
-        <TotalRow
-          label={copy.price.total}
-          value={formatMoney(totals.total)}
-          strong
-          note={copy.price.vat(formatMoney(totals.vat))}
-        />
-        {/* There is no receipt to hand over, so the control is drawn dead
-            rather than promising a file that never arrives. */}
-        <Button label={copy.price.receipt} icon={Download} disabled />
-      </View>
-
-      <Text variant="caption" color={colors.contentSecondary}>
-        {copy.note}
-      </Text>
-      <Text variant="caption" color={colors.contentSecondary}>
-        {`Currency: ${bookingConfig.currency}`}
-      </Text>
     </ScrollView>
   );
 }
@@ -294,21 +341,32 @@ export function Confirmation({
 function Row({
   label,
   value,
+  link = false,
   trailing: Mark,
+  onTrailing,
 }: {
   label: string;
   value: string;
+  link?: boolean;
   trailing?: React.FC<{ width: number; height: number }>;
+  onTrailing?: () => void;
 }) {
   return (
     <View style={styles.row}>
       <View style={styles.rowLabel}>
-        <Text variant="bodyS" color={colors.contentSecondary}>
-          {label}
+        <Text variant="body">{label}</Text>
+        <Text variant="bodyS" color={colors.contentSecondary} style={link && styles.underline}>
+          {value}
         </Text>
-        <Text variant="body">{value}</Text>
       </View>
-      {Mark && <Mark width={20} height={20} />}
+      {Mark &&
+        (onTrailing ? (
+          <Tap accessibilityRole="button" onPress={onTrailing} scale={0.9}>
+            <Mark width={20} height={20} />
+          </Tap>
+        ) : (
+          <Mark width={20} height={20} />
+        ))}
     </View>
   );
 }
@@ -329,9 +387,10 @@ function LineRow({
   const Mark = icon(path);
   return (
     <View style={styles.line}>
-      {Mark && <Mark width={16} height={16} />}
+      <Text variant="bodyS">{`${qty}x`}</Text>
+      {Mark && <Mark width={20} height={20} />}
       <View style={styles.lineBody}>
-        <Text variant="bodyS" numberOfLines={2}>
+        <Text variant="bodySBold" numberOfLines={1}>
           {name}
         </Text>
         {sub && (
@@ -340,9 +399,6 @@ function LineRow({
           </Text>
         )}
       </View>
-      <Text variant="caption" color={colors.contentSecondary}>
-        × {qty}
-      </Text>
       <Text variant="bodySBold">{amount}</Text>
     </View>
   );
@@ -356,10 +412,46 @@ function stamp(date: Date) {
 const styles = StyleSheet.create({
   page: { padding: gutter, paddingBottom: space.section, gap: space.xl },
   art: { width: "100%", height: 180 },
-  head: { gap: space.m },
-  actions: { flexDirection: "row", alignItems: "center", gap: space.m },
-  action: { flex: 1 },
-  inline: { alignSelf: "flex-start" },
+  head: { gap: space.m, alignItems: "center" },
+  centred: { textAlign: "center" },
+  actions: { gap: space.m },
+  wide: { alignSelf: "stretch" },
+
+  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  close: {
+    padding: 10,
+    backgroundColor: colors.overlay5,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.overlay10,
+  },
+  toast: {
+    alignSelf: "flex-end",
+    marginTop: -space.m,
+    paddingVertical: space.s,
+    paddingHorizontal: space.m,
+    backgroundColor: "#0f3e21",
+  },
+  panel: { gap: space.m, padding: space.l, backgroundColor: colors.bgSecondary },
+  rule: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderTertiary },
+  bold: { fontFamily: "Roboto_700Bold" },
+  deliveryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.l,
+    padding: space.l,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderTertiary,
+  },
+  dueRow: { flexDirection: "row" },
+  due: { flex: 1, paddingRight: space.l },
+  dueDivided: {
+    paddingLeft: space.l,
+    paddingRight: 0,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: colors.borderTertiary,
+  },
+  underline: { textDecorationLine: "underline" },
+  countLink: { flexDirection: "row", alignItems: "center", gap: space.xs, alignSelf: "flex-start" },
 
   block: {
     gap: space.m,
@@ -372,21 +464,13 @@ const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
   buttons: { flexDirection: "row", gap: space.s, flexWrap: "wrap" },
 
-  earned: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.m,
-    padding: space.m,
-    backgroundColor: colors.overlay5,
-  },
 
-  qrBlock: { flexDirection: "row", alignItems: "center", gap: space.l },
-  qr: { width: 96, height: 96 },
-
-  eventRow: { flexDirection: "row", alignItems: "center", gap: space.m },
-  eventThumb: { width: 56, height: 56, backgroundColor: colors.bgTertiary },
+  eventRow: { flexDirection: "row", alignItems: "flex-start", gap: space.m },
+  eventThumb: { width: 72, height: 72, backgroundColor: colors.bgTertiary },
   metaRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
 
-  line: { flexDirection: "row", alignItems: "center", gap: space.s },
+  lines: { gap: space.s, paddingVertical: space.s },
+  linesDivided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.borderTertiary },
+  line: { flexDirection: "row", alignItems: "center", gap: space.s, paddingVertical: space.xs },
   lineBody: { flex: 1, minWidth: 0 },
 });

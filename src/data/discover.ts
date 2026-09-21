@@ -178,7 +178,8 @@ export const eventCopy = {
 export const discoverCopy = {
   node: "378:27332",
   beats: (beats: number) => `${beats.toLocaleString("en-US")} BEATS`,
-  festivals: "Our iconic music festivals",
+  /* The comp breaks the line itself. */
+  festivals: "Our iconic\nmusic festivals",
   merchandise: "Merchandise",
   gallery: "Gallery",
   news: "Latest news",
@@ -190,7 +191,7 @@ export const storyCopy = {
   node: "415:38335",
   close: "Close",
   share: "Share this story",
-  explore: "Explore",
+  explore: "Explore tickets",
   /** Announced when a frame changes, since the bars are not readable. */
   progress: (index: number, total: number) => `Frame ${index} of ${total}`,
   /** How long each frame is on screen before the story moves on. */

@@ -42,11 +42,7 @@ export function ListRow({
 
   const body = (
     <>
-      {Icon && (
-        <View style={styles.tile}>
-          <Icon width={24} height={24} />
-        </View>
-      )}
+      {Icon && <Icon width={24} height={24} />}
       <View style={styles.body}>
         <Text variant="body" color={ink} numberOfLines={1}>
           {label}
@@ -86,12 +82,5 @@ export function ListRow({
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: space.l, height: 66 },
-  tile: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.bgTertiary,
-  },
   body: { flex: 1, minWidth: 0 },
 });

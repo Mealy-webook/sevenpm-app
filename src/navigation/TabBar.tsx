@@ -168,7 +168,8 @@ export function TabBar({
         <BlurView
           intensity={40}
           tint="dark"
-          experimentalBlurMethod="dimezisBlurView"
+          /* Renamed from experimentalBlurMethod in SDK 55. */
+          blurMethod="dimezisBlurView"
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />

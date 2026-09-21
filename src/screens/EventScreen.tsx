@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import ArrowLeft from "../icons/ic-arrow-left-20.svg";
+import Close from "../icons/ic-close.svg";
 import MapPin from "../icons/ic-map-pin.svg";
 import Minus from "../icons/ic-minus.svg";
 import Navigate from "../icons/ic-navigate-20.svg";
@@ -22,39 +22,48 @@ import Plus from "../icons/ic-plus.svg";
 import ShareIcon from "../icons/ic-share-20.svg";
 import { Button } from "../components/Button";
 import { Chip } from "../components/Chip";
+import { PhotoPile } from "../components/PhotoPile";
 import { Page } from "../components/Screen";
 import { Tap } from "../components/Tap";
+import { TicketStub } from "../components/TicketStub";
 import { icon } from "../icons";
 import { image } from "../images";
 import { Text } from "../theme/Text";
-import { Reveal, ScrollProvider, usePageScroll } from "../theme/scroll";
-import { colors, displaySize, radii, space, type } from "../theme/tokens";
+import { Reveal, RevealWords, ScrollProvider, usePageScroll } from "../theme/scroll";
+import { colors, displaySize, gutter, radii, space, type } from "../theme/tokens";
 import type { RootParamList } from "../navigation/RootNavigator";
 import { eventCopy } from "../data/discover";
 import { bookingConfig } from "../data/booking";
 import { getEvent, type ArtistGroup } from "../data/events";
 
 /**
- * The event page, from Figma 410:6401.
+ * The event page, from Figma 410:6401 — measured against the comp's 390-wide
+ * frame, section by section.
  *
- * Two things about this page are not like the rest of the app, and both are
+ * Three things about this page are not like the rest of the app, and all are
  * deliberate in the comp.
  *
- * The tickets are **paper**: a grey stub holding a sheet of textured white
- * card, with the type in near-black. Every other surface in this system is
- * dark with light type, and the inversion is the point — a ticket should look
- * like an object you were handed, not like another panel. The paper is the
- * comp's own artwork, cut to shape with its corner notches already in the
- * alpha, so the shape survives whatever height the content needs.
+ * The tickets are **paper** (`TicketStub`): a perforated grey stub holding a
+ * sheet of textured card, with the type in near-black. Every other surface in
+ * this system is dark with light type, and the inversion is the point — a
+ * ticket should look like an object you were handed, not like another panel.
+ *
+ * The gallery is a **pile of polaroids**, not a rail: three prints, one
+ * upright in front and two tucked behind at a tilt. `PhotoPile` adds the
+ * interaction the still comp implies — flick the front print aside and the
+ * pile turns.
  *
  * And the schedule tiles have no panels. They are three columns divided by
- * hairlines, which is why they read as one band of facts rather than as three
+ * hairlines, which is why they read as one band of facts rather than three
  * cards.
  *
- * Sponsors are not in this comp. They are kept, last, because a festival's
- * sponsor billing is usually contractual and dropping it is not a decision a
- * port should make quietly — it is the one block here with no comp behind it.
+ * What is *not* here, on purpose: a call-to-action under the schedule, names
+ * under the line-up circles, and a sponsors block. The comp has none of them;
+ * the tickets themselves are the call to action.
  */
+
+/** The comp's page header is 279 tall on a 390 frame; the title sits on it. */
+const HEADER_RATIO = 279 / 390;
 
 /**
  * The line-up photography ships with the app comps and is not in the web
@@ -78,6 +87,7 @@ const GALLERY = [
   "/assets/event-gallery-2.jpg",
   "/assets/event-gallery-3.jpg",
   "/assets/event-gallery-4.jpg",
+  "/assets/event-gallery-5.jpg",
 ];
 
 export function EventScreen() {
@@ -104,18 +114,33 @@ export function EventScreen() {
   }
 
   const book = () => navigation.navigate("Booking", { slug: event.slug });
-  const heading = displaySize(type.displayStep, width);
+  const heading = displaySize(type.displayBlock, width);
+  const title = displaySize(type.displayPage, width);
+  const gutterWidth = width - gutter * 2;
+  const infoWidth = (gutterWidth - space.l) / 2;
+  /* The pinned controls are glass over the artwork and solid over the page:
+     the fill arrives as the hero leaves, so an ✕ never floats bare over a
+     heading. */
+  const barFill = scrollY.interpolate({
+    inputRange: [width * 0.35, width * 0.7],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
 
   return (
     <Page>
       <ScrollProvider value={scrollY}>
         <Animated.ScrollView
-          contentContainerStyle={{ paddingBottom: space.section }}
+          contentContainerStyle={{
+            paddingBottom: space.xl + Math.max(insets.bottom, 20),
+          }}
           {...scrollProps}
         >
-        {/* The artwork holds its ground as the page leaves — it travels at a
-            third of the scroll — and pulling down past the top stretches it
-            rather than exposing the page colour behind. */}
+        {/* The artwork is square and fades into the page from a third of the
+            way down, so the title can sit on its lower edge as the comp draws
+            it. It holds its ground as the page leaves — travelling at half the
+            scroll — and pulling down past the top stretches it rather than
+            exposing the page colour behind. */}
         <Animated.View
           style={{
             height: width,
@@ -123,7 +148,7 @@ export function EventScreen() {
               {
                 translateY: scrollY.interpolate({
                   inputRange: [0, width],
-                  outputRange: [0, width * 0.34],
+                  outputRange: [0, width * 0.55],
                   extrapolateLeft: "extend",
                   extrapolateRight: "clamp",
                 }),
@@ -146,33 +171,39 @@ export function EventScreen() {
           />
           <LinearGradient
             colors={["rgba(11,11,14,0)", colors.bgPrimary]}
-            locations={[0.45, 1]}
+            locations={[0.3, 0.92]}
             style={StyleSheet.absoluteFill}
           />
         </Animated.View>
 
         {/* Name, when, where, what. */}
-        <Reveal style={[styles.section, styles.overlap]}>
-          <Text variant="displayStep" uppercase color={colors.white} style={heading}>
+        <Reveal
+          index={0}
+          style={[styles.section, { marginTop: -width * (1 - HEADER_RATIO) }]}
+        >
+          <RevealWords variant="displayPage" color={colors.white} textStyle={title}>
             {event.name}
-          </Text>
+          </RevealWords>
 
           {/* The time is the accent, and the venue is a link. Neither carries
-              an icon in the comp — the colour and the underline do that job. */}
-          <Text variant="bodySBold" color={colors.brand}>
-            {bookingConfig.sessionTime}
-          </Text>
-          <Tap
-            accessibilityRole="link"
-            onPress={() => Linking.openURL(event.venue.directionsUrl)}
-            scale={0.99}
-          >
-            <Text variant="bodySBold" style={styles.link}>
-              {event.venue.name}
+              an icon in the comp — the colour and the underline do that job —
+              and they sit as one stacked pair. */}
+          <View>
+            <Text variant="bodySBold" color={colors.brand}>
+              {bookingConfig.sessionTime}
             </Text>
-          </Tap>
+            <Tap
+              accessibilityRole="link"
+              onPress={() => Linking.openURL(event.venue.directionsUrl)}
+              scale={0.99}
+            >
+              <Text variant="bodySBold" style={styles.link}>
+                {event.venue.name}
+              </Text>
+            </Tap>
+          </View>
 
-          <Text variant="body" style={styles.intro}>
+          <Text variant="body" color={colors.contentSecondary}>
             {event.intro}
           </Text>
 
@@ -186,122 +217,61 @@ export function EventScreen() {
                   style={[styles.tile, index > 0 && styles.tileDivided]}
                 >
                   {Mark && <Mark width={24} height={24} />}
-                  <Text variant="caption" color={colors.contentSecondary}>
-                    {tile.label}
-                  </Text>
-                  <Text variant="bodyBold">{tile.value}</Text>
+                  <View style={styles.tileText}>
+                    <Text variant="caption" color={colors.contentSecondary}>
+                      {tile.label}
+                    </Text>
+                    <Text variant="bodyBold">{tile.value}</Text>
+                  </View>
                 </View>
               );
             })}
           </View>
-
-          <Button variant="brand" label={eventCopy.exploreTickets} onPress={book} />
         </Reveal>
 
         {/* Tickets */}
-        <Reveal style={styles.section}>
-          <Text variant="displayStep" uppercase color={colors.white} style={heading}>
+        <Reveal index={1} style={styles.section}>
+          <RevealWords variant="displayBlock" color={colors.white} textStyle={heading}>
             {eventCopy.tickets}
-          </Text>
+          </RevealWords>
         </Reveal>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.rail}
+          contentContainerStyle={styles.ticketRail}
         >
           {event.ticketTiers.map((tier) => (
-            <View key={tier.id} style={styles.stub}>
-              <Image
-                source={image("/assets/ticket-paper.png")}
-                style={StyleSheet.absoluteFill}
-                contentFit="fill"
-              />
-              <View style={styles.stubBody}>
-                <Text
-                  variant="captionBold"
-                  uppercase
-                  color={colors.ink900}
-                  style={styles.kicker}
-                >
-                  {`★  ${tier.kicker}  ★`}
-                </Text>
-                <Text
-                  variant="displayM"
-                  uppercase
-                  color={colors.ink900}
-                  style={displaySize(type.displayM, width)}
-                >
-                  {tier.title}
-                </Text>
-
-                <View style={styles.priceRow}>
-                  <Text variant="body" color={colors.ink800}>
-                    {eventCopy.from}
-                  </Text>
-                  <Text variant="bodyL" color={colors.ink900} style={styles.semibold}>
-                    {tier.priceFrom} {tier.currency}
-                  </Text>
-                  <Text variant="bodyS" color={colors.ink600}>
-                    {eventCopy.perPerson}
-                  </Text>
-                </View>
-                {(tier.wasPrice || tier.discount) && (
-                  <View style={styles.priceRow}>
-                    {tier.wasPrice && (
-                      <Text
-                        variant="caption"
-                        color={colors.ink600}
-                        style={styles.struck}
-                      >
-                        {tier.wasPrice} {tier.currency}
-                      </Text>
-                    )}
-                    {tier.discount && (
-                      <Text variant="caption" color={colors.positive}>
-                        {tier.discount}
-                      </Text>
-                    )}
-                  </View>
-                )}
-
-                {/* Dark ink on paper: the button inverts with the card. */}
-                <Tap
-                  accessibilityRole="button"
-                  accessibilityLabel={tier.cta}
-                  onPress={book}
-                  style={styles.stubCta}
-                >
-                  <Text variant="bodyL" color={colors.white} style={styles.semibold}>
-                    {tier.cta}
-                  </Text>
-                </Tap>
-              </View>
-            </View>
+            <TicketStub key={tier.id} tier={tier} onPress={book} />
           ))}
         </ScrollView>
 
         {/* Line-up */}
-        <Reveal style={styles.section}>
-          <Text variant="displayStep" uppercase color={colors.white} style={heading}>
+        <Reveal index={2} style={styles.section}>
+          <RevealWords variant="displayBlock" color={colors.white} textStyle={heading}>
             {eventCopy.lineup}
-          </Text>
-          <View style={styles.chips}>
-            {event.artistDays.map((item, index) => (
-              <Chip
-                key={item.id}
-                label={item.label}
-                selected={index === day}
-                onPress={() => setDay(index)}
-              />
-            ))}
-          </View>
+          </RevealWords>
         </Reveal>
-        {/* Circles, sized by their group: a solo act is one large one, a block
-            is four small. They run off the right edge as the comp draws them. */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.rail}
+          contentContainerStyle={styles.chipRail}
+        >
+          {event.artistDays.map((item, index) => (
+            <Chip
+              key={item.id}
+              label={item.label}
+              selected={index === day}
+              onPress={() => setDay(index)}
+            />
+          ))}
+        </ScrollView>
+        {/* Circles, sized by their group: a solo act is one large one, a block
+            is four small. Each overlaps the last by 20, and they run off the
+            right edge, as the comp draws them. */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.circleRail}
         >
           {event.artistDays[day].groups.map((group, gi) => (
             <ArtistGroupView key={`${group.type}-${gi}`} group={group} index={gi} />
@@ -309,10 +279,10 @@ export function EventScreen() {
         </ScrollView>
 
         {/* Location */}
-        <Reveal style={styles.section}>
-          <Text variant="displayStep" uppercase color={colors.white} style={heading}>
+        <Reveal index={3} style={styles.section}>
+          <RevealWords variant="displayBlock" color={colors.white} textStyle={heading}>
             {eventCopy.location}
-          </Text>
+          </RevealWords>
           <View>
             <Image
               source={image("/assets/event-map.jpg")}
@@ -325,11 +295,7 @@ export function EventScreen() {
             </View>
           </View>
           <View style={styles.venue}>
-            <Text
-              variant="body"
-              color={colors.contentSecondary}
-              style={styles.venueName}
-            >
+            <Text variant="bodyS" color={colors.white} style={styles.venueName}>
               {event.venue.name}
             </Text>
             <Button
@@ -342,42 +308,30 @@ export function EventScreen() {
         </Reveal>
 
         {/* Gallery */}
-        <Reveal style={styles.section}>
-          <Text variant="displayStep" uppercase color={colors.white} style={heading}>
+        <Reveal index={4} style={styles.section}>
+          <RevealWords variant="displayBlock" color={colors.white} textStyle={heading}>
             {eventCopy.gallery}
-          </Text>
+          </RevealWords>
+          <PhotoPile photos={GALLERY} style={styles.pile} />
         </Reveal>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.rail}
-        >
-          {GALLERY.map((shot) => (
-            <Image
-              key={shot}
-              source={image(shot)}
-              style={styles.shot}
-              contentFit="cover"
-              transition={300}
-            />
-          ))}
-        </ScrollView>
 
         {/* Good to know — panels, two across. */}
-        <Reveal style={styles.section}>
-          <Text variant="displayStep" uppercase color={colors.white} style={heading}>
+        <Reveal index={5} style={styles.section}>
+          <RevealWords variant="displayBlock" color={colors.white} textStyle={heading}>
             {eventCopy.goodToKnow}
-          </Text>
+          </RevealWords>
           <View style={styles.infoGrid}>
             {event.infoTiles.map((info) => {
               const Mark = icon(info.icon);
               return (
-                <View key={info.title} style={styles.info}>
+                <View key={info.title} style={[styles.info, { width: infoWidth }]}>
                   {Mark && <Mark width={24} height={24} />}
-                  <Text variant="bodyBold">{info.title}</Text>
-                  <Text variant="bodyS" color={colors.contentSecondary}>
-                    {info.value}
-                  </Text>
+                  <View>
+                    <Text variant="bodyBold">{info.title}</Text>
+                    <Text variant="caption" color={colors.contentSecondary}>
+                      {info.value}
+                    </Text>
+                  </View>
                 </View>
               );
             })}
@@ -385,10 +339,10 @@ export function EventScreen() {
         </Reveal>
 
         {/* FAQs — the control is on the left, ahead of the question. */}
-        <Reveal style={styles.section}>
-          <Text variant="displayStep" uppercase color={colors.white} style={heading}>
+        <Reveal index={6} style={styles.section}>
+          <RevealWords variant="displayBlock" color={colors.white} textStyle={heading}>
             {eventCopy.faqs}
-          </Text>
+          </RevealWords>
           <View>
             {event.faq.map((item, index) => {
               const open = openFaq === index;
@@ -413,7 +367,7 @@ export function EventScreen() {
                       {item.question}
                     </Text>
                     {open && item.answer && (
-                      <Text variant="body" color={colors.contentSecondary}>
+                      <Text variant="bodyS" color={colors.contentSecondary}>
                         {item.answer}
                       </Text>
                     )}
@@ -423,38 +377,22 @@ export function EventScreen() {
             })}
           </View>
         </Reveal>
-
-        {/* Sponsors — not in the comp; see the note at the top of this file. */}
-        <Reveal style={styles.section}>
-          <Text variant="displayStep" uppercase color={colors.white} style={heading}>
-            {eventCopy.sponsors}
-          </Text>
-          <View style={styles.sponsors}>
-            {[event.officialSponsor, ...event.goldSponsors].map((sponsor) => {
-              const Logo = icon(sponsor.logo);
-              return (
-                <View key={sponsor.name} style={styles.sponsor}>
-                  {Logo ? (
-                    <Logo width={96} height={32} />
-                  ) : (
-                    <Text variant="bodyBold">{sponsor.name}</Text>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        </Reveal>
         </Animated.ScrollView>
       </ScrollProvider>
 
+      {/* Close, not back: the page is a sheet over Discover in the comp. */}
       <View style={[styles.bar, { paddingTop: insets.top + space.s }]}>
         <Tap
           accessibilityRole="button"
-          accessibilityLabel="Back"
+          accessibilityLabel="Close"
           onPress={navigation.goBack}
           style={styles.barButton}
         >
-          <ArrowLeft width={20} height={20} />
+          <Animated.View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, styles.barSolid, { opacity: barFill }]}
+          />
+          <Close width={20} height={20} />
         </Tap>
         <View style={styles.barSpacer} />
         <Tap
@@ -465,6 +403,10 @@ export function EventScreen() {
           }
           style={styles.barButton}
         >
+          <Animated.View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, styles.barSolid, { opacity: barFill }]}
+          />
           <ShareIcon width={20} height={20} />
         </Tap>
       </View>
@@ -472,10 +414,16 @@ export function EventScreen() {
   );
 }
 
-const SOLO = 200;
-const SMALL = 96;
+const SOLO = 216;
+const SMALL = SOLO / 2;
+/** Each group overlaps the one before it by this much. */
+const LAP = 20;
 
-/** A solo act is one large circle; a block is a 2 × 2 of small ones. */
+/**
+ * A solo act is one large circle; a block is a 2 × 2 of small ones. The comp
+ * draws no names — the faces are the line-up — so the name is carried for
+ * assistive tech only.
+ */
 function ArtistGroupView({
   group,
   index,
@@ -483,41 +431,34 @@ function ArtistGroupView({
   group: ArtistGroup;
   index: number;
 }) {
+  const lap = index > 0 && styles.lapped;
+
   if (group.type === "solo") {
     return (
-      <View style={styles.act}>
-        <Image
-          source={image(LINEUP[index % LINEUP.length])}
-          style={styles.soloCircle}
-          contentFit="cover"
-          transition={300}
-        />
-        <Text variant="bodyBold" numberOfLines={1}>
-          {group.name}
-        </Text>
-        {group.time && (
-          <Text variant="bodyS" color={colors.contentSecondary}>
-            {group.time}
-          </Text>
-        )}
-      </View>
+      <Image
+        source={image(LINEUP[index % LINEUP.length])}
+        style={[styles.soloCircle, lap]}
+        contentFit="cover"
+        transition={300}
+        accessibilityLabel={group.time ? `${group.name}, ${group.time}` : group.name}
+      />
     );
   }
 
   return (
-    <View style={styles.quad}>
+    <View style={[styles.quad, lap]}>
       {group.items.map((item, i) =>
         item ? (
-          <View key={`${item.name}-${i}`} style={styles.quadCell}>
-            <Image
-              source={image(LINEUP[(index + i + 1) % LINEUP.length])}
-              style={styles.smallCircle}
-              contentFit="cover"
-              transition={300}
-            />
-          </View>
+          <Image
+            key={`${item.name}-${i}`}
+            source={image(LINEUP[(index + i + 1) % LINEUP.length])}
+            style={styles.smallCircle}
+            contentFit="cover"
+            transition={300}
+            accessibilityLabel={item.name}
+          />
         ) : (
-          <View key={`gap-${i}`} style={styles.quadCell} />
+          <View key={`gap-${i}`} style={styles.smallCircle} />
         ),
       )}
     </View>
@@ -525,45 +466,39 @@ function ArtistGroupView({
 }
 
 const styles = StyleSheet.create({
-  section: { paddingHorizontal: space.xl, paddingTop: space.xl, gap: space.m },
-  overlap: { marginTop: -space.section },
+  section: { paddingHorizontal: gutter, paddingTop: space.xl, gap: space.m },
   semibold: { fontFamily: "Roboto_600SemiBold" },
-  struck: { textDecorationLine: "line-through" },
   link: { textDecorationLine: "underline" },
-  intro: { marginTop: space.s },
-  rail: { gap: space.l, paddingHorizontal: space.xl, paddingTop: space.m },
+  chipRail: { gap: space.l, paddingHorizontal: gutter, paddingTop: space.m },
+  circleRail: { paddingHorizontal: gutter, paddingTop: space.xl },
 
-  tiles: { flexDirection: "row", marginTop: space.m },
-  tile: { flex: 1, gap: space.xs, paddingHorizontal: space.m },
+  /* 24 icon, 8, label, value — centred in a 90-tall column. */
+  tiles: { flexDirection: "row", marginTop: space.xs },
+  tile: {
+    flex: 1,
+    alignItems: "center",
+    gap: space.s,
+    paddingVertical: space.m,
+    paddingHorizontal: space.s,
+  },
+  tileText: { alignItems: "center" },
   /* The hairline between columns is what makes them one band. */
   tileDivided: {
     borderLeftWidth: StyleSheet.hairlineWidth,
     borderLeftColor: colors.borderTertiary,
   },
 
-  /* Paper, not panel: the type on this card is near-black. */
-  stub: { width: 320, minHeight: 300, padding: space.xl, justifyContent: "center" },
-  stubBody: { gap: space.xs, alignItems: "center" },
-  kicker: { letterSpacing: 1.2 },
-  stubCta: {
-    marginTop: space.m,
-    alignSelf: "stretch",
-    alignItems: "center",
-    paddingVertical: space.l,
-    backgroundColor: colors.ink700,
-  },
-  priceRow: { flexDirection: "row", alignItems: "baseline", gap: space.xs },
+  /* Tickets sit flush, so their perforations meet. */
+  ticketRail: { paddingHorizontal: gutter, paddingTop: space.l },
 
-  chips: { flexDirection: "row", gap: space.s, flexWrap: "wrap" },
-  act: { width: SOLO, gap: space.xs },
+  lapped: { marginLeft: -LAP },
   soloCircle: {
     width: SOLO,
     height: SOLO,
     borderRadius: radii.pill,
     backgroundColor: colors.bgSecondary,
   },
-  quad: { width: SMALL * 2 + space.s, flexDirection: "row", flexWrap: "wrap", gap: space.s },
-  quadCell: { width: SMALL, height: SMALL },
+  quad: { width: SOLO, height: SOLO, flexDirection: "row", flexWrap: "wrap" },
   smallCircle: {
     width: SMALL,
     height: SMALL,
@@ -571,46 +506,36 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgSecondary,
   },
 
-  map: { width: "100%", height: 180 },
-  pin: { position: "absolute", left: "50%", top: 74, marginLeft: -16 },
-  venue: { flexDirection: "row", alignItems: "center", gap: space.m },
+  map: { width: "100%", height: 163 },
+  pin: { position: "absolute", left: "50%", top: 66, marginLeft: -16 },
+  venue: { flexDirection: "row", alignItems: "center", gap: space.l, marginTop: space.xs },
   venueName: { flex: 1, minWidth: 0 },
 
-  shot: { width: 300, height: 200 },
+  pile: { marginTop: space.m },
 
-  infoGrid: { flexDirection: "row", flexWrap: "wrap", gap: space.m },
+  infoGrid: { flexDirection: "row", flexWrap: "wrap", gap: space.l },
   info: {
-    width: "47%",
-    gap: space.xs,
+    gap: space.s,
     padding: space.l,
     backgroundColor: colors.bgSecondary,
   },
 
   faq: {
     flexDirection: "row",
-    gap: space.m,
+    gap: space.xl,
     paddingVertical: space.l,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.borderTertiary,
   },
   faqMark: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.overlay20,
   },
   faqBody: { flex: 1, minWidth: 0, gap: space.s },
-
-  sponsors: { flexDirection: "row", flexWrap: "wrap", gap: space.m },
-  sponsor: {
-    width: "47%",
-    height: 72,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.bgSecondary,
-  },
 
   bar: {
     position: "absolute",
@@ -619,7 +544,7 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: space.xl,
+    paddingHorizontal: gutter,
     paddingBottom: space.s,
   },
   barSpacer: { flex: 1 },
@@ -629,4 +554,5 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.overlay10,
   },
+  barSolid: { backgroundColor: colors.bgSecondary },
 });

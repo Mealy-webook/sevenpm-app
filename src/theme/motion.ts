@@ -50,7 +50,7 @@ export function useReducedMotion() {
  * renders settled instead of blank — which is the rule, and also what makes it
  * safe to use for a whole screen's entrance.
  */
-export function useEntrance(duration = motion.base, delay = 0) {
+export function useEntrance(duration: number = motion.base, delay = 0) {
   const reduced = useReducedMotion();
   const value = useRef(new Animated.Value(0)).current;
 

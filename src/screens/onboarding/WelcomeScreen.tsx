@@ -122,9 +122,6 @@ export function WelcomeScreen({ onDone }: { onDone: () => void }) {
             onPress={onDone}
           />
 
-          <Text variant="caption" color={colors.contentSecondary}>
-            {welcomeCopy.note}
-          </Text>
         </View>
       </View>
     </View>

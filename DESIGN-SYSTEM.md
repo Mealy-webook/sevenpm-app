@@ -11,6 +11,15 @@ move when the system does.
 
 ---
 
+## 0. The comp is the spec
+
+Ahmed reviews every screen against its Figma frame and sends back anything
+that differs. So: layout, sizes, order of sections and **copy** come from the
+comp verbatim — typos included ("Jazzablnca", "2 addonds", "Enrer Promocode").
+Do not correct, explain, or add lines the comp does not have; note oddities in
+the report instead. When a section has been redrawn in Figma its node ids
+move — re-read the parent with `get_metadata` before trusting an old id.
+
 ## 1. Colour
 
 Dark by default — there is no light theme and the design does not anticipate
@@ -48,12 +57,12 @@ Four families. Only the first is unusual:
 The scale lives in `type` in the tokens file. Sizes and line heights are both
 absolute, never a unitless multiplier.
 
-**Display line heights deliberately differ from the comps.** Figma and the web
-build set Daltown on a line box tighter than its own size (160/116, 64/44), and
-a browser lets the glyphs overflow it. React Native clips them: at 64/44 the
-zeros in "500" lose their top and bottom curves and read as "5UU". Display line
-heights here are therefore >= their size, and the tight vertical rhythm is
-recovered with layout gaps instead. Do not "fix" them back to the Figma values.
+**Display line heights are the comps'.** Daltown sits on a line box tighter
+than its own size (104/86, 88/71, 56/46, 48/40) — that tight stack is the look,
+and Ahmed reviews against the Figma frames pixel for pixel. The face is caps
+only, so nothing reaches the line box's edges; if a display string is ever
+clipped, fix it with `includeFontPadding`/overflow on that one `Text`, never by
+loosening the scale.
 
 Set text only through `src/theme/Text.tsx`. React Native has no cascade, so
 every `Text` would otherwise carry its own font, size and line height — and

@@ -25,10 +25,12 @@ import IcIcAge from "./ic-age.svg";
 import IcIcAnimals from "./ic-animals.svg";
 import IcIcApple20 from "./ic-apple-20.svg";
 import IcIcApplepay24 from "./ic-applepay-24.svg";
+import IcIcApplepayWord from "./ic-applepay-word.svg";
 import IcIcArrowLeft20 from "./ic-arrow-left-20.svg";
 import IcIcArrowRight20 from "./ic-arrow-right-20.svg";
 import IcIcBeatsBurn from "./ic-beats-burn.svg";
 import IcIcBeatsEarn from "./ic-beats-earn.svg";
+import IcIcCalendar12 from "./ic-calendar-12.svg";
 import IcIcCalendar20 from "./ic-calendar-20.svg";
 import IcIcCamera20 from "./ic-camera-20.svg";
 import IcIcCard24 from "./ic-card-24.svg";
@@ -36,8 +38,11 @@ import IcIcCheckOff from "./ic-check-off.svg";
 import IcIcCheckOn from "./ic-check-on.svg";
 import IcIcChevronDown16 from "./ic-chevron-down-16.svg";
 import IcIcChevronDownRow from "./ic-chevron-down-row.svg";
+import IcIcChevronLeft20 from "./ic-chevron-left-20.svg";
+import IcIcChevronRight16 from "./ic-chevron-right-16.svg";
 import IcIcChevronRight20 from "./ic-chevron-right-20.svg";
 import IcIcChevronRight from "./ic-chevron-right.svg";
+import IcIcChevronsDown20 from "./ic-chevrons-down-20.svg";
 import IcIcClear20 from "./ic-clear-20.svg";
 import IcIcClock16 from "./ic-clock-16.svg";
 import IcIcClockBrand20 from "./ic-clock-brand-20.svg";
@@ -50,10 +55,13 @@ import IcIcDialogClose from "./ic-dialog-close.svg";
 import IcIcDownload16 from "./ic-download-16.svg";
 import IcIcDress from "./ic-dress.svg";
 import IcIcDropdown20 from "./ic-dropdown-20.svg";
+import IcIcFamily24 from "./ic-family-24.svg";
 import IcIcFood from "./ic-food.svg";
 import IcIcGates from "./ic-gates.svg";
+import IcIcGift16 from "./ic-gift-16.svg";
 import IcIcGlobe from "./ic-globe.svg";
 import IcIcGoogle20 from "./ic-google-20.svg";
+import IcIcHelp20 from "./ic-help-20.svg";
 import IcIcInfo13 from "./ic-info-13.svg";
 import IcIcInfo16 from "./ic-info-16.svg";
 import IcIcInfo20 from "./ic-info-20.svg";
@@ -63,6 +71,7 @@ import IcIcLock16 from "./ic-lock-16.svg";
 import IcIcLockLocked16 from "./ic-lock-locked-16.svg";
 import IcIcLogout from "./ic-logout.svg";
 import IcIcMapPin from "./ic-map-pin.svg";
+import IcIcMedical24 from "./ic-medical-24.svg";
 import IcIcMenuBookings from "./ic-menu-bookings.svg";
 import IcIcMenuLanguage from "./ic-menu-language.svg";
 import IcIcMenuNotifications from "./ic-menu-notifications.svg";
@@ -72,6 +81,7 @@ import IcIcMenuRewards from "./ic-menu-rewards.svg";
 import IcIcMenuSettings from "./ic-menu-settings.svg";
 import IcIcMenuWallet from "./ic-menu-wallet.svg";
 import IcIcMenu from "./ic-menu.svg";
+import IcIcMinus16Ink from "./ic-minus-16-ink.svg";
 import IcIcMinus16 from "./ic-minus-16.svg";
 import IcIcMinus from "./ic-minus.svg";
 import IcIcNavigate20 from "./ic-navigate-20.svg";
@@ -80,21 +90,29 @@ import IcIcParking from "./ic-parking.svg";
 import IcIcPhone16 from "./ic-phone-16.svg";
 import IcIcPin16 from "./ic-pin-16.svg";
 import IcIcPlus13 from "./ic-plus-13.svg";
+import IcIcPlus16Ink from "./ic-plus-16-ink.svg";
 import IcIcPlus16 from "./ic-plus-16.svg";
 import IcIcPlus20 from "./ic-plus-20.svg";
 import IcIcPlus from "./ic-plus.svg";
 import IcIcPromo24 from "./ic-promo-24.svg";
 import IcIcPromocode24 from "./ic-promocode-24.svg";
+import IcIcReceipt24 from "./ic-receipt-24.svg";
+import IcIcScheduleFirst24 from "./ic-schedule-first-24.svg";
+import IcIcScheduleLast24 from "./ic-schedule-last-24.svg";
 import IcIcSendOutline20 from "./ic-send-outline-20.svg";
 import IcIcSend from "./ic-send.svg";
 import IcIcShare16 from "./ic-share-16.svg";
 import IcIcShare20 from "./ic-share-20.svg";
+import IcIcShield24 from "./ic-shield-24.svg";
 import IcIcShowtime from "./ic-showtime.svg";
 import IcIcSocialFacebook from "./ic-social-facebook.svg";
 import IcIcSocialInstagram from "./ic-social-instagram.svg";
+import IcIcSocialLinkedin from "./ic-social-linkedin.svg";
+import IcIcSocialSnapchat from "./ic-social-snapchat.svg";
 import IcIcSocialTiktok from "./ic-social-tiktok.svg";
 import IcIcSocialX from "./ic-social-x.svg";
 import IcIcSocialYoutube from "./ic-social-youtube.svg";
+import IcIcSplit24 from "./ic-split-24.svg";
 import IcIcStar12 from "./ic-star-12.svg";
 import IcIcStar16 from "./ic-star-16.svg";
 import IcIcSwitchCheck16 from "./ic-switch-check-16.svg";
@@ -108,6 +126,7 @@ import IcIcTicket24 from "./ic-ticket-24.svg";
 import IcIcTicket from "./ic-ticket.svg";
 import IcIcTierCheck from "./ic-tier-check.svg";
 import IcIcTierLock from "./ic-tier-lock.svg";
+import IcIcTraffic24 from "./ic-traffic-24.svg";
 import IcIcTrash16 from "./ic-trash-16.svg";
 import IcIcTrashDim16 from "./ic-trash-dim-16.svg";
 import IcIcTrashRed16 from "./ic-trash-red-16.svg";
@@ -122,6 +141,9 @@ import IcPayCmi from "./pay-cmi.svg";
 import IcPayMastercard from "./pay-mastercard.svg";
 import IcPayVisaMark from "./pay-visa-mark.svg";
 import IcPayVisa from "./pay-visa.svg";
+import IcRateBad from "./rate-bad.svg";
+import IcRateLove from "./rate-love.svg";
+import IcRateOk from "./rate-ok.svg";
 import IcSponsorAdidas from "./sponsor-adidas.svg";
 import IcSponsorCocacola from "./sponsor-cocacola.svg";
 import IcSponsorSaham from "./sponsor-saham.svg";
@@ -142,10 +164,12 @@ export const icons: Record<string, React.FC<SvgProps>> = {
   "/assets/ic-animals.svg": IcIcAnimals,
   "/assets/ic-apple-20.svg": IcIcApple20,
   "/assets/ic-applepay-24.svg": IcIcApplepay24,
+  "/assets/ic-applepay-word.svg": IcIcApplepayWord,
   "/assets/ic-arrow-left-20.svg": IcIcArrowLeft20,
   "/assets/ic-arrow-right-20.svg": IcIcArrowRight20,
   "/assets/ic-beats-burn.svg": IcIcBeatsBurn,
   "/assets/ic-beats-earn.svg": IcIcBeatsEarn,
+  "/assets/ic-calendar-12.svg": IcIcCalendar12,
   "/assets/ic-calendar-20.svg": IcIcCalendar20,
   "/assets/ic-camera-20.svg": IcIcCamera20,
   "/assets/ic-card-24.svg": IcIcCard24,
@@ -153,8 +177,11 @@ export const icons: Record<string, React.FC<SvgProps>> = {
   "/assets/ic-check-on.svg": IcIcCheckOn,
   "/assets/ic-chevron-down-16.svg": IcIcChevronDown16,
   "/assets/ic-chevron-down-row.svg": IcIcChevronDownRow,
+  "/assets/ic-chevron-left-20.svg": IcIcChevronLeft20,
+  "/assets/ic-chevron-right-16.svg": IcIcChevronRight16,
   "/assets/ic-chevron-right-20.svg": IcIcChevronRight20,
   "/assets/ic-chevron-right.svg": IcIcChevronRight,
+  "/assets/ic-chevrons-down-20.svg": IcIcChevronsDown20,
   "/assets/ic-clear-20.svg": IcIcClear20,
   "/assets/ic-clock-16.svg": IcIcClock16,
   "/assets/ic-clock-brand-20.svg": IcIcClockBrand20,
@@ -167,10 +194,13 @@ export const icons: Record<string, React.FC<SvgProps>> = {
   "/assets/ic-download-16.svg": IcIcDownload16,
   "/assets/ic-dress.svg": IcIcDress,
   "/assets/ic-dropdown-20.svg": IcIcDropdown20,
+  "/assets/ic-family-24.svg": IcIcFamily24,
   "/assets/ic-food.svg": IcIcFood,
   "/assets/ic-gates.svg": IcIcGates,
+  "/assets/ic-gift-16.svg": IcIcGift16,
   "/assets/ic-globe.svg": IcIcGlobe,
   "/assets/ic-google-20.svg": IcIcGoogle20,
+  "/assets/ic-help-20.svg": IcIcHelp20,
   "/assets/ic-info-13.svg": IcIcInfo13,
   "/assets/ic-info-16.svg": IcIcInfo16,
   "/assets/ic-info-20.svg": IcIcInfo20,
@@ -180,6 +210,7 @@ export const icons: Record<string, React.FC<SvgProps>> = {
   "/assets/ic-lock-locked-16.svg": IcIcLockLocked16,
   "/assets/ic-logout.svg": IcIcLogout,
   "/assets/ic-map-pin.svg": IcIcMapPin,
+  "/assets/ic-medical-24.svg": IcIcMedical24,
   "/assets/ic-menu-bookings.svg": IcIcMenuBookings,
   "/assets/ic-menu-language.svg": IcIcMenuLanguage,
   "/assets/ic-menu-notifications.svg": IcIcMenuNotifications,
@@ -189,6 +220,7 @@ export const icons: Record<string, React.FC<SvgProps>> = {
   "/assets/ic-menu-settings.svg": IcIcMenuSettings,
   "/assets/ic-menu-wallet.svg": IcIcMenuWallet,
   "/assets/ic-menu.svg": IcIcMenu,
+  "/assets/ic-minus-16-ink.svg": IcIcMinus16Ink,
   "/assets/ic-minus-16.svg": IcIcMinus16,
   "/assets/ic-minus.svg": IcIcMinus,
   "/assets/ic-navigate-20.svg": IcIcNavigate20,
@@ -197,21 +229,29 @@ export const icons: Record<string, React.FC<SvgProps>> = {
   "/assets/ic-phone-16.svg": IcIcPhone16,
   "/assets/ic-pin-16.svg": IcIcPin16,
   "/assets/ic-plus-13.svg": IcIcPlus13,
+  "/assets/ic-plus-16-ink.svg": IcIcPlus16Ink,
   "/assets/ic-plus-16.svg": IcIcPlus16,
   "/assets/ic-plus-20.svg": IcIcPlus20,
   "/assets/ic-plus.svg": IcIcPlus,
   "/assets/ic-promo-24.svg": IcIcPromo24,
   "/assets/ic-promocode-24.svg": IcIcPromocode24,
+  "/assets/ic-receipt-24.svg": IcIcReceipt24,
+  "/assets/ic-schedule-first-24.svg": IcIcScheduleFirst24,
+  "/assets/ic-schedule-last-24.svg": IcIcScheduleLast24,
   "/assets/ic-send-outline-20.svg": IcIcSendOutline20,
   "/assets/ic-send.svg": IcIcSend,
   "/assets/ic-share-16.svg": IcIcShare16,
   "/assets/ic-share-20.svg": IcIcShare20,
+  "/assets/ic-shield-24.svg": IcIcShield24,
   "/assets/ic-showtime.svg": IcIcShowtime,
   "/assets/ic-social-facebook.svg": IcIcSocialFacebook,
   "/assets/ic-social-instagram.svg": IcIcSocialInstagram,
+  "/assets/ic-social-linkedin.svg": IcIcSocialLinkedin,
+  "/assets/ic-social-snapchat.svg": IcIcSocialSnapchat,
   "/assets/ic-social-tiktok.svg": IcIcSocialTiktok,
   "/assets/ic-social-x.svg": IcIcSocialX,
   "/assets/ic-social-youtube.svg": IcIcSocialYoutube,
+  "/assets/ic-split-24.svg": IcIcSplit24,
   "/assets/ic-star-12.svg": IcIcStar12,
   "/assets/ic-star-16.svg": IcIcStar16,
   "/assets/ic-switch-check-16.svg": IcIcSwitchCheck16,
@@ -225,6 +265,7 @@ export const icons: Record<string, React.FC<SvgProps>> = {
   "/assets/ic-ticket.svg": IcIcTicket,
   "/assets/ic-tier-check.svg": IcIcTierCheck,
   "/assets/ic-tier-lock.svg": IcIcTierLock,
+  "/assets/ic-traffic-24.svg": IcIcTraffic24,
   "/assets/ic-trash-16.svg": IcIcTrash16,
   "/assets/ic-trash-dim-16.svg": IcIcTrashDim16,
   "/assets/ic-trash-red-16.svg": IcIcTrashRed16,
@@ -239,6 +280,9 @@ export const icons: Record<string, React.FC<SvgProps>> = {
   "/assets/pay-mastercard.svg": IcPayMastercard,
   "/assets/pay-visa-mark.svg": IcPayVisaMark,
   "/assets/pay-visa.svg": IcPayVisa,
+  "/assets/rate-bad.svg": IcRateBad,
+  "/assets/rate-love.svg": IcRateLove,
+  "/assets/rate-ok.svg": IcRateOk,
   "/assets/sponsor-adidas.svg": IcSponsorAdidas,
   "/assets/sponsor-cocacola.svg": IcSponsorCocacola,
   "/assets/sponsor-saham.svg": IcSponsorSaham,

@@ -12,14 +12,19 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
  * doubles the fill — the label does not change colour, because a chip row
  * where only one item is bright reads as four disabled options and one live
  * one, rather than as a choice.
+ *
+ * `block` is the same chip stacked rather than railed: full width with the
+ * label against the left edge, as the instalment plans are drawn (435:3890).
  */
 export function Chip({
   label,
   selected,
+  block = false,
   onPress,
 }: {
   label: string;
   selected: boolean;
+  block?: boolean;
   onPress: () => void;
 }) {
   const press = usePressScale();
@@ -34,7 +39,12 @@ export function Chip({
       }}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
-      style={[styles.base, selected ? styles.on : styles.off, press.style]}
+      style={[
+        styles.base,
+        block && styles.block,
+        selected ? styles.on : styles.off,
+        press.style,
+      ]}
     >
       <Text variant="bodyBold">{label}</Text>
     </AnimatedPressable>
@@ -48,6 +58,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.m,
     borderWidth: 1,
   },
+  block: { alignSelf: "stretch", alignItems: "flex-start" },
   on: { borderColor: colors.contentPrimary, backgroundColor: colors.overlay10 },
   off: { borderColor: colors.overlay10, backgroundColor: colors.overlay5 },
 });

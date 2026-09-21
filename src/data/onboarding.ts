@@ -64,28 +64,23 @@ export const welcomeCopy = {
   or: "OR",
   apple: "Continue with Apple",
   google: "Continue with Google",
-  /**
-   * The comp has variants for a failed social sign-in and for Face ID. Neither
-   * is built: there is no auth behind this app, so a Face ID button would be
-   * a prompt for a biometric that unlocks nothing.
-   */
-  note: "No account service is connected to this build, so signing in only opens the app.",
+  /* The comp also has variants for a failed social sign-in and for Face ID;
+     neither is built — there is no auth behind this app. */
 };
 
 export const notificationsCopy = {
   node: "320:50447",
-  title: "Never miss a moment",
-  /**
-   * The comp reads "…exclusive offer from SC Braga", which is a club from
-   * another project left in the copy. Replaced with SEVENPM — revert if the
-   * designer meant it.
-   */
-  body: "Enable notifications so you never miss a show, ticket sale, or exclusive offer from SEVENPM.",
+  /* Broken where the comp breaks it. */
+  title: "Never miss\na moment",
+  /* Verbatim from the comp, "SC Braga" included — the copy is the designer's
+     to change, not the port's. */
+  body: "Enable notifications so you never miss a goal, ticket sale, or exclusive offer from SC Braga.",
   allow: "Allow notifications",
+  notNow: "Not now",
   /** The notification drawn inside the phone on the comp. */
   preview: {
-    /* The comp spells the festival "Jazzablnca". It is Jazzablanca. */
-    title: "Jazzablanca is here!",
+    /* Spelt as the comp spells it. */
+    title: "Jazzablnca is here!",
     body: "more music more life",
     time: "9:41 AM",
   },
@@ -98,6 +93,4 @@ export const privacyCopy = {
   acceptAll: "Accept all",
   rejectAll: "Reject all",
   manage: "Manage cookies",
-  /** Nothing is stored and nothing is measured, so neither answer does much. */
-  note: "This build collects nothing, so both answers lead to the same place.",
 };

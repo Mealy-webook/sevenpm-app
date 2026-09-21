@@ -38,6 +38,9 @@ export const colors = {
 
   /* States. */
   positive: "#22c55e",
+  /** Tag accents — lime for settled, orange for time-sensitive (454:31845). */
+  lime: "#b3e100",
+  orange: "#ff7f29",
   negative: "#ff6c6c",
 
   /* Borders and overlays. RN has no colour-mix, so the common alphas are
@@ -119,16 +122,27 @@ export const type = {
    * rather than using the raw figure: 104px is measured against a 390px
    * screen, and an iPhone SE is 375.
    */
-  displayHero: { font: fonts.display, size: 104, line: 104, tracking: 1.04 },
-  displayNotice: { font: fonts.display, size: 80, line: 80, tracking: 0 },
-  /** Section headings on Discover (378:27345): 88px, drawn there on 71. */
-  displaySection: { font: fonts.display, size: 88, line: 88, tracking: 0.88 },
+  displayHero: { font: fonts.display, size: 104, line: 86, tracking: 1.04 },
+  displayNotice: { font: fonts.display, size: 80, line: 67, tracking: 0 },
+  /** A tab screen's own title — Bookings (457:70287): 76 on 55. */
+  displayScreen: { font: fonts.display, size: 76, line: 55, tracking: 0 },
+  /** Section headings on Discover (378:27345): 68 on 52. */
+  displaySection: { font: fonts.display, size: 68, line: 52, tracking: 0.68 },
+  /** A page's own title — the event's name (410:6406): 88 on 60. */
+  displayPage: { font: fonts.display, size: 88, line: 60, tracking: 0.88 },
+  /** The member's name on the account page (359:7935): 88 on 73, no tracking. */
+  displayName: { font: fonts.display, size: 88, line: 73, tracking: 0 },
+  /** Section headings inside a page — the event page's (410:6455): 72 on 51. */
+  displayBlock: { font: fonts.display, size: 72, line: 51, tracking: 0 },
   /** The festival card's name (378:27352): 48px, drawn there on 40. */
-  displayCard: { font: fonts.display, size: 48, line: 48, tracking: 0.48 },
+  displayCard: { font: fonts.display, size: 48, line: 40, tracking: 0.48 },
   /** A step's own title in the booking journey (412:15124): 56px on 46. */
-  displayStep: { font: fonts.display, size: 56, line: 56, tracking: 0.56 },
+  displayStep: { font: fonts.display, size: 56, line: 46, tracking: 0.56 },
   displayL: { font: fonts.display, size: 64, line: 68 },
   displayM: { font: fonts.display, size: 40, line: 44 },
+
+  /** The sheets' own heading — Roboto Black, 24/28 (432:3329). */
+  displayXS: { font: fonts.black, size: 24, line: 28, tracking: -0.5 },
 
   /* Titles — Roboto Bold, uppercase, negative tracking. */
   sectionTitle: { font: fonts.bold, size: 26, line: 32, tracking: -0.13 },
@@ -196,7 +210,7 @@ export function displaySize(
   const size = Math.round(scaled(style.size, width));
   return {
     fontSize: size,
-    lineHeight: size,
+    lineHeight: Math.round(scaled(style.line, width)),
     letterSpacing: scaled(style.tracking ?? 0, width),
   };
 }

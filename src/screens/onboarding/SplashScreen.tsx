@@ -116,7 +116,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  page: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.bgPrimary },
+  page: { ...StyleSheet.absoluteFill, backgroundColor: colors.bgPrimary },
   middle: { flex: 1, alignItems: "center", justifyContent: "center", padding: space.xl },
   mark: { width: 104, height: 104 },
   foot: { alignItems: "center", paddingHorizontal: space.xl, paddingTop: space.xl },

@@ -53,6 +53,9 @@ export const images: Record<string, ImageSourcePropType> = {
   "/assets/onb-3-venue.jpg": require("../assets/img/onb-3-venue.jpg"),
   "/assets/welcome-noise.jpg": require("../assets/img/welcome-noise.jpg"),
   "/assets/privacy-cookie.png": require("../assets/img/privacy-cookie.png"),
+  "/assets/phone-mockup.webp": require("../assets/img/phone-mockup.webp"),
+  "/assets/protection-shield.png": require("../assets/img/protection-shield.png"),
+  "/assets/payment-received.png": require("../assets/img/payment-received.png"),
 
   /* Discover. */
   "/assets/wordmark.png": require("../assets/img/wordmark.png"),
@@ -71,7 +74,6 @@ export const images: Record<string, ImageSourcePropType> = {
   "/assets/event-hero.jpg": require("../assets/img/event-hero.jpg"),
   "/assets/event-map.jpg": require("../assets/img/event-map.jpg"),
   "/assets/tab-light.png": require("../assets/img/tab-light.png"),
-  "/assets/ticket-paper.png": require("../assets/img/ticket-paper.png"),
   "/assets/lineup-1.jpg": require("../assets/img/lineup-1.jpg"),
   "/assets/lineup-2.jpg": require("../assets/img/lineup-2.jpg"),
   "/assets/lineup-3.jpg": require("../assets/img/lineup-3.jpg"),

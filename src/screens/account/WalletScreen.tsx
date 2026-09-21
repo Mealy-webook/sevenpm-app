@@ -254,7 +254,7 @@ function TopUpSheet({
                 label={item.label}
                 selected={method === item.id}
                 onPress={() => setMethod(item.id)}
-                trailing={Mark ? <Mark width={24} height={24} /> : undefined}
+                icon={Mark ? <Mark width={24} height={24} /> : undefined}
               />
             );
           })}

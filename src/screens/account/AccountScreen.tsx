@@ -14,18 +14,16 @@ import Crown from "../../icons/ic-crown-24.svg";
 import { Button } from "../../components/Button";
 import { Confirm } from "../../components/Confirm";
 import { ListRow } from "../../components/ListRow";
+import { Tap } from "../../components/Tap";
 import { icon } from "../../icons";
 import { Text } from "../../theme/Text";
 import { colors, displaySize, space, type } from "../../theme/tokens";
 import type { RootParamList } from "../../navigation/RootNavigator";
 import { TAB_BAR_CLEARANCE } from "../../navigation/TabBar";
 import { useTabBarScroll } from "../../navigation/tabBarScroll";
-import { homeStory } from "../../data/home";
 import {
   accountUser,
   loyaltyBalance,
-  loyaltyLifetime,
-  loyaltyTiers,
   logoutCopy,
   menuCopy,
   menuNav,
@@ -53,10 +51,6 @@ export function AccountScreen() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [rated, setRated] = useState<string | null>(null);
   const tabScroll = useTabBarScroll();
-
-  const tier =
-    [...loyaltyTiers].reverse().find((t) => loyaltyLifetime >= t.threshold) ??
-    loyaltyTiers[0];
 
   /** Where each row goes. The three with no screen simply do not move. */
   const routes: Record<string, (() => void) | undefined> = {
@@ -88,10 +82,10 @@ export function AccountScreen() {
 
       <View style={styles.head}>
         <Text
-          variant="displayStep"
+          variant="displayName"
           uppercase
           color={colors.white}
-          style={displaySize(type.displayStep, width)}
+          style={displaySize(type.displayName, width)}
         >
           {accountUser.name}
         </Text>
@@ -99,7 +93,7 @@ export function AccountScreen() {
         <View style={styles.memberRow}>
           <View style={styles.memberChip}>
             <Crown width={16} height={16} />
-            <Text variant="bodyS">{menuCopy.member(tier.name)}</Text>
+            <Text variant="bodyS">{menuCopy.member(accountUser.membership)}</Text>
           </View>
           <Text variant="bodyS" color={colors.contentSecondary}>
             {menuCopy.since}
@@ -108,64 +102,69 @@ export function AccountScreen() {
       </View>
 
       <View style={styles.rows}>
-        {menuNav.map((item) => (
-          <ListRow
-            key={item.id}
-            icon={icon(item.icon)}
-            label={item.label}
-            value={item.trailing}
-            onPress={routes[item.id]}
-          />
+        {menuNav.map((item, index) => (
+          <View key={item.id} style={index > 0 && styles.divided}>
+            <ListRow
+              icon={icon(item.icon)}
+              label={item.label}
+              value={item.trailing}
+              onPress={routes[item.id]}
+            />
+          </View>
         ))}
-        <Text variant="caption" color={colors.contentSecondary} style={styles.note}>
-          {menuCopy.note}
-        </Text>
       </View>
 
-      {/* Rate us */}
+      {/* Rate us — the comp's dialog: a panel, a title over its line, and
+          three drawn hands to choose from. */}
       <View style={styles.block}>
-        <Text variant="titleBody" uppercase>
-          {menuCopy.rateTitle}
-        </Text>
-        <Text variant="bodyS" color={colors.contentSecondary}>
-          {menuCopy.rateBody}
-        </Text>
-        <View style={styles.rates}>
-          {menuCopy.rates.map((label) => (
-            <Button
-              key={label}
-              label={label}
-              size="m"
-              variant={rated === label ? "outline" : "secondary"}
-              onPress={() => setRated(label)}
-              style={styles.rate}
-            />
-          ))}
-        </View>
-        {rated && (
-          <Text variant="caption" color={colors.positive}>
-            Thanks — nothing is sent anywhere from this build.
+        <View style={styles.panel}>
+          <Text variant="titleBody" uppercase>
+            {menuCopy.rateTitle}
           </Text>
-        )}
+          <Text variant="bodyS" color={colors.contentSecondary}>
+            {menuCopy.rateBody}
+          </Text>
+          <View style={styles.rates}>
+            {menuCopy.rates.map((rate) => {
+              const Hand = icon(rate.icon);
+              return (
+                <Tap
+                  key={rate.label}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: rated === rate.label }}
+                  onPress={() => setRated(rate.label)}
+                  style={[styles.rate, rated && rated !== rate.label && styles.rateDim]}
+                >
+                  <View style={styles.hand}>
+                    {Hand && <Hand width={rate.width} height={rate.height} />}
+                  </View>
+                  <Text variant="bodyL">{rate.label}</Text>
+                </Tap>
+              );
+            })}
+          </View>
+        </View>
       </View>
 
       {/* Social */}
       <View style={styles.block}>
         <View style={styles.socials}>
-          {homeStory.socials.map((social) => {
+          {menuCopy.socials.map((social) => {
             const Mark = icon(social.icon);
             return (
-              <Button
+              <Tap
                 key={social.label}
-                label=""
-                icon={Mark}
+                accessibilityRole="link"
+                accessibilityLabel={social.label}
                 onPress={() => Linking.openURL(social.href)}
                 style={styles.social}
-              />
+              >
+                {Mark && <Mark width={20} height={20} />}
+              </Tap>
             );
           })}
         </View>
-        <Text variant="caption" color={colors.contentSecondary}>
+        <Text variant="body" color={colors.contentSecondary} style={styles.copyright}>
           {menuCopy.copyright}
         </Text>
       </View>
@@ -211,13 +210,39 @@ const styles = StyleSheet.create({
     borderColor: colors.overlay10,
   },
 
+  divided: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderTertiary,
+  },
   rows: { paddingHorizontal: space.xl, paddingTop: space.xl },
-  note: { paddingTop: space.m },
 
   block: { paddingHorizontal: space.xl, paddingTop: space.section, gap: space.m },
-  rates: { flexDirection: "row", gap: space.s },
-  rate: { flex: 1 },
+  panel: { padding: space.l, gap: space.s, backgroundColor: colors.bgSecondary },
+  rates: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "flex-end",
+    paddingTop: space.l,
+  },
+  rate: { width: 65, alignItems: "center", gap: 0 },
+  rateDim: { opacity: 0.4 },
+  /* The tallest hand is 64; the others stand on the same baseline. */
+  hand: { height: 64, justifyContent: "flex-end", alignItems: "center" },
 
-  socials: { flexDirection: "row", flexWrap: "wrap", gap: space.s },
-  social: { width: 44, height: 44 },
+  socials: {
+    flexDirection: "row",
+    gap: space.l,
+    padding: space.l,
+    backgroundColor: colors.bgSecondary,
+  },
+  social: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.overlay5,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.overlay10,
+  },
+  copyright: { textAlign: "center", paddingTop: space.s },
 });

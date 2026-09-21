@@ -8,7 +8,6 @@ import { Tap } from "./Tap";
 import { Text } from "../theme/Text";
 import { tap as haptic } from "../theme/haptics";
 import { colors, space } from "../theme/tokens";
-import { bookingConfig, bookingCopy } from "../data/booking";
 
 /**
  * Quantity control, from Figma 2024:11801. At zero it is a single "Add" pill;
@@ -19,65 +18,71 @@ import { bookingConfig, bookingCopy } from "../data/booking";
  * on screen reading 0 with the minus disabled. The ticket rows use it so every
  * row offers the same control and the count is never implied.
  *
- * `emphasised` swaps the 5% overlay for the solid elevated surface, for the
- * control that floats over a product photo.
+ * Every press reports through one `onChange(by)`. The keys are 22px to match
+ * the comp but carry `hitSlop` out to the 44px Apple asks for — this is the
+ * control pressed most in the flow, and the drawn size is not the touchable
+ * one.
  */
 export function Stepper({
   value,
   name,
-  onAdd,
   onChange,
-  emphasised = false,
+  max,
   atZero = "add",
   size = "s",
-  addLabel = bookingCopy.tickets.add,
+  labels,
 }: {
   value: number;
   /** Names the thing being counted, for screen readers. */
   name: string;
-  onAdd: () => void;
+  /** The only callback: `+1` to add, `-1` to take one away. */
   onChange: (by: number) => void;
-  emphasised?: boolean;
+  /** The ceiling, if the caller has one. */
+  max?: number;
   atZero?: "add" | "stepper";
   /**
    * `m` is the sheet's stepper (346:47150): a larger control with 20px keys
    * and the count at 17, for a sheet where it is the only thing to press.
    */
   size?: "s" | "m";
-  addLabel?: string;
+  /** Overrides for the words screen readers hear, and the pill's label. */
+  labels?: Partial<typeof defaultLabels>;
 }) {
-  const surface = emphasised ? styles.solid : styles.dim;
+  const word = { ...defaultLabels, ...labels };
   const big = size === "m";
   const glyph = big ? 20 : 16;
+
+  const add = () => {
+    haptic.tick();
+    onChange(1);
+  };
 
   if (value === 0 && atZero === "add") {
     return (
       <Tap
         accessibilityRole="button"
-        accessibilityLabel={`${addLabel} — ${name}`}
-        onPress={onAdd}
-        style={[styles.shell, surface, styles.add]}
+        accessibilityLabel={`${word.add} — ${name}`}
+        onPress={add}
+        style={[styles.shell, styles.dim, styles.add]}
       >
         <Plus width={16} height={16} />
         <Text variant="bodyBold" style={styles.addLabel}>
-          {addLabel}
+          {word.add}
         </Text>
       </Tap>
     );
   }
 
-  const atMax = value >= bookingConfig.maxPerLine;
+  const atMax = max !== undefined && value >= max;
   const empty = value === 0;
   /* At one the minus removes the line, so it is drawn as a bin. */
   const first = value === 1;
 
   return (
-    <View style={[styles.shell, surface, big ? styles.counterBig : styles.counter]}>
+    <View style={[styles.shell, styles.dim, big ? styles.counterBig : styles.counter]}>
       <Tap
         accessibilityRole="button"
-        accessibilityLabel={`${
-          first ? bookingCopy.tickets.remove : bookingCopy.tickets.fewer
-        } — ${name}`}
+        accessibilityLabel={`${first ? word.remove : word.fewer} — ${name}`}
         disabled={empty}
         onPress={() => {
           haptic.tick();
@@ -86,6 +91,7 @@ export function Stepper({
         /* A 22px key dips further than a button: at this size a 3% change is
            invisible, and this is the control people press most in the flow. */
         scale={0.88}
+        hitSlop={HIT}
         style={[styles.key, big && styles.keyBig, empty && styles.keyOff]}
       >
         {first ? (
@@ -106,13 +112,11 @@ export function Stepper({
 
       <Tap
         accessibilityRole="button"
-        accessibilityLabel={`${bookingCopy.tickets.more} — ${name}`}
+        accessibilityLabel={`${word.more} — ${name}`}
         disabled={atMax}
-        onPress={() => {
-          haptic.tick();
-          empty ? onAdd() : onChange(1);
-        }}
+        onPress={add}
         scale={0.88}
+        hitSlop={HIT}
         style={[styles.key, big && styles.keyBig, atMax && styles.keyOff]}
       >
         <Plus width={glyph} height={glyph} />
@@ -120,6 +124,16 @@ export function Stepper({
     </View>
   );
 }
+
+/** Drawn at 22, touchable at 44 — the gap is made up on every side. */
+const HIT = 11;
+
+const defaultLabels = {
+  add: "Add",
+  remove: "Remove",
+  fewer: "One fewer",
+  more: "One more",
+};
 
 const styles = StyleSheet.create({
   shell: {
@@ -131,7 +145,6 @@ const styles = StyleSheet.create({
     borderColor: colors.overlay10,
   },
   dim: { backgroundColor: colors.overlay5 },
-  solid: { backgroundColor: colors.bgTertiary },
   add: { paddingHorizontal: space.m, paddingVertical: 14 },
   addLabel: { paddingHorizontal: space.xs },
   counter: { paddingHorizontal: space.s, paddingVertical: 11 },

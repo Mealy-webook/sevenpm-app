@@ -1,5 +1,6 @@
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "../../components/Button";
@@ -7,26 +8,20 @@ import { Dock } from "../../components/Dock";
 import { image } from "../../images";
 import { Text } from "../../theme/Text";
 import { colors, displaySize, scaled, space, type } from "../../theme/tokens";
-import { notificationsCopy, onboardingCopy } from "../../data/onboarding";
+import { notificationsCopy } from "../../data/onboarding";
 
 /**
  * The notifications ask, from Figma 320:50447.
  *
- * The illustration is a phone standing in the dark with one SEVENPM
- * notification landing across it. It is drawn here out of views rather than
- * imported as artwork: it is a rounded rectangle and a card, and the card is
- * the app's own notification — mark, title, body, timestamp — so building it
- * keeps it in the app's type and colour instead of freezing a picture of them.
- *
- * Nothing here requests a permission. Wiring this to the real prompt needs
- * expo-notifications and a development build, and asking the OS for something
- * the app then does nothing with is worse than not asking; the button moves
- * the flow on and the screen is honest about the rest.
+ * The illustration is a phone standing in the dark — the comp's own mockup
+ * render, 276 wide, cut off by the top of the screen and fading out before
+ * the copy — with one SEVENPM notification sitting across it. There is no
+ * Skip on this screen: "Not now" under the main action is the way past it.
  */
 export function NotificationsScreen({
   onDone,
 }: {
-  /** Both "Allow" and Skip land here — there is no permission behind either. */
+  /** Both "Allow" and "Not now" land here — there is no permission behind either. */
   onDone: () => void;
 }) {
   const insets = useSafeAreaInsets();
@@ -35,34 +30,36 @@ export function NotificationsScreen({
 
   return (
     <View style={styles.page}>
-      <View style={[styles.skipRow, { marginTop: insets.top }]}>
-        <Button label={onboardingCopy.skip} size="m" onPress={onDone} />
-      </View>
-
-      <View style={styles.stage}>
-        {/* The phone, cropped by the top of its own frame as in the comp. */}
-        <View
-          style={[
-            styles.phone,
-            { width: s(230), height: s(430), borderRadius: s(44) },
-          ]}
+      <View style={[styles.stage, { marginTop: insets.top + s(15) }]}>
+        <Image
+          source={image("/assets/phone-mockup.webp")}
+          style={{ width: s(276), height: s(276 / PHONE_ASPECT) }}
+          contentFit="contain"
+          transition={200}
+        />
+        <LinearGradient
+          colors={["rgba(11,11,14,0)", colors.bgPrimary]}
+          locations={[0.55, 1]}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
         />
 
-        <View style={[styles.notification, { width: s(342) }]}>
+        {/* The notification, as iOS draws one: icon, two lines, the time. */}
+        <View style={[styles.notification, { top: s(86), width: s(342) }]}>
           <Image
             source={image("/assets/logo-mark.png")}
             style={styles.notificationMark}
             contentFit="contain"
           />
           <View style={styles.notificationBody}>
-            <Text variant="bodySBold" color={colors.white} numberOfLines={1}>
+            <Text variant="bodyBold" color={colors.white} numberOfLines={1}>
               {notificationsCopy.preview.title}
             </Text>
-            <Text variant="bodyS" color={colors.contentPrimary} numberOfLines={1}>
+            <Text variant="body" color={colors.white} numberOfLines={1}>
               {notificationsCopy.preview.body}
             </Text>
           </View>
-          <Text variant="caption" color={colors.contentSecondary}>
+          <Text variant="bodyS" color={colors.contentSecondary}>
             {notificationsCopy.preview.time}
           </Text>
         </View>
@@ -70,10 +67,10 @@ export function NotificationsScreen({
 
       <View style={styles.copy}>
         <Text
-          variant="displayHero"
+          variant="displayNotice"
           uppercase
           color={colors.white}
-          style={displaySize(type.displayHero, width)}
+          style={displaySize(type.displayNotice, width)}
         >
           {notificationsCopy.title}
         </Text>
@@ -83,49 +80,31 @@ export function NotificationsScreen({
       </View>
 
       <Dock>
-        <Button
-          variant="brand"
-          label={notificationsCopy.allow}
-          onPress={onDone}
-        />
+        <Button variant="brand" label={notificationsCopy.allow} onPress={onDone} />
+        <Button variant="tertiary" label={notificationsCopy.notNow} onPress={onDone} />
       </Dock>
     </View>
   );
 }
 
+/** The mockup render's own proportions, trimmed to the phone. */
+const PHONE_ASPECT = 1077 / 2202;
+
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.bgPrimary },
-  skipRow: {
-    /* The comp draws this band 68 tall with 24px padding, which leaves 20 for
-       a 40px button — in Figma the button simply overflows, and in React
-       Native it is squeezed until its label disappears. Same trap as the
-       button's own content box. The band is 68 because 40 + 14 + 14 is. */
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    paddingHorizontal: space.xl,
-    paddingVertical: 14,
-  },
-
   stage: { flex: 1, alignItems: "center", overflow: "hidden" },
-  phone: {
-    marginTop: space.l,
-    borderWidth: 2,
-    borderColor: colors.ink600,
-    backgroundColor: colors.ink900,
-  },
   notification: {
     position: "absolute",
-    top: 90,
     flexDirection: "row",
     alignItems: "center",
     gap: space.m,
-    padding: space.m,
-    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 16,
     backgroundColor: colors.ink700,
   },
-  notificationMark: { width: 38, height: 38 },
+  notificationMark: { width: 40, height: 40 },
   notificationBody: { flex: 1, minWidth: 0 },
 
-  copy: { padding: space.xl, gap: space.l },
+  copy: { padding: space.xl, gap: space.s },
 });

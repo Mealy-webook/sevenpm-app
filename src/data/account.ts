@@ -9,6 +9,8 @@ export const accountUser = {
   email: "ahmed@gmail.com",
   avatar: "/assets/nav-avatar.jpg",
   phone: "+212 6 61 23 45 67",
+  /** The membership the account page names (359:7939). */
+  membership: "Crowd",
 };
 /* ------------------------------------------------------------------ *
  * Wallet (Figma 2196:12516)
@@ -79,7 +81,7 @@ export const walletTransactions: WalletTransaction[] = [
     label: "Add money",
     time: "7:20 PM",
     detail: "Visa ending 6411",
-    amount: 500,
+    amount: 100,
     dayOffset: 1,
   },
   {
@@ -228,10 +230,23 @@ export const menuCopy = {
   since: "Since 2026",
   rateTitle: "Rate your experience",
   rateBody: "Help us improve and make your experience more fun",
-  rates: ["Love it", "OK!", "#@#!"],
+  /* The three drawn hands and their words, as 359:7954 lays them out. */
+  rates: [
+    { label: "Love it", icon: "/assets/rate-love.svg", width: 35, height: 64 },
+    { label: "OK!", icon: "/assets/rate-ok.svg", width: 45, height: 53 },
+    { label: "#@#!", icon: "/assets/rate-bad.svg", width: 49, height: 57 },
+  ],
+  /** The six accounts the comp lists (359:7989), in its order. */
+  socials: [
+    { label: "X", href: "https://x.com", icon: "/assets/ic-social-x.svg" },
+    { label: "Facebook", href: "https://facebook.com", icon: "/assets/ic-social-facebook.svg" },
+    { label: "Instagram", href: "https://instagram.com", icon: "/assets/ic-social-instagram.svg" },
+    { label: "LinkedIn", href: "https://linkedin.com", icon: "/assets/ic-social-linkedin.svg" },
+    { label: "Snapchat", href: "https://snapchat.com", icon: "/assets/ic-social-snapchat.svg" },
+    { label: "TikTok", href: "https://tiktok.com", icon: "/assets/ic-social-tiktok.svg" },
+  ],
   copyright: "Copyright ©2023 Sevenpm.com. All rights reserved.",
   /** Nothing behind these rows yet — said once, at the foot of the list. */
-  note: "Resale, notifications and language have no screens designed yet.",
 };
 
 export const accountNav: AccountNavItem[] = [
@@ -472,10 +487,10 @@ export const bookings: Booking[] = [
 
 export const bookingsCopy = {
   title: "Bookings",
-  description:
-    "Your tickets live here. Wristbands are issued at the gate on presentation of your booking reference.",
   filters: ["Upcoming", "Past"] as const,
   empty: "No bookings yet",
+  /** The row's one action — "4 tickets \u203a" (454:56757). */
+  tickets: (count: number) => `${count} ${count === 1 ? "ticket" : "tickets"}`,
 };
 
 /* ------------------------------------------------------------------ *

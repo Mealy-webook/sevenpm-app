@@ -15,6 +15,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import ArrowRight from "../icons/ic-arrow-right-20.svg";
 import { Button } from "../components/Button";
+import { StoryRing } from "../components/StoryRing";
 import { Tap } from "../components/Tap";
 import { image } from "../images";
 import { Text } from "../theme/Text";
@@ -22,7 +23,7 @@ import { colors, displaySize, radii, space, type } from "../theme/tokens";
 import type { RootParamList } from "../navigation/RootNavigator";
 import { TAB_BAR_CLEARANCE } from "../navigation/TabBar";
 import { useTabBarScroll } from "../navigation/tabBarScroll";
-import { Reveal, ScrollProvider, usePageScroll } from "../theme/scroll";
+import { Reveal, RevealWords, ScrollProvider, usePageScroll } from "../theme/scroll";
 import { loyaltyBalance } from "../data/account";
 import { useWatchedStories } from "./watchedStories";
 import {
@@ -35,7 +36,7 @@ import {
 } from "../data/discover";
 
 /** How far a poster drifts inside its card as the rail moves. */
-const PARALLAX = 26;
+const PARALLAX = 58;
 
 /* Card and tile figures come straight off the comp's 390px frame. */
 const CARD_WIDTH = 289;
@@ -111,17 +112,16 @@ export function DiscoverScreen() {
               onPress={() => navigation.navigate("Story", { id: story.id })}
               style={styles.story}
             >
-              {/* Yellow while there is something new in it, grey once seen. */}
-              <View
-                style={[styles.ring, watched.has(story.id) && styles.ringWatched]}
-              >
+              {/* Yellow while there is something new in it; grey once it
+                  has been seen. */}
+              <StoryRing watched={watched.has(story.id)}>
                 <Image
                   source={image(story.image)}
                   style={styles.storyPhoto}
                   contentFit="cover"
                   transition={200}
                 />
-              </View>
+              </StoryRing>
               <Text variant="bodyS" numberOfLines={1} style={styles.storyLabel}>
                 {story.label}
               </Text>
@@ -130,10 +130,14 @@ export function DiscoverScreen() {
         </ScrollView>
 
         {/* Festivals */}
-        <Reveal style={styles.section}>
-          <Text variant="displaySection" uppercase color={colors.white} style={heading}>
+        <Reveal index={1} style={styles.section}>
+          <RevealWords
+            variant="displaySection"
+            color={colors.white}
+            textStyle={heading}
+          >
             {discoverCopy.festivals}
-          </Text>
+          </RevealWords>
 
           <Animated.ScrollView
             horizontal
@@ -233,10 +237,14 @@ export function DiscoverScreen() {
         </Reveal>
 
         {/* Merchandise */}
-        <Reveal style={styles.section}>
-          <Text variant="displaySection" uppercase color={colors.white} style={heading}>
+        <Reveal index={2} style={styles.section}>
+          <RevealWords
+            variant="displaySection"
+            color={colors.white}
+            textStyle={heading}
+          >
             {discoverCopy.merchandise}
-          </Text>
+          </RevealWords>
           <View style={styles.grid}>
             {merchandise.map((item) => (
               <View key={item.id} style={styles.product}>
@@ -258,10 +266,14 @@ export function DiscoverScreen() {
         </Reveal>
 
         {/* Gallery */}
-        <Reveal style={styles.section}>
-          <Text variant="displaySection" uppercase color={colors.white} style={heading}>
+        <Reveal index={3} style={styles.section}>
+          <RevealWords
+            variant="displaySection"
+            color={colors.white}
+            textStyle={heading}
+          >
             {discoverCopy.gallery}
-          </Text>
+          </RevealWords>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -286,10 +298,14 @@ export function DiscoverScreen() {
         </Reveal>
 
         {/* News */}
-        <Reveal style={styles.section}>
-          <Text variant="displaySection" uppercase color={colors.white} style={heading}>
+        <Reveal index={4} style={styles.section}>
+          <RevealWords
+            variant="displaySection"
+            color={colors.white}
+            textStyle={heading}
+          >
             {discoverCopy.news}
-          </Text>
+          </RevealWords>
           <View>
             {newsRows.map((row) => (
               <View key={row.id} style={styles.newsRow}>
@@ -346,13 +362,6 @@ const styles = StyleSheet.create({
     paddingVertical: space.l,
   },
   story: { alignItems: "center", gap: space.xs, paddingTop: space.xs },
-  ring: {
-    padding: space.xs,
-    borderWidth: 2,
-    borderColor: colors.brand,
-    borderRadius: radii.pill,
-  },
-  ringWatched: { borderColor: colors.overlay10 },
   storyPhoto: {
     width: STORY,
     height: STORY,

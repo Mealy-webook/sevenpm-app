@@ -3,11 +3,11 @@ import { ScrollView, StyleSheet, useWindowDimensions, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 
-import ArrowLeft from "../icons/ic-arrow-left-20.svg";
+import ChevronLeft from "../icons/ic-chevron-left-20.svg";
 import BeatsBurn from "../icons/ic-beats-burn.svg";
 import BeatsEarn from "../icons/ic-beats-earn.svg";
 import ChevronDown from "../icons/ic-chevron-down-16.svg";
-import Info from "../icons/ic-info-20.svg";
+import Help from "../icons/ic-help-20.svg";
 import LockSmall from "../icons/ic-lock-locked-16.svg";
 import TierCheck from "../icons/ic-tier-check.svg";
 import TierLock from "../icons/ic-tier-lock.svg";
@@ -91,7 +91,7 @@ export function RewardsScreen() {
           onPress={navigation.goBack}
           style={styles.barButton}
         >
-          <ArrowLeft width={20} height={20} />
+          <ChevronLeft width={20} height={20} />
         </Tap>
         <View style={styles.barSpacer} />
         <Tap
@@ -100,7 +100,7 @@ export function RewardsScreen() {
           onPress={() => setHowTo(true)}
           style={styles.barButton}
         >
-          <Info width={20} height={20} />
+          <Help width={20} height={20} />
         </Tap>
       </View>
 
@@ -119,12 +119,21 @@ export function RewardsScreen() {
             </Text>
           </View>
 
-          <Text variant="bodyS" color={colors.contentSecondary}>
-            {next
-              ? `${loyaltyCopy.toNextLead} ${loyaltyCopy.toNext(
+          {/* The next tier's name is the one bold word in the line. */}
+          <Text variant="body" color={colors.contentSecondary}>
+            {next ? (
+              <>
+                {`${loyaltyCopy.toNextLead} ${loyaltyCopy.toNext(
                   next.threshold - loyaltyLifetime,
-                )} ${next.name} ${loyaltyCopy.toNextTail}`
-              : loyaltyCopy.topTier}
+                )} `}
+                <Text variant="bodyBold" color={colors.contentSecondary}>
+                  {next.name}
+                </Text>
+                {` ${loyaltyCopy.toNextTail}`}
+              </>
+            ) : (
+              loyaltyCopy.topTier
+            )}
           </Text>
           <Text variant="caption" color={colors.contentSecondary}>
             {loyaltyCopy.expiry(loyaltyCopy.expiring, loyaltyCopy.expiresAt)}
@@ -335,10 +344,10 @@ export function RewardsScreen() {
           </Dock>
         }
       >
-        {loyaltyHowTo.earn.map((way) => {
+        {loyaltyHowTo.earn.map((way, index) => {
           const Mark = icon(way.icon);
           return (
-            <View key={way.id} style={styles.rateRow}>
+            <View key={way.id} style={[styles.rateRow, index > 0 && styles.rateRowDivided]}>
               {Mark && <Mark width={24} height={24} />}
               <Text variant="body" style={styles.rowBody}>
                 {way.label}
@@ -358,6 +367,7 @@ export function RewardsScreen() {
 
 const styles = StyleSheet.create({
   bar: {
+    backgroundColor: colors.bgSecondary,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: space.xl,
@@ -371,7 +381,7 @@ const styles = StyleSheet.create({
     borderColor: colors.overlay10,
   },
 
-  head: { paddingHorizontal: space.xl, paddingTop: space.m, gap: space.s },
+  head: { paddingHorizontal: space.xl, paddingTop: space.m, gap: space.s , backgroundColor: colors.bgSecondary },
   figure: { flexDirection: "row", alignItems: "baseline", gap: space.m },
 
   track: { flexDirection: "row", alignItems: "flex-start", paddingTop: space.l },
@@ -400,6 +410,10 @@ const styles = StyleSheet.create({
   flip: { transform: [{ rotate: "180deg" }] },
 
   rateRow: { flexDirection: "row", alignItems: "center", gap: space.m },
+  rateRowDivided: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderTertiary,
+  },
   ratePill: {
     paddingHorizontal: space.m,
     paddingVertical: space.xs,

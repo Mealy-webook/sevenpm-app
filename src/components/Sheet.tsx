@@ -263,14 +263,14 @@ export function Field({
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder={placeholder ?? label}
-            placeholderTextColor={colors.contentSecondary}
+            placeholderTextColor={colors.contentPrimary}
             accessibilityLabel={label}
             keyboardType={keyboardType}
             maxLength={maxLength}
             editable={editable}
             autoFocus={autoFocus}
             selectionColor={colors.brand}
-            style={styles.input}
+            style={[styles.input, !value && styles.inputEmpty]}
           />
         </View>
         {trailing}
@@ -316,9 +316,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: space.xs,
   },
-  headSide: { flex: 1, minWidth: 0, height: 40, justifyContent: "center" },
+  /* Both sides are the close button's width, so the title is centred on the
+     screen and still has the whole middle to itself. */
+  headSide: { width: 40, height: 40, justifyContent: "center" },
   headActions: { alignItems: "flex-end" },
-  headText: { flex: 1, minWidth: 0, maxWidth: 240, gap: space.xs },
+  headText: { flex: 1, minWidth: 0, gap: space.xs },
   headTitle: { textAlign: "center" },
   headLeft: { paddingHorizontal: 20, paddingTop: space.s, gap: space.xs },
   headLeftActions: { alignItems: "flex-end" },
@@ -356,4 +358,6 @@ const styles = StyleSheet.create({
     color: colors.contentPrimary,
     padding: 0,
   },
+  /* Empty, the box shows its label in the comp's regular 17. */
+  inputEmpty: { fontFamily: "Roboto_400Regular", fontSize: 17, lineHeight: 24, letterSpacing: 0 },
 });
