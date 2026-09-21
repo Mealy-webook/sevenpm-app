@@ -24,6 +24,7 @@ import { WalletScreen } from "../screens/account/WalletScreen";
 import { ProfileScreen } from "../screens/account/ProfileScreen";
 import { PaymentsScreen } from "../screens/account/PaymentsScreen";
 import { InstallmentsScreen } from "../screens/InstallmentsScreen";
+import { MoodboardHome } from "../screens/MoodboardHome";
 import { RewardsScreen } from "../screens/RewardsScreen";
 
 export type RootParamList = {
@@ -35,6 +36,7 @@ export type RootParamList = {
   Profile: undefined;
   Payments: undefined;
   Installments: { bookingId?: string } | undefined;
+  Moodboard: undefined;
   Story: { id: string };
   Article: { slug: string };
 };
@@ -113,6 +115,7 @@ export function RootNavigator() {
   return (
     <NavigationContainer theme={theme}>
       <Stack.Navigator
+        initialRouteName="Moodboard"
         screenOptions={{
           headerShown: false,
           contentStyle: styles.page,
@@ -145,6 +148,10 @@ export function RootNavigator() {
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Payments" component={PaymentsScreen} />
         <Stack.Screen name="Installments" component={InstallmentsScreen} />
+        {/* TEST ONLY — the Moodboard homepage concept, opened first on this
+            branch so it can be looked at. Drop the initialRouteName below to
+            put the app back on its own Discover. */}
+        <Stack.Screen name="Moodboard" component={MoodboardHome} />
       </Stack.Navigator>
     </NavigationContainer>
   );

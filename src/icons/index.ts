@@ -59,6 +59,7 @@ import IcIcFamily24 from "./ic-family-24.svg";
 import IcIcFood from "./ic-food.svg";
 import IcIcGates from "./ic-gates.svg";
 import IcIcGift16 from "./ic-gift-16.svg";
+import IcIcGlobe20 from "./ic-globe-20.svg";
 import IcIcGlobe from "./ic-globe.svg";
 import IcIcGoogle20 from "./ic-google-20.svg";
 import IcIcHelp20 from "./ic-help-20.svg";
@@ -198,6 +199,7 @@ export const icons: Record<string, React.FC<SvgProps>> = {
   "/assets/ic-food.svg": IcIcFood,
   "/assets/ic-gates.svg": IcIcGates,
   "/assets/ic-gift-16.svg": IcIcGift16,
+  "/assets/ic-globe-20.svg": IcIcGlobe20,
   "/assets/ic-globe.svg": IcIcGlobe,
   "/assets/ic-google-20.svg": IcIcGoogle20,
   "/assets/ic-help-20.svg": IcIcHelp20,
