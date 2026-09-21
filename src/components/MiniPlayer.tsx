@@ -322,5 +322,8 @@ const styles = StyleSheet.create({
   text: { flex: 1, minWidth: 0 },
   controls: { flexDirection: "row", alignItems: "center" },
   key: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  keyPlay: { backgroundColor: colors.brand },
+  /* White, not brand. The page's one brand-filled thing is the action
+     pinned at the bottom of it, and a second yellow block a few points above
+     that read as a second call to action. */
+  keyPlay: { backgroundColor: colors.white },
 });

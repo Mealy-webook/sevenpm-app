@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { Image } from "expo-image";
+import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useReducedMotion } from "../theme/motion";
@@ -21,7 +22,9 @@ import Close from "../icons/ic-close.svg";
 import Minus from "../icons/ic-minus.svg";
 import Plus from "../icons/ic-plus.svg";
 import ShareIcon from "../icons/ic-share-20.svg";
+import { Button } from "../components/Button";
 import { Chip } from "../components/Chip";
+import { Dock } from "../components/Dock";
 import { Page } from "../components/Screen";
 import { MiniPlayer, artworkAt, useDeck } from "../components/MiniPlayer";
 import { COVER_MS } from "../components/PosterZoom";
@@ -47,10 +50,14 @@ import { getEvent, type ArtistGroup } from "../data/events";
  *
  * What is *not* here, on purpose: **tickets, the location and the gallery**.
  * 410:6401 had all three and this comp draws none of them, which Ahmed
- * confirmed is deliberate. It leaves the page with no route into the booking
- * journey and the app with no other one, so booking needs an entry somewhere
- * before this ships. Also absent, as before: a call-to-action under the
- * schedule, names under the line-up circles, and a sponsors block.
+ * confirmed is deliberate. Also absent, as before: names under the line-up
+ * circles, and a sponsors block.
+ *
+ * What losing the ticket rail cost was the only way into the booking journey,
+ * so the page carries **one pinned action** instead. No comp draws it; it is
+ * Ahmed's call, and it is the only thing on this page that is not measured
+ * off one. It uses the library's Dock, which is what every other screen with
+ * a pinned action uses, so at least it is not a new kind of bar.
  */
 
 /**
@@ -452,7 +459,8 @@ export function EventScreen() {
       <ScrollProvider value={scrollY}>
         <Animated.ScrollView
           contentContainerStyle={{
-            paddingBottom: space.xl + Math.max(insets.bottom, 20),
+            /* Room for the pinned action and the player above it. */
+            paddingBottom: space.section * 2 + Math.max(insets.bottom, 20),
           }}
           {...scrollProps}
         >
@@ -752,44 +760,77 @@ export function EventScreen() {
         </Animated.ScrollView>
       </ScrollProvider>
 
-      {/* The player, floated above the page as the web build floats it.
-          It is not there while the deck is: the record at the top of the page
-          is the record, and a second one in a bar underneath it would be two
-          of the same thing. It slides up as the deck scrolls away, so there
-          is always exactly one record on screen. */}
+      {/* The one action, pinned. The page has nothing else that leads
+          anywhere, so it does not compete with anything and is never more
+          than one press away wherever you have scrolled to. */}
       {pageOpen && (
-        <Animated.View
-          style={[
-            styles.player,
-            {
-              bottom: Math.max(insets.bottom, 20),
-              opacity: playerIn,
-              transform: [{ translateY: playerRise }],
-            },
-          ]}
-          pointerEvents={playerUp ? "box-none" : "none"}
-        >
-          <MiniPlayer deck={player} />
-        </Animated.View>
+        <View style={styles.dock} pointerEvents="box-none">
+          {/* The player rides above the action rather than under it: the
+              action is what the page is for, and a bar that covers it would
+              be a record player in the way of a ticket.
+
+              It is not there while the deck is, either — the record at the
+              top of the page is the record, and a second one in a bar
+              underneath it would be two of the same thing. It slides up as
+              the deck scrolls away, so there is always exactly one record on
+              screen. */}
+          <Animated.View
+            style={[
+              styles.player,
+              { opacity: playerIn, transform: [{ translateY: playerRise }] },
+            ]}
+            pointerEvents={playerUp ? "box-none" : "none"}
+          >
+            <MiniPlayer deck={player} />
+          </Animated.View>
+          <Dock>
+            <Button
+              variant="brand"
+              label={eventCopy.exploreTickets}
+              onPress={() => navigation.navigate("Booking", { slug: event.slug })}
+            />
+          </Dock>
+        </View>
       )}
 
-      {/* Close, not back: the page is a sheet over Discover in the comp. */}
+      {/* Close, not back: the page is a sheet over Discover in the comp.
+          The bar is bare over the record and becomes glass as the record goes
+          — the same stretch the name climbs into it on, so the band and the
+          title arrive together and an ✕ never floats over a heading. */}
       <Animated.View
         style={[styles.bar, { paddingTop: insets.top + space.s }]}
       >
+        <Animated.View
+          style={[StyleSheet.absoluteFill, { opacity: barFill }]}
+          pointerEvents="none"
+        >
+          <BlurView
+            intensity={40}
+            tint="dark"
+            /* Renamed from experimentalBlurMethod in SDK 55. */
+            blurMethod="dimezisBlurView"
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={[StyleSheet.absoluteFill, styles.barGlass]} />
+        </Animated.View>
+
         <Tap
           accessibilityRole="button"
           accessibilityLabel="Close"
           onPress={navigation.goBack}
           style={styles.barButton}
         >
-          <Animated.View
-            pointerEvents="none"
-            style={[StyleSheet.absoluteFill, styles.barSolid, { opacity: barFill }]}
-          />
           <Close width={20} height={20} />
         </Tap>
-        <View style={styles.barSpacer} />
+
+        {/* The comp's Center Content slot, which it draws empty. The page's
+            own name goes there once the one at the top of it has gone. */}
+        <Animated.View style={[styles.barTitle, { opacity: barFill }]}>
+          <Text variant="titleBody" uppercase numberOfLines={1}>
+            {event.name}
+          </Text>
+        </Animated.View>
+
         <Tap
           accessibilityRole="button"
           accessibilityLabel={eventCopy.share}
@@ -798,10 +839,6 @@ export function EventScreen() {
           }
           style={styles.barButton}
         >
-          <Animated.View
-            pointerEvents="none"
-            style={[StyleSheet.absoluteFill, styles.barSolid, { opacity: barFill }]}
-          />
           <ShareIcon width={20} height={20} />
         </Tap>
       </Animated.View>
@@ -882,8 +919,15 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: "hidden",
   },
-  player: { position: "absolute", left: gutter, right: gutter, zIndex: 3 },
-  section: { paddingHorizontal: gutter, paddingTop: space.xl, gap: space.m },
+  dock: { position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 3 },
+  player: { marginHorizontal: gutter, marginBottom: space.s },
+  /* The comp gives every section 32 above and below, so two of them sit 64
+     apart. The page had 24 on the top edge only, which ran them together. */
+  section: {
+    paddingHorizontal: gutter,
+    paddingVertical: space.xxl,
+    gap: space.l,
+  },
   semibold: { fontFamily: "Roboto_600SemiBold" },
   link: { textDecorationLine: "underline" },
   chipRail: { gap: space.l, paddingHorizontal: gutter, paddingTop: space.m },
@@ -958,7 +1002,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: gutter,
     paddingBottom: space.s,
   },
-  barSpacer: { flex: 1 },
+  barTitle: {
+    flex: 1,
+    minWidth: 0,
+    maxWidth: 240,
+    alignItems: "center",
+    paddingHorizontal: space.m,
+  },
   barButton: {
     padding: 10,
     backgroundColor: colors.overlay5,
@@ -966,5 +1016,5 @@ const styles = StyleSheet.create({
     borderColor: colors.overlay10,
   },
   beside: { ...StyleSheet.absoluteFill },
-  barSolid: { backgroundColor: colors.bgSecondary },
+  barGlass: { backgroundColor: "rgba(11,11,14,0.55)" },
 });

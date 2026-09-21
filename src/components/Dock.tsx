@@ -1,4 +1,5 @@
 import { StyleSheet, View } from "react-native";
+import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -10,7 +11,9 @@ import { space } from "../theme/tokens";
  *
  * Three things it is specified to do. It draws a shade behind itself that
  * fades up out of the page, so a white button never sits on a photograph with
- * nothing between them. It can carry an **accessory** above the buttons —
+ * nothing between them — glass, not paint: the footer in the comps blurs what
+ * is behind it as well as darkening it, and the shade reaches 16 above the
+ * dock so the page dissolves into it rather than meeting it on a line. It can carry an **accessory** above the buttons —
  * Figma's word — for a line that qualifies the action: what is in the basket,
  * a disclaimer, a total. And it does *not* own the bottom safe area; the
  * Figma note is explicit that the screen around it is responsible for the home
@@ -37,11 +40,19 @@ export function Dock({
   return (
     <View style={styles.dock}>
       {surface === "shade" ? (
-        <LinearGradient
-          colors={["rgba(0,0,0,0.03)", "rgba(0,0,0,0.35)"]}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        />
+        <View style={styles.shade} pointerEvents="none">
+          <BlurView
+            intensity={40}
+            tint="dark"
+            /* Renamed from experimentalBlurMethod in SDK 55. */
+            blurMethod="dimezisBlurView"
+            style={StyleSheet.absoluteFill}
+          />
+          <LinearGradient
+            colors={["rgba(0,0,0,0.03)", "rgba(0,0,0,0.35)"]}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.panel]} pointerEvents="none" />
       )}
@@ -56,6 +67,8 @@ export function Dock({
 
 const styles = StyleSheet.create({
   dock: { width: "100%" },
+  /* Hung 16 above the dock, as the comps' footer is. */
+  shade: { ...StyleSheet.absoluteFill, top: -16 },
   /* 85% of the raised band, as the booking comps fill it. */
   panel: { backgroundColor: "rgba(24,24,27,0.85)" },
   actions: {
