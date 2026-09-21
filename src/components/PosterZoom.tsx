@@ -27,9 +27,16 @@ import { colors, motion } from "../theme/tokens";
  * on the native driver and not on the JS thread.
  */
 
-/** The comp's poster, and the glow behind it. */
+/** The comp's poster, the glow behind it, and the record it holds. */
 const SIZE = 342;
 const GLOW = 340;
+const VINYL = 322;
+/**
+ * Pulling the record out settles the sleeve 58 lower and leaves the record
+ * standing 136 above its top edge (182:1052 against 182:1724).
+ */
+const SLEEVE_DROP = 58;
+const VINYL_RISE = 136;
 
 export type ZoomFrom = { x: number; y: number; width: number; height: number };
 
@@ -47,18 +54,40 @@ export function PosterZoom({
   const reduced = useReducedMotion();
   const open = source !== null && from !== null;
   const progress = useRef(new Animated.Value(0)).current;
+  /* One full turn about the vertical axis once the poster has landed. */
+  const flip = useRef(new Animated.Value(0)).current;
+  /* Then the record slides up out of the sleeve. */
+  const pull = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!open) return;
     progress.setValue(reduced ? 1 : 0);
+    flip.setValue(reduced ? 1 : 0);
+    pull.setValue(reduced ? 1 : 0);
     if (reduced) return;
-    Animated.timing(progress, {
-      toValue: 1,
-      duration: motion.base,
-      easing: ease,
-      useNativeDriver: true,
-    }).start();
-  }, [open, progress, reduced]);
+    /* It arrives, then turns over once — the flourish waits for the zoom so
+       the two reads as one movement rather than a scramble. */
+    Animated.sequence([
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: motion.base,
+        easing: ease,
+        useNativeDriver: true,
+      }),
+      Animated.timing(flip, {
+        toValue: 1,
+        duration: motion.slow,
+        easing: ease,
+        useNativeDriver: true,
+      }),
+      Animated.timing(pull, {
+        toValue: 1,
+        duration: motion.slow,
+        easing: ease,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [open, progress, flip, pull, reduced]);
 
   const close = () => {
     if (reduced) return onClose();
@@ -83,6 +112,8 @@ export function PosterZoom({
 
   const between = (a: number, b: number) =>
     progress.interpolate({ inputRange: [0, 1], outputRange: [a, b] });
+  const between2 = (value: Animated.Value, a: number, b: number) =>
+    value.interpolate({ inputRange: [0, 1], outputRange: [a, b] });
 
   return (
     <Modal visible transparent statusBarTranslucent onRequestClose={close}>
@@ -113,6 +144,31 @@ export function PosterZoom({
           />
         </Animated.View>
 
+        {/* Behind the sleeve, and drawn before it so it stays there. */}
+        <Animated.View
+          style={[
+            styles.vinyl,
+            {
+              left: (width - VINYL) / 2,
+              /* It rests 136 clear of the sleeve's top edge; it starts that
+                 same distance lower, which is inside the sleeve. */
+              top: toY + SLEEVE_DROP - VINYL_RISE,
+              opacity: pull.interpolate({
+                inputRange: [0, 0.01, 1],
+                outputRange: [0, 1, 1],
+              }),
+              transform: [{ translateY: between2(pull, VINYL_RISE, 0) }],
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <Image
+            source={image("/assets/vinyl.webp")}
+            style={StyleSheet.absoluteFill}
+            contentFit="contain"
+          />
+        </Animated.View>
+
         <Animated.View
           style={[
             styles.poster,
@@ -120,9 +176,19 @@ export function PosterZoom({
               left: toX,
               top: toY,
               transform: [
+                /* Perspective first, so the turn has depth rather than
+                   squashing flat. */
+                { perspective: 1200 },
                 { translateX: between(startX, 0) },
                 { translateY: between(startY, 0) },
+                { translateY: between2(pull, 0, SLEEVE_DROP) },
                 { scale: between(startScale, 1) },
+                {
+                  rotateY: flip.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ["0deg", "360deg"],
+                  }),
+                },
               ],
             },
           ]}
@@ -144,5 +210,6 @@ const styles = StyleSheet.create({
   /* The detail page sits on the base surface, a shade below the app's own. */
   page: { backgroundColor: "#09090b" },
   glow: { position: "absolute", width: GLOW, height: GLOW },
+  vinyl: { position: "absolute", width: VINYL, height: VINYL },
   poster: { position: "absolute", width: SIZE, height: SIZE },
 });
