@@ -57,6 +57,8 @@ export const images: Record<string, ImageSourcePropType> = {
   "/assets/protection-shield.png": require("../assets/img/protection-shield.png"),
   "/assets/payment-received.png": require("../assets/img/payment-received.png"),
   "/assets/vinyl.webp": require("../assets/img/vinyl.webp"),
+  "/assets/event-label.webp": require("../assets/img/event-label.webp"),
+  "/assets/tonearm.webp": require("../assets/img/tonearm.webp"),
 
   /* Discover. */
   "/assets/wordmark.png": require("../assets/img/wordmark.png"),

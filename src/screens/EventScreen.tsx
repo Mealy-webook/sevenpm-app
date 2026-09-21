@@ -30,7 +30,7 @@ import { icon } from "../icons";
 import { image } from "../images";
 import { Text } from "../theme/Text";
 import { Reveal, RevealWords, ScrollProvider, usePageScroll } from "../theme/scroll";
-import { colors, displaySize, gutter, radii, space, type } from "../theme/tokens";
+import { colors, displaySize, gutter, radii, scaled, space, type } from "../theme/tokens";
 import type { RootParamList } from "../navigation/RootNavigator";
 import { eventCopy } from "../data/discover";
 import { bookingConfig } from "../data/booking";
@@ -64,6 +64,8 @@ import { getEvent, type ArtistGroup } from "../data/events";
 
 /** The comp's page header is 279 tall on a 390 frame; the title sits on it. */
 const HEADER_RATIO = 279 / 390;
+/** The record hero's own height: the comp's Section begins 414 down. */
+const HERO_H = 414;
 
 /**
  * The line-up photography ships with the app comps and is not in the web
@@ -114,6 +116,8 @@ export function EventScreen() {
   }
 
   const book = () => navigation.navigate("Booking", { slug: event.slug });
+  /* The hero is a collage at the comp's own 390-wide measurements. */
+  const s = (value: number) => scaled(value, width);
   const heading = displaySize(type.displayBlock, width);
   const title = displaySize(type.displayPage, width);
   const gutterWidth = width - gutter * 2;
@@ -136,14 +140,14 @@ export function EventScreen() {
           }}
           {...scrollProps}
         >
-        {/* The artwork is square and fades into the page from a third of the
-            way down, so the title can sit on its lower edge as the comp draws
-            it. It holds its ground as the page leaves — travelling at half the
-            scroll — and pulling down past the top stretches it rather than
-            exposing the page colour behind. */}
+        {/* The record, from Figma 464:71859. Four layers at the comp's own
+            offsets: the artwork out of focus behind everything, the disc
+            running off the top of the screen, the sleeve art as its label,
+            and the arm resting across it. It still travels at half the
+            scroll, as the photo hero did. */}
         <Animated.View
           style={{
-            height: width,
+            height: s(HERO_H),
             transform: [
               {
                 translateY: scrollY.interpolate({
@@ -153,33 +157,77 @@ export function EventScreen() {
                   extrapolateRight: "clamp",
                 }),
               },
-              {
-                scale: scrollY.interpolate({
-                  inputRange: [-width, 0],
-                  outputRange: [2.4, 1],
-                  extrapolateRight: "clamp",
-                }),
-              },
             ],
           }}
         >
           <Image
-            source={image("/assets/event-hero.jpg")}
-            style={StyleSheet.absoluteFill}
+            source={image("/assets/event-label.webp")}
+            style={{
+              position: "absolute",
+              left: s(16),
+              top: s(7),
+              width: s(340),
+              height: s(340),
+              opacity: 0.4,
+            }}
+            contentFit="cover"
+            blurRadius={60}
+          />
+          <Image
+            source={image("/assets/vinyl.webp")}
+            style={{
+              position: "absolute",
+              left: s(-9),
+              top: s(-33),
+              width: s(408),
+              height: s(408),
+            }}
+            contentFit="contain"
+            transition={300}
+          />
+          <Image
+            source={image("/assets/event-label.webp")}
+            style={{
+              position: "absolute",
+              left: s(80),
+              top: s(50),
+              width: s(228),
+              height: s(230),
+            }}
             contentFit="cover"
             transition={300}
           />
-          <LinearGradient
-            colors={["rgba(11,11,14,0)", colors.bgPrimary]}
-            locations={[0.3, 0.92]}
-            style={StyleSheet.absoluteFill}
-          />
+          {/* The arm is drawn upright and laid across the disc, so it is
+              turned in place inside a box the comp sizes for it. */}
+          <View
+            style={{
+              position: "absolute",
+              left: s(134),
+              top: s(232),
+              width: s(288.423),
+              height: s(241.54),
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            pointerEvents="none"
+          >
+            <Image
+              source={image("/assets/tonearm.webp")}
+              style={{
+                width: s(213.297),
+                height: s(266.4),
+                transform: [{ rotate: "96.37deg" }],
+              }}
+              contentFit="contain"
+              transition={300}
+            />
+          </View>
         </Animated.View>
 
         {/* Name, when, where, what. */}
         <Reveal
           index={0}
-          style={[styles.section, { marginTop: -width * (1 - HEADER_RATIO) }]}
+          style={styles.section}
         >
           <RevealWords variant="displayPage" color={colors.white} textStyle={title}>
             {event.name}
