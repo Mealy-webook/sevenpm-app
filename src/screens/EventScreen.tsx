@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
+  PanResponder,
   Linking,
   ScrollView,
   Share,
@@ -12,7 +13,7 @@ import {
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ease, useReducedMotion } from "../theme/motion";
+import { useReducedMotion } from "../theme/motion";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
@@ -27,7 +28,7 @@ import { Chip } from "../components/Chip";
 import { PhotoPile } from "../components/PhotoPile";
 import { Page } from "../components/Screen";
 import { MiniPlayer, useDeck } from "../components/MiniPlayer";
-import { HANDOVER_AT, HANDOVER_MS, TRAVEL_MS } from "../components/PosterZoom";
+import { COVER_MS } from "../components/PosterZoom";
 import { Tap } from "../components/Tap";
 import { TicketStub } from "../components/TicketStub";
 import { icon } from "../icons";
@@ -75,16 +76,22 @@ import { getEvent, type ArtistGroup } from "../data/events";
  * record is already turning where it landed, then the deck it landed on
  * arrives around it, then the page itself.
  */
-const HANDED_OVER = HANDOVER_AT + HANDOVER_MS;
-/* The deck begins arriving under the cover rather than after it, so there is
-   no still frame between the record landing and the page it landed on. */
-const ARRIVE_DECK = HANDED_OVER - 160;
-const DECK_MS = 300;
-/** Then the arm comes off its rest and down onto the record. */
-const ARM_AT = ARRIVE_DECK + 240;
-const ARM_MS = 520;
-/* The page starts while the arm is still settling, for the same reason. */
-const ARRIVE_PAGE = ARM_AT + ARM_MS - 120;
+/**
+ * Nothing on this page fades itself in on arrival. The deck — the bloom, the
+ * record, its label, the arm parked on its rest, the controls — is drawn in
+ * full from the first frame, because for the whole of `COVER_MS` it is behind
+ * the record being flown to it and nobody can see it. A thing that fades in
+ * after the cover comes off is a thing you watch arrive twice.
+ *
+ * Two things do move, and they start before the cover has finished coming
+ * off: the arm goes down on the record, and the page opens under it.
+ */
+const ARM_AT = COVER_MS - 50;
+const ARM_MS = 900;
+/* The record starts turning before the arm has quite settled, so the deck
+   comes to life during the last of the swing rather than after it. */
+const CUE_AT = ARM_AT + 660;
+const ARRIVE_PAGE = ARM_AT + 620;
 
 /**
  * The arm, and the two angles it lives at.
@@ -99,6 +106,38 @@ const ARRIVE_PAGE = ARM_AT + ARM_MS - 120;
  * `ARM_FIX` is the constant that puts the pivot-turned arm back where the
  * comp's centre-turned one sat, so the resting pose is unchanged.
  */
+/**
+ * The record on the deck, from Figma 464:71859, in the comp's own 390-wide
+ * units, and the label's place on it as fractions of the disc.
+ *
+ * `deckRect` hands the same thing to a transition in window units, so the
+ * record flown here from elsewhere can land on exactly this and wear exactly
+ * this label. It is one number in one place because two copies of it would
+ * drift and the landing would show a jump.
+ */
+export const EVENT_LABEL = "/assets/event-label.webp";
+const RECORD = { left: -9, top: -33, size: 408 };
+const LABEL = {
+  left: (80 - RECORD.left) / RECORD.size,
+  top: (50 - RECORD.top) / RECORD.size,
+  width: 228 / RECORD.size,
+  height: 230 / RECORD.size,
+};
+
+export function deckRect(width: number) {
+  const u = (value: number) => scaled(value, width);
+  return {
+    x: u(RECORD.left),
+    y: u(RECORD.top),
+    size: u(RECORD.size),
+    label: EVENT_LABEL,
+    labelRect: LABEL,
+  };
+}
+
+/** How far the record has to be pushed before it changes what is playing. */
+const SHOVE = 72;
+
 const ARM_W = 213.297;
 const ARM_H = 266.4;
 const ARM_REST = 96.37;
@@ -160,11 +199,10 @@ export function EventScreen() {
 
   /* Flown to, so the page holds itself back until the record has landed. */
   const arriving = params.arriving === true;
-  const deck = useRef(new Animated.Value(arriving ? 0 : 1)).current;
   const arm = useRef(new Animated.Value(arriving ? 0 : 1)).current;
   const [pageOpen, setPageOpen] = useState(!arriving);
-  /* The record turns because the arm is on it, so this is what starts it. */
-  const [armDown, setArmDown] = useState(!arriving);
+  /* The record can only be played once the arm is on it. */
+  const [cued, setCued] = useState(!arriving);
   /* The player is not on the page until the record has gone: it is the same
      record, carried on into a bar once there is no deck left to look at. */
   const [playerUp, setPlayerUp] = useState(false);
@@ -173,35 +211,23 @@ export function EventScreen() {
      a callback because the thing they wait for is drawn by another screen. */
   useEffect(() => {
     if (!arriving) return;
-    const settle = setTimeout(() => {
-      Animated.timing(deck, {
-        toValue: 1,
-        duration: DECK_MS,
-        easing: ease,
-        useNativeDriver: true,
-      }).start();
-    }, ARRIVE_DECK);
-    /* The arm comes down, and the record starts when it lands — the needle
-       is what makes it a record rather than a picture of one. */
+    /* The arm comes off its rest and down onto the record. */
     const down = setTimeout(() => {
       Animated.timing(arm, {
         toValue: 1,
         duration: ARM_MS,
-        /* It swings off its rest and settles onto the groove; it does not
-           arrive at the same speed it left. */
-        easing: Easing.out(Easing.cubic),
+        easing: Easing.inOut(Easing.cubic),
         useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (finished) setArmDown(true);
-      });
+      }).start();
     }, ARM_AT);
+    const cue = setTimeout(() => setCued(true), CUE_AT);
     const page = setTimeout(() => setPageOpen(true), ARRIVE_PAGE);
     return () => {
-      clearTimeout(settle);
       clearTimeout(down);
+      clearTimeout(cue);
       clearTimeout(page);
     };
-  }, [arriving, deck, arm]);
+  }, [arriving, arm]);
 
   /* The bar can only be pressed once it is there. The opacity itself runs on
      the native driver off the scroll; this is only the touch target. */
@@ -223,19 +249,77 @@ export function EventScreen() {
   useEffect(() => {
     /* Only a flown-to page plays itself; a page you opened yourself stays
        quiet until you ask it for sound. */
-    if (!arriving || !armDown || started.current) return;
+    if (!arriving || !cued || started.current) return;
     started.current = true;
     start();
-  }, [arriving, armDown, start]);
+  }, [arriving, cued, start]);
 
-  /* The arm is resting on it, so the record turns — at 33 1/3 rpm, which is
-     1.8s a revolution. The disc and its label turn as one: each spins about
-     its own centre, and the comp puts those centres on the same point. On an
-     arrival it stands still until the arm is actually down on it. */
+  /**
+   * The record answers to the hand on it: a press stops it, a push to either
+   * side puts on the track that way. The push is claimed only once it is
+   * clearly sideways, so the page still scrolls under a finger that started
+   * on the record.
+   */
+  const shove = useRef(new Animated.Value(0)).current;
+  const swap = useRef(player.step);
+  swap.current = player.step;
+  const hands = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
+      onPanResponderMove: (_, g) => shove.setValue(g.dx),
+      onPanResponderRelease: (_, g) => {
+        const far = Math.abs(g.dx) > SHOVE || Math.abs(g.vx) > 0.5;
+        if (!far) {
+          return Animated.spring(shove, {
+            toValue: 0,
+            stiffness: 260,
+            damping: 26,
+            mass: 1,
+            useNativeDriver: true,
+          }).start();
+        }
+        /* Pushed far enough: this one carries on out of the way, the next
+           one comes in from the side it was pushed towards. */
+        const way = g.dx > 0 ? 1 : -1;
+        Animated.timing(shove, {
+          toValue: way * 520,
+          duration: 200,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }).start(() => {
+          swap.current(way > 0 ? -1 : 1);
+          shove.setValue(way * -520);
+          Animated.spring(shove, {
+            toValue: 0,
+            stiffness: 200,
+            damping: 24,
+            mass: 1,
+            useNativeDriver: true,
+          }).start();
+        });
+      },
+      onPanResponderTerminate: () =>
+        Animated.spring(shove, {
+          toValue: 0,
+          stiffness: 260,
+          damping: 26,
+          mass: 1,
+          useNativeDriver: true,
+        }).start(),
+    }),
+  ).current;
+
+  /* The record turns because it is playing — at 33 1/3 rpm, which is 1.8s a
+     revolution. The disc and its label turn as one: each spins about its own
+     centre, and the comp puts those centres on the same point. Tie it to the
+     sound rather than to the page and the turning record becomes the thing
+     that tells you whether anything is coming out of it. */
   const reducedMotion = useReducedMotion();
+  const turning = cued && player.playing;
   const spin = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (reducedMotion || !armDown) return;
+    if (reducedMotion || !turning) return;
     const turn = Animated.loop(
       Animated.timing(spin, {
         toValue: 1,
@@ -246,7 +330,7 @@ export function EventScreen() {
     );
     turn.start();
     return () => turn.stop();
-  }, [spin, reducedMotion, armDown]);
+  }, [spin, reducedMotion, turning]);
 
   if (!event) {
     return (
@@ -341,7 +425,6 @@ export function EventScreen() {
               right: -32,
               top: s(7),
               height: s(340),
-              opacity: deck,
             }}
             pointerEvents="none"
           >
@@ -362,35 +445,72 @@ export function EventScreen() {
               style={StyleSheet.absoluteFill}
             />
           </Animated.View>
-          <Animated.Image
-            source={image("/assets/vinyl.webp")}
-            style={[
-              {
-                position: "absolute",
-                left: s(-9),
-                top: s(-33),
-                width: s(408),
-                height: s(408),
-                resizeMode: "contain",
-              },
-              spinning,
-            ]}
-          />
-          <Animated.Image
-            source={image("/assets/event-label.webp")}
-            style={[
-              {
-                position: "absolute",
-                left: s(80),
-                top: s(50),
-                width: s(228),
-                height: s(230),
-                resizeMode: "cover",
-                opacity: deck,
-              },
-              spinning,
-            ]}
-          />
+          {/* The record is one object you can put your hands on: press it to
+              stop it, push it aside to put the next track on. The disc and
+              its label are grouped so both move together, and the group is
+              the disc's own box so the label sits on it in the comp's
+              place. */}
+          <Animated.View
+            style={{
+              position: "absolute",
+              left: s(RECORD.left),
+              top: s(RECORD.top),
+              width: s(RECORD.size),
+              height: s(RECORD.size),
+              transform: [{ translateX: shove }],
+              /* It only starts to go once it is clearly on its way out, so
+                 a push that comes back never dims. */
+              opacity: shove.interpolate({
+                inputRange: [-520, -300, 0, 300, 520],
+                outputRange: [0, 1, 1, 1, 0],
+                extrapolate: "clamp",
+              }),
+            }}
+            {...hands.panHandlers}
+          >
+            <Tap
+              accessibilityRole="button"
+              accessibilityState={{ selected: player.playing }}
+              accessibilityLabel={
+                player.playing ? "Stop the record" : "Play the record"
+              }
+              onPress={player.toggle}
+              scale={1}
+              style={StyleSheet.absoluteFill}
+            >
+              {/* Sized in per cent rather than with absoluteFill: an Image
+                  pinned only by its insets falls back to the bitmap's own
+                  size, and this bitmap is twice the screen. */}
+              <Animated.Image
+                source={image("/assets/vinyl.webp")}
+                style={[
+                  {
+                    position: "absolute",
+                    left: 0,
+                    top: 0,
+                    width: "100%",
+                    height: "100%",
+                    resizeMode: "contain",
+                  },
+                  spinning,
+                ]}
+              />
+              <Animated.Image
+                source={image(EVENT_LABEL)}
+                style={[
+                  {
+                    position: "absolute",
+                    left: `${LABEL.left * 100}%`,
+                    top: `${LABEL.top * 100}%`,
+                    width: `${LABEL.width * 100}%`,
+                    height: `${LABEL.height * 100}%`,
+                    resizeMode: "cover",
+                  },
+                  spinning,
+                ]}
+              />
+            </Tap>
+          </Animated.View>
           {/* The arm is drawn upright and laid across the disc, so it is
               turned in place inside a box the comp sizes for it. */}
           <Animated.View
@@ -402,7 +522,6 @@ export function EventScreen() {
               height: s(241.54),
               alignItems: "center",
               justifyContent: "center",
-              opacity: deck,
             }}
             pointerEvents="none"
           >
@@ -672,7 +791,7 @@ export function EventScreen() {
 
       {/* Close, not back: the page is a sheet over Discover in the comp. */}
       <Animated.View
-        style={[styles.bar, { paddingTop: insets.top + space.s, opacity: deck }]}
+        style={[styles.bar, { paddingTop: insets.top + space.s }]}
       >
         <Tap
           accessibilityRole="button"

@@ -47,34 +47,61 @@ const SLEEVE_DROP = 58;
 const VINYL_RISE = 136;
 
 /**
- * The beats, and where each one starts.
+ * The beats, as one timeline rather than a queue.
  *
- * They overlap rather than queue: the poster begins turning while it is still
- * growing, and the record begins to leave the sleeve while the turn is
- * finishing. Run end to end the same moves take half again as long and read
- * as a list of things happening rather than as one movement.
+ * Every move is started from the same moment with its own delay, and every
+ * one of them begins before the move in front of it has finished. Nothing
+ * here waits for anything: there is no frame in the whole run where the
+ * screen is holding still between two things, which is the difference
+ * between a movement and a list of movements.
  *
  * The turn is half a revolution, not a whole one: a full turn passes edge-on
  * twice and reads as two flips. At the halfway point the face is mirrored, so
  * it is flipped back on itself there and the poster lands the right way round
  * having gone edge-on exactly once.
  */
-const ZOOM_MS = 320;
+const ZOOM_MS = 340;
 const FLIP_AT = 260;
-const FLIP_MS = 560;
-const PULL_AT = 760;
-const PULL_MS = 460;
+const FLIP_MS = 600;
+const PULL_AT = 780;
+const PULL_MS = 500;
 
-/** A beat out of the sleeve, then the ride up to the deck. */
-const HOLD_MS = 120;
-export const TRAVEL_MS = 600;
-/** The two records are one for this long, and the top one goes. */
-export const HANDOVER_AT = TRAVEL_MS - 80;
-export const HANDOVER_MS = 200;
+/**
+ * The ride up to the deck. It is the longest move in the run on purpose: it
+ * is the one that carries a thing from one screen to another, and at half
+ * this it went by before it could be read as travelling at all.
+ */
+const TRAVEL_AT = 1180;
+const TRAVEL_MS = 1100;
+/**
+ * The two records are one for this stretch. It starts well before the ride
+ * ends, so the page underneath is uncovered while the record is still
+ * settling onto it rather than after it has stopped.
+ */
+const HANDOVER_AT = TRAVEL_AT + TRAVEL_MS - 200;
+const HANDOVER_MS = 300;
+
+/**
+ * How long the page being flown to spends underneath this one, from the
+ * moment it is pushed. It is what that page waits out before it does
+ * anything of its own.
+ */
+export const COVER_MS = HANDOVER_AT + HANDOVER_MS - TRAVEL_AT;
 
 export type ZoomFrom = { x: number; y: number; width: number; height: number };
 /** Where the page underneath draws its record, in window coordinates. */
-export type ZoomRest = { x: number; y: number; size: number };
+export type ZoomRest = {
+  x: number;
+  y: number;
+  size: number;
+  /**
+   * The label that page's record wears, and where it sits on the disc as
+   * fractions of it. The record puts it on during the ride, so it arrives
+   * already dressed and the hand-over changes nothing about it.
+   */
+  label?: string;
+  labelRect?: { left: number; top: number; width: number; height: number };
+};
 
 export function PosterZoom({
   source,
@@ -130,9 +157,12 @@ export function PosterZoom({
     travel.setValue(0);
     handover.setValue(0);
     if (reduced) return;
-    /* Arrives, turns over, and lets the record out — each starting before
-       the one before it has settled. */
-    Animated.parallel([
+
+    /* One timeline. Each move carries its own delay from this moment, so the
+       poster is still growing when it starts to turn, still turning when the
+       record starts to leave it, and still letting the record go when the
+       record starts for the deck. */
+    const moves = [
       Animated.timing(progress, {
         toValue: 1,
         duration: ZOOM_MS,
@@ -153,37 +183,39 @@ export function PosterZoom({
         easing: ease,
         useNativeDriver: true,
       }),
-    ]).start(({ finished }) => {
-      if (!finished) return;
-      timer.current = setTimeout(() => {
-        /* Nowhere to go: the record simply keeps turning. */
-        if (!deck.current) return finish.current?.();
-        /* The page is pushed now, so it is already drawn and settled by the
-           time the record lands on it. */
-        arrive.current?.();
-        Animated.parallel([
-          Animated.timing(travel, {
-            toValue: 1,
-            duration: TRAVEL_MS,
-            /* Eased at both ends: it leaves the middle of the screen and
-               settles onto the deck rather than stopping dead. */
-            easing: Easing.inOut(Easing.cubic),
-            useNativeDriver: true,
-          }),
-          /* Started before the record has quite landed, so the two are one
-             object crossing over rather than one waiting for the other. */
-          Animated.timing(handover, {
-            toValue: 1,
-            delay: HANDOVER_AT,
-            duration: HANDOVER_MS,
-            easing: ease,
-            useNativeDriver: true,
-          }),
-        ]).start(({ finished: landed }) => {
-          if (landed) finish.current?.();
-        });
-      }, HOLD_MS);
+    ];
+
+    /* Somewhere to go: the record rides up and this hands the page over.
+       Nowhere to go, and the run simply ends with the record out. */
+    if (deck.current) {
+      moves.push(
+        Animated.timing(travel, {
+          toValue: 1,
+          delay: TRAVEL_AT,
+          duration: TRAVEL_MS,
+          /* Eased at both ends: it leaves the middle of the screen and
+             settles onto the deck rather than stopping dead. */
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(handover, {
+          toValue: 1,
+          delay: HANDOVER_AT,
+          duration: HANDOVER_MS,
+          easing: ease,
+          useNativeDriver: true,
+        }),
+      );
+      /* The page is pushed as the record sets off, so it is drawn, settled
+         and waiting by the time the cover comes off it. */
+      timer.current = setTimeout(() => arrive.current?.(), TRAVEL_AT);
+    }
+
+    const run = Animated.parallel(moves);
+    run.start(({ finished }) => {
+      if (finished) finish.current?.();
     });
+    return () => run.stop();
     /* `restTo` is read off a ref above: it is a rectangle derived from the
        window, so it is a new object on every render, and depending on it here
        would restart the whole run each time the parent re-drew. */
@@ -231,12 +263,16 @@ export function PosterZoom({
   const between2 = (value: Animated.Value, a: number, b: number) =>
     value.interpolate({ inputRange: [0, 1], outputRange: [a, b] });
 
-  /* The sleeve and its glow are the thing being left behind, so they go early
-     in the ride rather than fading all the way up. */
+  /* The sleeve is the thing being left behind. It goes over half the ride,
+     shrinking a little as it goes, so it is let go of rather than switched
+     off — a fade that finishes in a couple of frames reads as a cut. */
   const leaving = travel.interpolate({
-    inputRange: [0, 0.4, 1],
+    inputRange: [0, 0.55, 1],
     outputRange: [1, 0, 0],
   });
+  /* The bloom behind it dims but stays lit: the page being flown to has one
+     too, so something soft is behind the record the whole way across. */
+  const bloom = travel.interpolate({ inputRange: [0, 1], outputRange: [1, 0.5] });
 
   return (
     <Modal visible transparent statusBarTranslucent onRequestClose={close}>
@@ -253,7 +289,7 @@ export function PosterZoom({
           <Animated.View
             style={[
               styles.glow,
-              { top: 247, opacity: leaving },
+              { top: 247, opacity: bloom },
             ]}
             pointerEvents="none"
           >
@@ -304,6 +340,30 @@ export function PosterZoom({
               style={StyleSheet.absoluteFill}
               contentFit="contain"
             />
+            {/* The label the deck's record wears, put on during the ride so
+                the record that lands is the record already there. Placed in
+                fractions of the disc, so it scales with it. */}
+            {restTo?.label && restTo.labelRect && (
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  left: `${restTo.labelRect.left * 100}%`,
+                  top: `${restTo.labelRect.top * 100}%`,
+                  width: `${restTo.labelRect.width * 100}%`,
+                  height: `${restTo.labelRect.height * 100}%`,
+                  opacity: travel.interpolate({
+                    inputRange: [0, 0.25, 0.8, 1],
+                    outputRange: [0, 0, 1, 1],
+                  }),
+                }}
+              >
+                <Image
+                  source={image(restTo.label)}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="cover"
+                />
+              </Animated.View>
+            )}
           </Animated.View>
 
           <Animated.View
@@ -321,6 +381,7 @@ export function PosterZoom({
                   { translateY: between(startY, 0) },
                   { translateY: between2(pull, 0, SLEEVE_DROP) },
                   { scale: between(startScale, 1) },
+                  { scale: between2(travel, 1, 0.92) },
                   {
                     rotateY: flip.interpolate({
                       inputRange: [0, 1],

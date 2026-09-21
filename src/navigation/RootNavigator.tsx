@@ -138,6 +138,13 @@ export function RootNavigator() {
             /* A flown-to page must not also slide: it is already being
                covered by the thing flying onto it. */
             animation: route.params?.arriving ? "none" : "slide_from_right",
+            /* No swipe back from this one. The record at the top of the page
+               is pushed left and right to change what is playing, and the
+               record reaches the edge of the screen — a back gesture living
+               in the same place would take the page away instead. The comp
+               gives this page a close button rather than a back arrow, so
+               nothing is lost by it. */
+            gestureEnabled: false,
           })}
         />
         {/* The booking journey holds a timed seat hold, so it comes up as a

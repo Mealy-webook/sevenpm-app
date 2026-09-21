@@ -33,39 +33,60 @@ export type Deck = ReturnType<typeof useDeck>;
 export function useDeck(tracks: PlaylistTrack[]) {
   const [index, setIndex] = useState(0);
   const track = tracks[index];
-  const player = useAudioPlayer(track?.audioSrc ?? null);
+  const source = track?.audioSrc;
+
+  /**
+   * One player for the whole playlist, not one per track.
+   *
+   * `useAudioPlayer(source)` builds a **new** player whenever the source
+   * changes and releases the old one. Anything that was asked of the old
+   * player goes with it, which is why pushing the record aside used to
+   * change the track and then leave the deck silent. Here the player is made
+   * once with nothing in it and the track is loaded into it by hand.
+   */
+  const player = useAudioPlayer(null);
   const status = useAudioPlayerStatus(player);
   const playing = status?.playing ?? false;
   const loaded = status?.isLoaded ?? false;
   const ended = status?.didJustFinish ?? false;
 
   /**
-   * What the page *wants* to be happening, which is not the same as what is.
-   *
-   * These are streamed previews, so a track is asked for well before it can
-   * start — the arm comes down on the record while the file is still on its
-   * way. Asking a player that has nothing loaded to play is simply dropped,
-   * which is why the intent is held here and acted on when the track is
-   * actually ready.
+   * What the deck is *meant* to be doing, which is not the same as what it
+   * is doing. These are streamed previews, so a track is asked for well
+   * before it can start — the arm comes down on the record while the file is
+   * still on its way, and a player with nothing loaded drops the request.
    */
-  const [wanted, setWanted] = useState(false);
+  const wanted = useRef(false);
 
   /* A phone on silent should still play a preview it was asked for. */
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
   }, []);
 
+  /* Load the track, and carry on playing if that is what was happening. */
   useEffect(() => {
-    if (wanted && loaded && !playing) player.play();
-  }, [wanted, loaded, playing, player]);
+    if (!source) return;
+    player.replace(source);
+    if (wanted.current) player.play();
+  }, [source, player]);
 
-  /* A preview is half a minute long; it stops there rather than looping. */
+  /* And pick it up again once it has actually loaded, for the times it was
+     asked for before there was anything to ask. */
   useEffect(() => {
-    if (ended) setWanted(false);
-  }, [ended]);
+    if (!wanted.current || !loaded || playing || ended) return;
+    player.play();
+  }, [loaded, playing, ended, player]);
 
-  /* Changing track keeps playing: the intent carries over, and the new file
-     starts itself once it has loaded. */
+  /* A preview runs out after half a minute; the deck moves on rather than
+     stopping. Guarded by the track it finished, because a source being
+     swapped can report the outgoing one as having ended. */
+  const done = useRef<string | null>(null);
+  useEffect(() => {
+    if (!ended || !source || done.current === source) return;
+    done.current = source;
+    setIndex((current) => (current + 1) % tracks.length);
+  }, [ended, source, tracks.length]);
+
   const step = (by: number) => {
     haptic.tick();
     setIndex((current) => (current + by + tracks.length) % tracks.length);
@@ -75,15 +96,15 @@ export function useDeck(tracks: PlaylistTrack[]) {
     track,
     playing,
     step,
-    play: () => setWanted(true),
+    play: () => {
+      wanted.current = true;
+      player.play();
+    },
     toggle: () => {
       haptic.tick();
-      if (playing) {
-        setWanted(false);
-        player.pause();
-      } else {
-        setWanted(true);
-      }
+      wanted.current = !playing;
+      if (playing) player.pause();
+      else player.play();
     },
   };
 }

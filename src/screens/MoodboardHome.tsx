@@ -10,10 +10,11 @@ import Globe from "../icons/ic-globe-20.svg";
 import { Button } from "../components/Button";
 import { CardStack } from "../components/CardStack";
 import { PosterZoom, type ZoomFrom } from "../components/PosterZoom";
+import { deckRect } from "./EventScreen";
 import { Tap } from "../components/Tap";
 import { image } from "../images";
 import { Text } from "../theme/Text";
-import { colors, displaySize, scaled, space, type } from "../theme/tokens";
+import { colors, displaySize, space, type } from "../theme/tokens";
 import { TAB_BAR_CLEARANCE } from "../navigation/TabBar";
 import { discoverCopy, festivalCards } from "../data/discover";
 import type { RootParamList } from "../navigation/RootNavigator";
@@ -42,14 +43,12 @@ export function MoodboardHome() {
     { festival: (typeof festivalCards)[number]; from: ZoomFrom } | null
   >(null);
 
-  /* Where the event page puts its record — Figma 464:71859, on the comp's
-     own 390-wide frame, and at the top of the window because that page's
-     scroll view starts there. The record flies to exactly this, so the two
-     are the same object at the moment one fades off the other. */
-  const deck = useMemo(() => {
-    const s = (value: number) => scaled(value, width);
-    return { x: s(-9), y: s(-33), size: s(408) };
-  }, [width]);
+  /* Where the event page puts its record, taken from that page itself so
+     the two cannot drift apart — it is at the top of the window because that
+     page's scroll view starts there. The record flies to exactly this, and
+     puts on exactly that label on the way, so the two are the same object at
+     the moment one fades off the other. */
+  const deck = useMemo(() => deckRect(width), [width]);
 
   const openPoster = (festival: (typeof festivalCards)[number]) => {
     poster.current?.measureInWindow((x, y, w, h) =>
