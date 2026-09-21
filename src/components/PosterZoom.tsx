@@ -80,10 +80,14 @@ const PULL_MS = 500;
 /**
  * The ride up to the deck. It is the longest move in the run on purpose: it
  * is the one that carries a thing from one screen to another, and at half
- * this it went by before it could be read as travelling at all.
+ * this it went by before it could be read as travelling at all. It has been
+ * lengthened twice at Ahmed's asking — 600, then 1000, then 1300, now 1700 —
+ * and this is the one number to change if it still goes by too fast. The
+ * hand-over and everything the event page does are measured off it, so they
+ * follow on their own.
  */
 const TRAVEL_AT = 900;
-const TRAVEL_MS = 1300;
+const TRAVEL_MS = 1700;
 /**
  * The two records are one for this stretch. It starts well before the ride
  * ends, so the page underneath is uncovered while the record is still
