@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Pressable,
@@ -23,6 +23,7 @@ import { Tap } from "../components/Tap";
 import { deckLabel, deckRect } from "./EventScreen";
 import { image } from "../images";
 import { Text } from "../theme/Text";
+import { ease } from "../theme/motion";
 import { colors, displaySize, radii, space, type } from "../theme/tokens";
 import type { RootParamList } from "../navigation/RootNavigator";
 import { TAB_BAR_CLEARANCE } from "../navigation/TabBar";
@@ -61,8 +62,8 @@ import {
 const CARD_W = 289;
 /** The media is wider than the card's own padding box, and is let overflow. */
 const CARD_MEDIA = 273;
-/** Media, the gap under it, and the three lines of type. */
-const CARD_H = 392;
+/** How long the new festival's name takes to arrive in the old one's place. */
+const NAME_MS = 220;
 const STORY = 72;
 const TILE_W = 228;
 const TILE_H = 152;
@@ -102,6 +103,21 @@ export function DiscoverScreen() {
       setZoom({ festival, from: { x, y, width: w, height: h } }),
     );
   };
+
+  /* The name is not on the card. It holds its place under the pile and
+     changes what it says when a new poster reaches the front — moving it with
+     the card would throw the one thing on this screen that has to stay
+     readable off the screen every time you pushed a poster aside. */
+  const nameIn = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    nameIn.setValue(0);
+    Animated.timing(nameIn, {
+      toValue: 1,
+      duration: NAME_MS,
+      easing: ease,
+      useNativeDriver: true,
+    }).start();
+  }, [front.id, nameIn]);
 
   const heading = displaySize(type.displaySection, width);
   const cardName = displaySize(type.displayCard, width);
@@ -207,66 +223,54 @@ export function DiscoverScreen() {
               items={festivalCards}
               keyOf={(festival) => festival.id}
               width={CARD_W}
-              height={CARD_H}
+              height={CARD_MEDIA}
               style={styles.stack}
               label="Next festival"
               onFrontChange={setFront}
               render={(festival, isFront) => (
-                <View style={styles.card}>
-                  {/* Only the card you can see responds; the ones behind are
-                      inert until they reach the front. */}
-                  <Pressable
-                    ref={isFront ? poster : undefined}
-                    disabled={!isFront}
-                    accessibilityRole="imagebutton"
-                    accessibilityLabel={festival.name}
-                    onPress={() => openPoster(festival)}
-                    style={styles.poster}
-                  >
-                    <Image
-                      source={image(festival.image)}
-                      style={StyleSheet.absoluteFill}
-                      contentFit="cover"
-                      transition={300}
-                    />
-                  </Pressable>
-                  {/* Only the card in front is named. The ones behind it are
-                      posters and nothing else, as the comp draws them —
-                      without a panel to hide behind, three sets of type would
-                      otherwise be stacked on top of each other. */}
-                  {isFront && (
-                    <View style={styles.cardText}>
-                      <Text
-                        variant="displayCard"
-                        uppercase
-                        color={colors.white}
-                        numberOfLines={1}
-                        style={[cardName, styles.centred]}
-                      >
-                        {festival.name}
-                      </Text>
-                      {/* Absent until content sets it — see data/discover.ts. */}
-                      {festival.dates && (
-                        <Text
-                          variant="bodyBold"
-                          color={colors.brand}
-                          style={styles.centred}
-                        >
-                          {festival.dates}
-                        </Text>
-                      )}
-                      <Text
-                        variant="bodyS"
-                        color={colors.contentSecondary}
-                        style={styles.centred}
-                      >
-                        {festival.venue}
-                      </Text>
-                    </View>
-                  )}
-                </View>
+                <Pressable
+                  ref={isFront ? poster : undefined}
+                  disabled={!isFront}
+                  accessibilityRole="imagebutton"
+                  accessibilityLabel={festival.name}
+                  onPress={() => openPoster(festival)}
+                  style={styles.poster}
+                >
+                  <Image
+                    source={image(festival.image)}
+                    style={StyleSheet.absoluteFill}
+                    contentFit="cover"
+                    transition={300}
+                  />
+                </Pressable>
               )}
             />
+
+            {/* The pile's caption, in one place. */}
+            <Animated.View style={[styles.cardText, { opacity: nameIn }]}>
+              <Text
+                variant="displayCard"
+                uppercase
+                color={colors.white}
+                numberOfLines={1}
+                style={[cardName, styles.centred]}
+              >
+                {front.name}
+              </Text>
+              {/* Absent until content sets it — see data/discover.ts. */}
+              {front.dates && (
+                <Text variant="bodyBold" color={colors.brand} style={styles.centred}>
+                  {front.dates}
+                </Text>
+              )}
+              <Text
+                variant="bodyS"
+                color={colors.contentSecondary}
+                style={styles.centred}
+              >
+                {front.venue}
+              </Text>
+            </Animated.View>
           </Reveal>
 
           {/* Merchandise */}
@@ -471,9 +475,27 @@ const styles = StyleSheet.create({
   /* The fan leans cards out past the front one, so the stack is given a
      little room rather than being clipped by the page padding. */
   stack: { marginBottom: space.l },
-  card: { width: CARD_W, height: CARD_H, gap: space.l + space.m, alignItems: "center" },
-  /* Wider than the card's padding box, as the comp draws it. */
-  poster: { width: CARD_MEDIA, height: CARD_MEDIA, backgroundColor: colors.bgTertiary },
+  /* The comp's media is wider than the card's own padding box and is let
+     overflow it, so the card is the poster and nothing else. */
+  poster: {
+    width: CARD_MEDIA,
+    height: CARD_MEDIA,
+    alignSelf: "center",
+    backgroundColor: colors.bgTertiary,
+    /**
+     * The comp asks for black at a quarter, offset 4, blurred 4. On a page
+     * this dark that is invisible — a shadow separates things by being
+     * darker than what is behind it, and almost nothing is darker than this
+     * ground. So it is thrown further and harder than the comp draws it, to
+     * buy the separation the comp is asking for rather than the numbers it
+     * happens to state.
+     */
+    shadowColor: "#000",
+    shadowOpacity: 0.55,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 18,
+    elevation: 12,
+  },
   cardText: { alignSelf: "stretch" },
 
   headingRow: {

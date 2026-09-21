@@ -87,7 +87,9 @@ import { getEvent, type ArtistGroup } from "../data/events";
  * off: the deck is asked to play, which brings the arm down onto the record,
  * and the page opens under it.
  */
-const ARM_AT = COVER_MS - 50;
+/* The arm is already on its way down as the cover lifts, so the page does
+   not appear and then start doing something. */
+const ARM_AT = COVER_MS - 120;
 const ARRIVE_PAGE = ARM_AT + 620;
 
 /**

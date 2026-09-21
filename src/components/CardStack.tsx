@@ -157,6 +157,11 @@ export function CardStack<T>({
      a stale front card. */
   const currentFront = useRef(frontIndex);
   currentFront.current = frontIndex;
+  /* Deepest first, so the one at the front of the pile is drawn last. */
+  const painted = items
+    .map((item, index) => ({ item, index, depth: order.indexOf(index) }))
+    .sort((a, b) => b.depth - a.depth);
+
   const sendToBackRef = useRef(sendToBack);
   sendToBackRef.current = sendToBack;
   const settleRef = useRef(settle);
@@ -164,8 +169,16 @@ export function CardStack<T>({
 
   return (
     <View style={[{ width, height }, style]}>
-      {items.map((item, index) => {
-        const depth = order.indexOf(index);
+      {/* Drawn back to front.
+       *
+       * Each card used to be handed to React in the order the festivals are
+       * listed in, with a `zIndex` to sort it out. That does not sort it out:
+       * a `zIndex` orders a view among its own brothers and sisters, and each
+       * card had a wrapper of its own, so what actually decided which poster
+       * was on top was the order of the list — not which card was at the front
+       * of the pile. Handing them over deepest-first makes the paint order the
+       * pile order, which is the only order there is. */
+      painted.map(({ item, index, depth }) => {
         const isFront = depth === 0;
         const { drag, depth: depthValue } = valuesFor(index);
 
@@ -192,7 +205,7 @@ export function CardStack<T>({
           <Animated.View
             style={[
               styles.card,
-              { width, height, zIndex: items.length - depth },
+              { width, height },
               {
                 opacity: from(FADE),
                 transform: [
@@ -228,7 +241,7 @@ export function CardStack<T>({
           );
         }
 
-        return <View key={keyOf(item)}>{body}</View>;
+        return <View key={keyOf(item)} style={styles.card}>{body}</View>;
       })}
     </View>
   );

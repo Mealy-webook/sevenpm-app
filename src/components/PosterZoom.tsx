@@ -70,10 +70,10 @@ const VINYL_RISE = 136;
  * it is flipped back on itself there and the poster lands the right way round
  * having gone edge-on exactly once.
  */
-const ZOOM_MS = 340;
-const FLIP_AT = 260;
-const FLIP_MS = 600;
-const PULL_AT = 780;
+const ZOOM_MS = 380;
+const FLIP_AT = 220;
+const FLIP_MS = 560;
+const PULL_AT = 560;
 const PULL_MS = 500;
 
 /**
@@ -81,8 +81,8 @@ const PULL_MS = 500;
  * is the one that carries a thing from one screen to another, and at half
  * this it went by before it could be read as travelling at all.
  */
-const TRAVEL_AT = 1180;
-const TRAVEL_MS = 1100;
+const TRAVEL_AT = 900;
+const TRAVEL_MS = 1000;
 /**
  * The two records are one for this stretch. It starts well before the ride
  * ends, so the page underneath is uncovered while the record is still
@@ -90,6 +90,21 @@ const TRAVEL_MS = 1100;
  */
 const HANDOVER_AT = TRAVEL_AT + TRAVEL_MS - 200;
 const HANDOVER_MS = 300;
+
+/**
+ * The system's `ease` is an expo-out: it leaves fast and takes a long time to
+ * settle. That is right for a thing arriving from nowhere and wrong for a
+ * thing already moving — four of them in a row is four launches and four
+ * stops, which is what makes a run of overlapping moves still read as a list.
+ *
+ * So the two moves the record makes are eased for **continuity** instead. The
+ * pull is given a shallow tail so it is still travelling when it ends, and
+ * the ride is given a fast start so it takes that speed up rather than
+ * building its own from nothing. Between them the record leaves the sleeve
+ * and arrives on the deck without ever being still.
+ */
+const PULL_EASE = Easing.out(Easing.quad);
+const RIDE_EASE = Easing.out(Easing.cubic);
 
 /**
  * How long the page being flown to spends underneath this one, from the
@@ -190,7 +205,7 @@ export function PosterZoom({
         toValue: 1,
         delay: PULL_AT,
         duration: PULL_MS,
-        easing: ease,
+        easing: PULL_EASE,
         useNativeDriver: true,
       }),
     ];
@@ -203,9 +218,7 @@ export function PosterZoom({
           toValue: 1,
           delay: TRAVEL_AT,
           duration: TRAVEL_MS,
-          /* Eased at both ends: it leaves the middle of the screen and
-             settles onto the deck rather than stopping dead. */
-          easing: Easing.inOut(Easing.cubic),
+          easing: RIDE_EASE,
           useNativeDriver: true,
         }),
         Animated.timing(handover, {
@@ -277,7 +290,7 @@ export function PosterZoom({
      shrinking a little as it goes, so it is let go of rather than switched
      off — a fade that finishes in a couple of frames reads as a cut. */
   const leaving = travel.interpolate({
-    inputRange: [0, 0.55, 1],
+    inputRange: [0, 0.9, 1],
     outputRange: [1, 0, 0],
   });
   /* The bloom behind it dims but stays lit: the page being flown to has one
