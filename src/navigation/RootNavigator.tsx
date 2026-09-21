@@ -29,7 +29,12 @@ import { RewardsScreen } from "../screens/RewardsScreen";
 
 export type RootParamList = {
   Tabs: undefined;
-  Event: { slug: string };
+  /**
+   * `arriving` means the screen is being flown to rather than pushed to:
+   * `PosterZoom` is carrying a record onto its deck and this page is being
+   * put underneath, so it neither slides in nor opens until that lands.
+   */
+  Event: { slug: string; arriving?: boolean };
   Booking: { slug: string };
   Rewards: undefined;
   Wallet: undefined;
@@ -126,7 +131,15 @@ export function RootNavigator() {
         }}
       >
         <Stack.Screen name="Tabs" component={Tabs} />
-        <Stack.Screen name="Event" component={EventScreen} />
+        <Stack.Screen
+          name="Event"
+          component={EventScreen}
+          options={({ route }) => ({
+            /* A flown-to page must not also slide: it is already being
+               covered by the thing flying onto it. */
+            animation: route.params?.arriving ? "none" : "slide_from_right",
+          })}
+        />
         {/* The booking journey holds a timed seat hold, so it comes up as a
             sheet from the bottom rather than sliding in as another page. */}
         <Stack.Screen

@@ -12,7 +12,7 @@ import {
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useReducedMotion } from "../theme/motion";
+import { ease, useReducedMotion } from "../theme/motion";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
@@ -26,6 +26,8 @@ import { Button } from "../components/Button";
 import { Chip } from "../components/Chip";
 import { PhotoPile } from "../components/PhotoPile";
 import { Page } from "../components/Screen";
+import { MiniPlayer, useDeck } from "../components/MiniPlayer";
+import { HANDOVER_AT, HANDOVER_MS, TRAVEL_MS } from "../components/PosterZoom";
 import { Tap } from "../components/Tap";
 import { TicketStub } from "../components/TicketStub";
 import { icon } from "../icons";
@@ -63,6 +65,57 @@ import { getEvent, type ArtistGroup } from "../data/events";
  * under the line-up circles, and a sponsors block. The comp has none of them;
  * the tickets themselves are the call to action.
  */
+
+/**
+ * When the page is flown to rather than pushed to.
+ *
+ * `PosterZoom` pushes this screen the moment the record sets off for the deck
+ * and keeps covering it until the record lands, so for that first stretch the
+ * page is drawn but not seen. It opens in three beats instead of one: the
+ * record is already turning where it landed, then the deck it landed on
+ * arrives around it, then the page itself.
+ */
+const HANDED_OVER = HANDOVER_AT + HANDOVER_MS;
+/* The deck begins arriving under the cover rather than after it, so there is
+   no still frame between the record landing and the page it landed on. */
+const ARRIVE_DECK = HANDED_OVER - 160;
+const DECK_MS = 300;
+/** Then the arm comes off its rest and down onto the record. */
+const ARM_AT = ARRIVE_DECK + 240;
+const ARM_MS = 520;
+/* The page starts while the arm is still settling, for the same reason. */
+const ARRIVE_PAGE = ARM_AT + ARM_MS - 120;
+
+/**
+ * The arm, and the two angles it lives at.
+ *
+ * The comp draws it at 96.37°, across the record. Parked it is at 62°, which
+ * puts the head clear of the outer groove and low on the hero, where a rest
+ * would be. It swings between the two about its **pivot** — the plate at the
+ * top right of the asset — and not about the middle of its own box, because
+ * an arm that rotates about its middle slides across the deck rather than
+ * turning on it.
+ *
+ * `ARM_FIX` is the constant that puts the pivot-turned arm back where the
+ * comp's centre-turned one sat, so the resting pose is unchanged.
+ */
+const ARM_W = 213.297;
+const ARM_H = 266.4;
+const ARM_REST = 96.37;
+const ARM_PARK = 62;
+/** The pivot plate's centre, as a fraction of the asset. */
+const ARM_PIVOT = { x: (0.673 - 0.5) * ARM_W, y: (0.225 - 0.5) * ARM_H };
+const ARM_FIX = turned(ARM_PIVOT, ARM_REST);
+
+function turned(point: { x: number; y: number }, degrees: number) {
+  const a = (degrees * Math.PI) / 180;
+  const cos = Math.cos(a);
+  const sin = Math.sin(a);
+  return {
+    x: point.x * cos - point.y * sin - point.x,
+    y: point.x * sin + point.y * cos - point.y,
+  };
+}
 
 /** The comp's page header is 279 tall on a 390 frame; the title sits on it. */
 const HEADER_RATIO = 279 / 390;
@@ -105,6 +158,96 @@ export function EventScreen() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const { scrollY, props: scrollProps } = usePageScroll();
 
+  /* Flown to, so the page holds itself back until the record has landed. */
+  const arriving = params.arriving === true;
+  const deck = useRef(new Animated.Value(arriving ? 0 : 1)).current;
+  const arm = useRef(new Animated.Value(arriving ? 0 : 1)).current;
+  const [pageOpen, setPageOpen] = useState(!arriving);
+  /* The record turns because the arm is on it, so this is what starts it. */
+  const [armDown, setArmDown] = useState(!arriving);
+  /* The player is not on the page until the record has gone: it is the same
+     record, carried on into a bar once there is no deck left to look at. */
+  const [playerUp, setPlayerUp] = useState(false);
+
+  /* Beat two and beat three of an arrival. Both are on timers rather than on
+     a callback because the thing they wait for is drawn by another screen. */
+  useEffect(() => {
+    if (!arriving) return;
+    const settle = setTimeout(() => {
+      Animated.timing(deck, {
+        toValue: 1,
+        duration: DECK_MS,
+        easing: ease,
+        useNativeDriver: true,
+      }).start();
+    }, ARRIVE_DECK);
+    /* The arm comes down, and the record starts when it lands — the needle
+       is what makes it a record rather than a picture of one. */
+    const down = setTimeout(() => {
+      Animated.timing(arm, {
+        toValue: 1,
+        duration: ARM_MS,
+        /* It swings off its rest and settles onto the groove; it does not
+           arrive at the same speed it left. */
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) setArmDown(true);
+      });
+    }, ARM_AT);
+    const page = setTimeout(() => setPageOpen(true), ARRIVE_PAGE);
+    return () => {
+      clearTimeout(settle);
+      clearTimeout(down);
+      clearTimeout(page);
+    };
+  }, [arriving, deck, arm]);
+
+  /* The bar can only be pressed once it is there. The opacity itself runs on
+     the native driver off the scroll; this is only the touch target. */
+  useEffect(() => {
+    const id = scrollY.addListener(({ value }) => {
+      const up = value > width * 0.22;
+      setPlayerUp((was) => (was === up ? was : up));
+    });
+    return () => scrollY.removeListener(id);
+  }, [scrollY, width]);
+
+  /* One deck for the page: the arm starts it, the bar carries on with it.
+     Held above the early return below, because a hook that only sometimes
+     runs is a hook that breaks the next render. */
+  const player = useDeck(event?.playlist ?? []);
+  const start = player.play;
+  /* Once, on the landing — not on every render that follows it. */
+  const started = useRef(false);
+  useEffect(() => {
+    /* Only a flown-to page plays itself; a page you opened yourself stays
+       quiet until you ask it for sound. */
+    if (!arriving || !armDown || started.current) return;
+    started.current = true;
+    start();
+  }, [arriving, armDown, start]);
+
+  /* The arm is resting on it, so the record turns — at 33 1/3 rpm, which is
+     1.8s a revolution. The disc and its label turn as one: each spins about
+     its own centre, and the comp puts those centres on the same point. On an
+     arrival it stands still until the arm is actually down on it. */
+  const reducedMotion = useReducedMotion();
+  const spin = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (reducedMotion || !armDown) return;
+    const turn = Animated.loop(
+      Animated.timing(spin, {
+        toValue: 1,
+        duration: 1800,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    turn.start();
+    return () => turn.stop();
+  }, [spin, reducedMotion, armDown]);
+
   if (!event) {
     return (
       <Page>
@@ -118,27 +261,10 @@ export function EventScreen() {
   }
 
   const book = () => navigation.navigate("Booking", { slug: event.slug });
+
   /* The hero is a collage at the comp's own 390-wide measurements. */
   const s = (value: number) => scaled(value, width);
 
-  /* The arm is resting on it, so the record turns — at 33 1/3 rpm, which is
-     1.8s a revolution. The disc and its label turn as one: each spins about
-     its own centre, and the comp puts those centres on the same point. */
-  const reducedMotion = useReducedMotion();
-  const spin = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (reducedMotion) return;
-    const turn = Animated.loop(
-      Animated.timing(spin, {
-        toValue: 1,
-        duration: 1800,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }),
-    );
-    turn.start();
-    return () => turn.stop();
-  }, [spin, reducedMotion]);
   const spinning = {
     transform: [
       {
@@ -159,6 +285,19 @@ export function EventScreen() {
   const barFill = scrollY.interpolate({
     inputRange: [width * 0.35, width * 0.7],
     outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+  /* The player comes up on the same stretch the record goes off the top of
+     the screen on, so the hand-over reads as one object moving. */
+  const playerRange = [width * 0.12, width * 0.45];
+  const playerIn = scrollY.interpolate({
+    inputRange: playerRange,
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+  const playerRise = scrollY.interpolate({
+    inputRange: playerRange,
+    outputRange: [28, 0],
     extrapolate: "clamp",
   });
 
@@ -191,19 +330,38 @@ export function EventScreen() {
             ],
           }}
         >
-          <Image
-            source={image("/assets/event-label.webp")}
+          {/* blurRadius blurs inside the view, so the bitmap still ends on
+              a straight edge. The sides are hung past the screen and the top
+              and bottom are painted back into the page at full strength — a
+              half-transparent page colour cannot hide an edge. */}
+          <Animated.View
             style={{
               position: "absolute",
-              left: s(16),
+              left: -32,
+              right: -32,
               top: s(7),
-              width: s(340),
               height: s(340),
-              opacity: 0.4,
+              opacity: deck,
             }}
-            contentFit="cover"
-            blurRadius={60}
-          />
+            pointerEvents="none"
+          >
+            <Image
+              source={image("/assets/event-label.webp")}
+              style={[StyleSheet.absoluteFill, styles.glow]}
+              contentFit="cover"
+              blurRadius={60}
+            />
+            <LinearGradient
+              colors={[
+                colors.bgPrimary,
+                "transparent",
+                "transparent",
+                colors.bgPrimary,
+              ]}
+              locations={[0, 0.34, 0.66, 1]}
+              style={StyleSheet.absoluteFill}
+            />
+          </Animated.View>
           <Animated.Image
             source={image("/assets/vinyl.webp")}
             style={[
@@ -228,13 +386,14 @@ export function EventScreen() {
                 width: s(228),
                 height: s(230),
                 resizeMode: "cover",
+                opacity: deck,
               },
               spinning,
             ]}
           />
           {/* The arm is drawn upright and laid across the disc, so it is
               turned in place inside a box the comp sizes for it. */}
-          <View
+          <Animated.View
             style={{
               position: "absolute",
               left: s(134),
@@ -243,22 +402,47 @@ export function EventScreen() {
               height: s(241.54),
               alignItems: "center",
               justifyContent: "center",
+              opacity: deck,
             }}
             pointerEvents="none"
           >
-            <Image
-              source={image("/assets/tonearm.webp")}
+            <Animated.View
               style={{
-                width: s(213.297),
-                height: s(266.4),
-                transform: [{ rotate: "96.37deg" }],
+                width: s(ARM_W),
+                height: s(ARM_H),
+                transform: [
+                  /* Puts the pivot-turned arm back on the comp's mark. */
+                  { translateX: s(ARM_FIX.x) },
+                  { translateY: s(ARM_FIX.y) },
+                  /* Turn about the pivot: to it, round, and back. */
+                  { translateX: s(ARM_PIVOT.x) },
+                  { translateY: s(ARM_PIVOT.y) },
+                  {
+                    rotate: arm.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [`${ARM_PARK}deg`, `${ARM_REST}deg`],
+                    }),
+                  },
+                  { translateX: s(-ARM_PIVOT.x) },
+                  { translateY: s(-ARM_PIVOT.y) },
+                ],
               }}
-              contentFit="contain"
-              transition={300}
-            />
-          </View>
+            >
+              <Image
+                source={image("/assets/tonearm.webp")}
+                style={StyleSheet.absoluteFill}
+                contentFit="contain"
+                transition={300}
+              />
+            </Animated.View>
+          </Animated.View>
         </Animated.View>
 
+        {/* Everything below the deck. On an arrival it is not rendered at all
+            until the record has landed, so each block plays its own entrance
+            from that moment rather than having played it behind the cover. */}
+        {pageOpen && (
+        <>
         {/* Name, when, where, what. */}
         <Reveal
           index={0}
@@ -460,11 +644,36 @@ export function EventScreen() {
             })}
           </View>
         </Reveal>
+        </>
+        )}
         </Animated.ScrollView>
       </ScrollProvider>
 
+      {/* The player, floated above the page as the web build floats it.
+          It is not there while the deck is: the record at the top of the page
+          is the record, and a second one in a bar underneath it would be two
+          of the same thing. It slides up as the deck scrolls away, so there
+          is always exactly one record on screen. */}
+      {pageOpen && (
+        <Animated.View
+          style={[
+            styles.player,
+            {
+              bottom: Math.max(insets.bottom, 20),
+              opacity: playerIn,
+              transform: [{ translateY: playerRise }],
+            },
+          ]}
+          pointerEvents={playerUp ? "box-none" : "none"}
+        >
+          <MiniPlayer deck={player} />
+        </Animated.View>
+      )}
+
       {/* Close, not back: the page is a sheet over Discover in the comp. */}
-      <View style={[styles.bar, { paddingTop: insets.top + space.s }]}>
+      <Animated.View
+        style={[styles.bar, { paddingTop: insets.top + space.s, opacity: deck }]}
+      >
         <Tap
           accessibilityRole="button"
           accessibilityLabel="Close"
@@ -492,7 +701,7 @@ export function EventScreen() {
           />
           <ShareIcon width={20} height={20} />
         </Tap>
-      </View>
+      </Animated.View>
     </Page>
   );
 }
@@ -549,6 +758,8 @@ function ArtistGroupView({
 }
 
 const styles = StyleSheet.create({
+  glow: { opacity: 0.4 },
+  player: { position: "absolute", left: gutter, right: gutter, zIndex: 3 },
   section: { paddingHorizontal: gutter, paddingTop: space.xl, gap: space.m },
   semibold: { fontFamily: "Roboto_600SemiBold" },
   link: { textDecorationLine: "underline" },

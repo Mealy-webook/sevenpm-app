@@ -90,6 +90,10 @@ import IcIcParking16 from "./ic-parking-16.svg";
 import IcIcParking from "./ic-parking.svg";
 import IcIcPhone16 from "./ic-phone-16.svg";
 import IcIcPin16 from "./ic-pin-16.svg";
+import IcIcPlayerNext from "./ic-player-next.svg";
+import IcIcPlayerPause from "./ic-player-pause.svg";
+import IcIcPlayerPlay from "./ic-player-play.svg";
+import IcIcPlayerPrevious from "./ic-player-previous.svg";
 import IcIcPlus13 from "./ic-plus-13.svg";
 import IcIcPlus16Ink from "./ic-plus-16-ink.svg";
 import IcIcPlus16 from "./ic-plus-16.svg";
@@ -230,6 +234,10 @@ export const icons: Record<string, React.FC<SvgProps>> = {
   "/assets/ic-parking.svg": IcIcParking,
   "/assets/ic-phone-16.svg": IcIcPhone16,
   "/assets/ic-pin-16.svg": IcIcPin16,
+  "/assets/ic-player-next.svg": IcIcPlayerNext,
+  "/assets/ic-player-pause.svg": IcIcPlayerPause,
+  "/assets/ic-player-play.svg": IcIcPlayerPlay,
+  "/assets/ic-player-previous.svg": IcIcPlayerPrevious,
   "/assets/ic-plus-13.svg": IcIcPlus13,
   "/assets/ic-plus-16-ink.svg": IcIcPlus16Ink,
   "/assets/ic-plus-16.svg": IcIcPlus16,

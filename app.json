@@ -36,7 +36,8 @@
         }
       ],
       "expo-image",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-audio"
     ],
     "backgroundColor": "#0b0b0e",
     "primaryColor": "#fbeb1c"

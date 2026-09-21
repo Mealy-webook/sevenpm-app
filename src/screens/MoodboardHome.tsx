@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,7 +13,7 @@ import { PosterZoom, type ZoomFrom } from "../components/PosterZoom";
 import { Tap } from "../components/Tap";
 import { image } from "../images";
 import { Text } from "../theme/Text";
-import { colors, displaySize, space, type } from "../theme/tokens";
+import { colors, displaySize, scaled, space, type } from "../theme/tokens";
 import { TAB_BAR_CLEARANCE } from "../navigation/TabBar";
 import { discoverCopy, festivalCards } from "../data/discover";
 import type { RootParamList } from "../navigation/RootNavigator";
@@ -38,11 +38,22 @@ export function MoodboardHome() {
   const [front, setFront] = useState(festivalCards[0]);
   /* Tapping the poster opens it full screen, growing out of where it sat. */
   const poster = useRef<View>(null);
-  const [zoom, setZoom] = useState<{ source: string; from: ZoomFrom } | null>(null);
+  const [zoom, setZoom] = useState<
+    { festival: (typeof festivalCards)[number]; from: ZoomFrom } | null
+  >(null);
 
-  const openPoster = (source: string) => {
+  /* Where the event page puts its record — Figma 464:71859, on the comp's
+     own 390-wide frame, and at the top of the window because that page's
+     scroll view starts there. The record flies to exactly this, so the two
+     are the same object at the moment one fades off the other. */
+  const deck = useMemo(() => {
+    const s = (value: number) => scaled(value, width);
+    return { x: s(-9), y: s(-33), size: s(408) };
+  }, [width]);
+
+  const openPoster = (festival: (typeof festivalCards)[number]) => {
     poster.current?.measureInWindow((x, y, w, h) =>
-      setZoom({ source, from: { x, y, width: w, height: h } }),
+      setZoom({ festival, from: { x, y, width: w, height: h } }),
     );
   };
 
@@ -78,17 +89,20 @@ export function MoodboardHome() {
         <View style={styles.glow} pointerEvents="none">
           <Image
             source={image(front.image)}
-            style={StyleSheet.absoluteFill}
+            style={[StyleSheet.absoluteFill, styles.glowImage]}
             contentFit="cover"
             blurRadius={60}
             transition={400}
           />
           {/* blurRadius blurs within the view, so the bitmap still ends on a
               hard edge. This fades it back into the page at top and bottom;
-              left and right already bleed past the screen. */}
+              left and right are hung past the screen so they never show one.
+              The fade is drawn over the image rather than around it, and the
+              image carries the opacity — a half-transparent page colour
+              cannot hide anything. */}
           <LinearGradient
             colors={[colors.bgPrimary, "transparent", "transparent", colors.bgPrimary]}
-            locations={[0, 0.28, 0.72, 1]}
+            locations={[0, 0.34, 0.66, 1]}
             style={StyleSheet.absoluteFill}
           />
         </View>
@@ -121,7 +135,7 @@ export function MoodboardHome() {
                 disabled={!isFront}
                 accessibilityRole="imagebutton"
                 accessibilityLabel={festival.name}
-                onPress={() => openPoster(festival.image)}
+                onPress={() => openPoster(festival)}
                 style={styles.poster}
               >
                 <Image
@@ -156,10 +170,19 @@ export function MoodboardHome() {
 
       </ScrollView>
 
+      {/* The record comes out of the sleeve, turns, then rides up to the
+          deck at the top of its own page and keeps playing there. Only
+          Jazzablanca has a page, so the rest simply stay on the record. */}
       <PosterZoom
-        source={zoom?.source ?? null}
+        source={zoom?.festival.image ?? null}
         from={zoom?.from ?? null}
+        restTo={zoom?.festival.slug ? deck : null}
         onClose={() => setZoom(null)}
+        onArrive={() => {
+          const slug = zoom?.festival.slug;
+          if (slug) navigation.navigate("Event", { slug, arriving: true });
+        }}
+        onFinished={() => setZoom(null)}
       />
     </View>
   );
@@ -193,16 +216,18 @@ const styles = StyleSheet.create({
   },
 
   body: { alignItems: "center", gap: space.xl, padding: 20 },
-  /* The comp filters a 392px image by 63px, positioned to bleed off the
-     left edge and sit low behind the stack. */
+  /* The comp filters a 392px image by 63px and sits it low behind the
+     stack. It is hung past both side edges rather than given the comp's
+     392 — on a wider phone a fixed width stops short of the screen and the
+     blur ends on a straight line down the page. */
   glow: {
     position: "absolute",
-    left: -1,
+    left: -32,
+    right: -32,
     top: 221,
-    width: 392,
     height: 392,
-    opacity: 0.4,
   },
+  glowImage: { opacity: 0.4 },
   heading: { textAlign: "center", alignSelf: "stretch" },
 
   /* The fan leans cards out past the front one, so the stack is given a
