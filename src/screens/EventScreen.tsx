@@ -143,17 +143,21 @@ export function deckLabel(slug: string | undefined) {
  *
  * Not a rack, which slid them past each other in a straight line, and not a
  * spin in place, which turned one record without ever showing you another.
- * They sit on the rim of a circle whose centre is below the screen, the one
- * you are listening to at the top of it and the ones either side of it a step
- * around, so a push rolls the wheel and every record travels an arc — up into
- * the middle on one side, down and away on the other.
+ * They hang from the rim of a circle whose centre is **above** the screen —
+ * the one you are listening to at the bottom of it and the ones either side a
+ * step around — so a push rolls the wheel and every record travels an arc,
+ * swinging up and out on one side while the next comes down into the middle
+ * from the other.
  *
- * `WHEEL` is how big that circle is and `STEP` how far apart on it two
- * records sit, both in the comp's 390-wide units. A bigger wheel makes a
- * shallower, longer arc.
+ * `WHEEL` is how big that circle is and `STEP` how far apart on it two records
+ * sit, both in the comp's 390-wide units. A smaller wheel makes a tighter,
+ * more obvious curve. `AWAY` is how far the ones off to the sides shrink: a
+ * record further round the wheel is further away, so it is smaller and
+ * dimmer, and the one being listened to is the only one at full size.
  */
-const WHEEL = 460;
+const WHEEL = 360;
 const STEP = 38;
+const AWAY = 0.72;
 /** How far a finger travels to roll the wheel one place. */
 const REACH = 0.62;
 /** The roll, and the arm's swing off the record and back onto it. */
@@ -162,14 +166,24 @@ const ARM_MS = 620;
 /** The arc is sampled this often; an interpolation between them is a chord. */
 const ARC = [-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1];
 
-/** Where a record `k` places from the middle sits when the wheel is at `t`. */
+/**
+ * Where a record `k` places from the middle sits when the wheel is at `t`.
+ *
+ * Angles are measured from the wheel's centre, which is `WHEEL` above the
+ * record, so straight down from it — 90° — is the place you look at.
+ */
 function onWheel(k: number, t: number) {
-  const degrees = -90 - k * STEP + t * STEP;
+  const degrees = 90 + k * STEP - t * STEP;
   const radians = (degrees * Math.PI) / 180;
+  /* 0 in the middle, 1 a whole step round. */
+  const round = Math.abs(degrees - 90) / STEP;
   return {
     x: WHEEL * Math.cos(radians),
-    y: WHEEL * (1 + Math.sin(radians)),
-    turn: degrees + 90,
+    y: WHEEL * (Math.sin(radians) - 1),
+    /* A record hangs facing the centre, so it leans as it goes round. */
+    turn: degrees - 90,
+    size: Math.max(AWAY, 1 - round * (1 - AWAY)),
+    fade: Math.max(0, 1 - round * 0.62),
   };
 }
 
@@ -590,13 +604,18 @@ export function EventScreen() {
                       extrapolate: "clamp" as const,
                     }),
                   },
+                  {
+                    scale: twist.interpolate({
+                      inputRange: ARC,
+                      outputRange: seat.map((p) => p.size),
+                      extrapolate: "clamp" as const,
+                    }),
+                  },
                 ],
-                /* Dimmer the further round the wheel it is. */
+                /* Smaller and dimmer the further round the wheel it is. */
                 opacity: twist.interpolate({
                   inputRange: ARC,
-                  outputRange: seat.map((p) =>
-                    Math.max(0, 1 - Math.abs(p.turn) / (STEP * 1.6)),
-                  ),
+                  outputRange: seat.map((p) => p.fade),
                   extrapolate: "clamp" as const,
                 }),
               };
