@@ -138,15 +138,40 @@ export function deckLabel(slug: string | undefined) {
   return first?.artworkUrl ? artworkAt(first.artworkUrl, 600) : EVENT_LABEL;
 }
 
-/** How far the record has to be pushed before it changes what is playing. */
-const SHOVE = 72;
-/** How much of a turn a point of push is worth, and the whole turn it makes. */
-const PER_POINT = 0.7;
-const TURN = 360;
-/** The turn, the arm's swing, and how far into the turn the track changes. */
-const PUSH_MS = 700;
+/**
+ * The records are on a wheel.
+ *
+ * Not a rack, which slid them past each other in a straight line, and not a
+ * spin in place, which turned one record without ever showing you another.
+ * They sit on the rim of a circle whose centre is below the screen, the one
+ * you are listening to at the top of it and the ones either side of it a step
+ * around, so a push rolls the wheel and every record travels an arc — up into
+ * the middle on one side, down and away on the other.
+ *
+ * `WHEEL` is how big that circle is and `STEP` how far apart on it two
+ * records sit, both in the comp's 390-wide units. A bigger wheel makes a
+ * shallower, longer arc.
+ */
+const WHEEL = 460;
+const STEP = 38;
+/** How far a finger travels to roll the wheel one place. */
+const REACH = 0.62;
+/** The roll, and the arm's swing off the record and back onto it. */
+const PUSH_MS = 620;
 const ARM_MS = 620;
-const SWAP_AT = 0.42;
+/** The arc is sampled this often; an interpolation between them is a chord. */
+const ARC = [-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1];
+
+/** Where a record `k` places from the middle sits when the wheel is at `t`. */
+function onWheel(k: number, t: number) {
+  const degrees = -90 - k * STEP + t * STEP;
+  const radians = (degrees * Math.PI) / 180;
+  return {
+    x: WHEEL * Math.cos(radians),
+    y: WHEEL * (1 + Math.sin(radians)),
+    turn: degrees + 90,
+  };
+}
 
 /**
  * One record: the disc and the label on it.
@@ -301,8 +326,8 @@ export function EventScreen() {
    */
   const twist = useRef(new Animated.Value(0)).current;
   const [changing, setChanging] = useState(false);
-  const swapping = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hand = useRef({ take: () => {}, settle: (_dir: number) => {} });
+  const hand = useRef({ reach: 0, take: () => {}, settle: (_dir: number) => {} });
+  hand.current.reach = width * REACH;
   hand.current.take = () => {
     setChanging(true);
     player.hold(true);
@@ -322,40 +347,34 @@ export function EventScreen() {
        `changing` until it has arrived, so this only decides what happens
        when it lands. */
     player.play();
-    /* A whole turn, so the artwork ends where it started and the wind can go
-       back to nought without anything appearing to move. What is on the
-       record changes part-way through, while it is going fast enough and the
-       label is dipped far enough that the change is not something you watch
-       happen — it is something that has happened. */
-    if (swapping.current) clearTimeout(swapping.current);
-    swapping.current = setTimeout(() => player.step(dir), PUSH_MS * SWAP_AT);
     Animated.timing(twist, {
-      toValue: dir * TURN,
+      toValue: dir,
       duration: PUSH_MS,
-      easing: Easing.inOut(Easing.cubic),
+      easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start(({ finished }) => {
       if (!finished) return;
+      /* The record that rode up is the one in the middle now, so the wheel
+         can go back to nought without anything appearing to move. */
+      player.step(dir);
       twist.setValue(0);
       setChanging(false);
     });
   };
-
-  /* The label dips as the record winds and comes back as it settles. */
-  const blur = twist.interpolate({
-    inputRange: [-TURN, -TURN * SWAP_AT, 0, TURN * SWAP_AT, TURN],
-    outputRange: [1, 0.15, 1, 0.15, 1],
-    extrapolate: "clamp",
-  });
 
   const hands = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) =>
         Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
       onPanResponderGrant: () => hand.current.take(),
-      onPanResponderMove: (_, g) => twist.setValue(g.dx * PER_POINT),
+      onPanResponderMove: (_, g) => {
+        const reach = hand.current.reach || 1;
+        twist.setValue(Math.max(-1, Math.min(1, g.dx / reach)));
+      },
       onPanResponderRelease: (_, g) => {
-        const far = Math.abs(g.dx) > SHOVE || Math.abs(g.vx) > 0.5;
+        const far =
+          Math.abs(g.dx / (hand.current.reach || 1)) > 0.34 ||
+          Math.abs(g.vx) > 0.35;
         /* Wind it right for the next track, as the pile on Discover is
            pushed right for the next festival. */
         hand.current.settle(far ? (g.dx > 0 ? 1 : -1) : 0);
@@ -530,42 +549,88 @@ export function EventScreen() {
               style={StyleSheet.absoluteFill}
             />
           </Animated.View>
-          {/* One record, and you change what is on it by winding it.
-              It was a rack for a while — the track before and the track after
-              waiting just off each edge, pushed sideways — and a carousel is
-              the wrong shape for a record. A record is a circle and the thing
-              you do to it is turn it. */}
-          <Animated.View
+          {/* The wheel. Three records on the rim of a circle whose centre
+              is below the screen: the one you are listening to at the top of
+              it, the ones either side a step around. A push rolls it, so
+              every record travels an arc rather than sliding past in a line.
+              Only the one under the arm turns. */}
+          <View
             style={{
               position: "absolute",
               left: s(RECORD.left),
               top: s(RECORD.top),
               width: s(RECORD.size),
               height: s(RECORD.size),
-              transform: [
-                {
-                  rotate: twist.interpolate({
-                    inputRange: [-TURN, TURN],
-                    outputRange: [`-${TURN}deg`, `${TURN}deg`],
-                  }),
-                },
-              ],
             }}
             {...hands.panHandlers}
           >
-            <Tap
-              accessibilityRole="button"
-              accessibilityState={{ selected: player.playing }}
-              accessibilityLabel={
-                player.playing ? "Stop the record" : "Play the record"
+            {/* The two beside it first, so the one in the middle is on top. */}
+            {[-1, 1, 0].map((k) => {
+              const seat = ARC.map((t) => onWheel(k, t));
+              const ride = {
+                transform: [
+                  {
+                    translateX: twist.interpolate({
+                      inputRange: ARC,
+                      outputRange: seat.map((p) => s(p.x)),
+                      extrapolate: "clamp" as const,
+                    }),
+                  },
+                  {
+                    translateY: twist.interpolate({
+                      inputRange: ARC,
+                      outputRange: seat.map((p) => s(p.y)),
+                      extrapolate: "clamp" as const,
+                    }),
+                  },
+                  {
+                    rotate: twist.interpolate({
+                      inputRange: ARC,
+                      outputRange: seat.map((p) => `${p.turn}deg`),
+                      extrapolate: "clamp" as const,
+                    }),
+                  },
+                ],
+                /* Dimmer the further round the wheel it is. */
+                opacity: twist.interpolate({
+                  inputRange: ARC,
+                  outputRange: seat.map((p) =>
+                    Math.max(0, 1 - Math.abs(p.turn) / (STEP * 1.6)),
+                  ),
+                  extrapolate: "clamp" as const,
+                }),
+              };
+
+              if (k !== 0) {
+                return (
+                  <Animated.View
+                    key={k}
+                    style={[StyleSheet.absoluteFill, ride]}
+                    pointerEvents="none"
+                  >
+                    <Record label={coverOf(player.index + k)} />
+                  </Animated.View>
+                );
               }
-              onPress={player.toggle}
-              scale={1}
-              style={StyleSheet.absoluteFill}
-            >
-              <Record label={label} spin={spinning} fade={blur} />
-            </Tap>
-          </Animated.View>
+
+              return (
+                <Animated.View key={k} style={[StyleSheet.absoluteFill, ride]}>
+                  <Tap
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: player.playing }}
+                    accessibilityLabel={
+                      player.playing ? "Stop the record" : "Play the record"
+                    }
+                    onPress={player.toggle}
+                    scale={1}
+                    style={StyleSheet.absoluteFill}
+                  >
+                    <Record label={label} spin={spinning} />
+                  </Tap>
+                </Animated.View>
+              );
+            })}
+          </View>
 
           {/* The arm is drawn upright and laid across the disc, so it is
               turned in place inside a box the comp sizes for it. */}
