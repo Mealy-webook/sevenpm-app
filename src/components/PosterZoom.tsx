@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import {
   Animated,
+  Easing,
   Modal,
   Pressable,
   StyleSheet,
@@ -64,14 +65,16 @@ export function PosterZoom({
   const progress = useRef(new Animated.Value(0)).current;
   /* One full turn about the vertical axis once the poster has landed. */
   const flip = useRef(new Animated.Value(0)).current;
-  /* Then the record slides up out of the sleeve. */
+  /* Then the record slides up out of the sleeve, and turns once it is out. */
   const pull = useRef(new Animated.Value(0)).current;
+  const spin = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!open) return;
     progress.setValue(reduced ? 1 : 0);
     flip.setValue(reduced ? 1 : 0);
     pull.setValue(reduced ? 1 : 0);
+    spin.setValue(0);
     if (reduced) return;
     /* It arrives, then turns over once — the flourish waits for the zoom so
        the two reads as one movement rather than a scramble. */
@@ -94,8 +97,19 @@ export function PosterZoom({
         easing: ease,
         useNativeDriver: true,
       }),
-    ]).start();
-  }, [open, progress, flip, pull, reduced]);
+    ]).start(({ finished }) => {
+      /* Out of the sleeve, so it starts turning — 33 1/3 rpm, 1.8s a turn. */
+      if (!finished) return;
+      Animated.loop(
+        Animated.timing(spin, {
+          toValue: 1,
+          duration: 1800,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ).start();
+    });
+  }, [open, progress, flip, pull, spin, reduced]);
 
   const close = () => {
     if (reduced) return onClose();
@@ -165,7 +179,15 @@ export function PosterZoom({
                 inputRange: [0, 0.01, 1],
                 outputRange: [0, 1, 1],
               }),
-              transform: [{ translateY: between2(pull, VINYL_RISE, 0) }],
+              transform: [
+                { translateY: between2(pull, VINYL_RISE, 0) },
+                {
+                  rotate: spin.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ["0deg", "360deg"],
+                  }),
+                },
+              ],
             },
           ]}
           pointerEvents="none"

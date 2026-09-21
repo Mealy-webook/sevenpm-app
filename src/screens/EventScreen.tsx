@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Animated,
+  Easing,
   Linking,
   ScrollView,
   Share,
@@ -11,6 +12,7 @@ import {
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useReducedMotion } from "../theme/motion";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
@@ -118,6 +120,35 @@ export function EventScreen() {
   const book = () => navigation.navigate("Booking", { slug: event.slug });
   /* The hero is a collage at the comp's own 390-wide measurements. */
   const s = (value: number) => scaled(value, width);
+
+  /* The arm is resting on it, so the record turns — at 33 1/3 rpm, which is
+     1.8s a revolution. The disc and its label turn as one: each spins about
+     its own centre, and the comp puts those centres on the same point. */
+  const reducedMotion = useReducedMotion();
+  const spin = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (reducedMotion) return;
+    const turn = Animated.loop(
+      Animated.timing(spin, {
+        toValue: 1,
+        duration: 1800,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    turn.start();
+    return () => turn.stop();
+  }, [spin, reducedMotion]);
+  const spinning = {
+    transform: [
+      {
+        rotate: spin.interpolate({
+          inputRange: [0, 1],
+          outputRange: ["0deg", "360deg"],
+        }),
+      },
+    ],
+  };
   const heading = displaySize(type.displayBlock, width);
   const title = displaySize(type.displayPage, width);
   const gutterWidth = width - gutter * 2;
@@ -173,29 +204,33 @@ export function EventScreen() {
             contentFit="cover"
             blurRadius={60}
           />
-          <Image
+          <Animated.Image
             source={image("/assets/vinyl.webp")}
-            style={{
-              position: "absolute",
-              left: s(-9),
-              top: s(-33),
-              width: s(408),
-              height: s(408),
-            }}
-            contentFit="contain"
-            transition={300}
+            style={[
+              {
+                position: "absolute",
+                left: s(-9),
+                top: s(-33),
+                width: s(408),
+                height: s(408),
+                resizeMode: "contain",
+              },
+              spinning,
+            ]}
           />
-          <Image
+          <Animated.Image
             source={image("/assets/event-label.webp")}
-            style={{
-              position: "absolute",
-              left: s(80),
-              top: s(50),
-              width: s(228),
-              height: s(230),
-            }}
-            contentFit="cover"
-            transition={300}
+            style={[
+              {
+                position: "absolute",
+                left: s(80),
+                top: s(50),
+                width: s(228),
+                height: s(230),
+                resizeMode: "cover",
+              },
+              spinning,
+            ]}
           />
           {/* The arm is drawn upright and laid across the disc, so it is
               turned in place inside a box the comp sizes for it. */}
