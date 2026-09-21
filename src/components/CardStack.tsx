@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
-  Easing,
   PanResponder,
   StyleSheet,
   View,
@@ -14,39 +13,38 @@ import { tap as haptic } from "../theme/haptics";
 import { useReducedMotion } from "../theme/motion";
 
 /**
- * Three cards in a group, and a push that moves you through them either way.
+ * A stack of cards you swipe through, ported from the 21st.dev "Image Stack
+ * Carousel" (ayushmxxn). The web original is framer-motion; the behaviour is
+ * kept and the implementation is React Native's own PanResponder and
+ * Animated, since this project has no reanimated.
  *
- * Two earlier tries got one half of this each. The first was a pile: the
- * front card thrown aside and sent to the back, which looks right and only
- * goes one way — whichever side you push it off, the same card comes up next
- * and there is no way back to the one you just passed. The second went both
- * ways but laid the cards out in a row with a gap between them, which reads
- * as a list rather than as a group of posters.
+ * The important part of the original is what a swipe *does*: the card is not
+ * thrown away. The moment it passes the threshold it becomes the back of the
+ * pile, and then springs from wherever your finger left it into that back
+ * slot. So the card you pushed visibly travels around the stack. Every card
+ * therefore carries its own offset and its own depth, both sprung, exactly as
+ * each `SwipeCard` there owns its own motion values.
  *
- * So the cards are grouped, as they were at the start: the one you are on in
- * front and full size, the one before it and the one after it tucked behind
- * at a tilt, one to each side. What is different is that none of those are
- * fixed places. Each card's tilt, size and offset are read off how far it is
- * from the middle *right now*, so a push does not slide a row along — it
- * turns the group over, the card you are on sinking back to one side while
- * the one you asked for rises out of the other.
- *
- * The list wraps, so there is no end to hit.
+ * The fan itself is the comp's (Moodboard 182:1630) rather than the web
+ * component's: the two cards behind splay to opposite sides at the same tilt
+ * and size, the next one to the left. Anything deeper waits out of sight.
  */
 
-/** The group, by how far a card is from the middle: behind, front, behind. */
-const SLOTS = [-1, 0, 1];
-const SHIFT = [-26, 0, 26];
-const TILT = ["-10deg", "0deg", "10deg"];
-const SIZE = [0.9106, 1, 0.9106];
+/** The web original's numbers. */
+const THRESHOLD = 120;
+const ELASTIC = 0.5;
+const TILT = 25;
+const TILT_RANGE = 200;
+/** Its two springs: one for the card, a gentler one for the stack reflowing. */
+const CARD_SPRING = { stiffness: 300, damping: 30, mass: 1 };
+const STACK_SPRING = { stiffness: 260, damping: 24, mass: 1 };
 
-/** How far a finger travels to turn the group one place. */
-const REACH = 0.5;
-/** How far, or how fast, it has to go for the turn to take. */
-const THRESHOLD = 0.34;
-const FLING = 0.35;
-const TURN_MS = 340;
-const BACK_SPRING = { stiffness: 260, damping: 26, mass: 1 };
+/** The comp's fan, by depth: front, then left, then right, then hidden. */
+const DEPTHS = [0, 1, 2, 3];
+const ROTATE = ["0deg", "-10deg", "10deg", "10deg"];
+const SHIFT = [0, -22, 22, 22];
+const SCALE = [1, 0.9106, 0.9106, 0.9106];
+const FADE = [1, 1, 1, 0];
 
 export function CardStack<T>({
   items,
@@ -60,151 +58,197 @@ export function CardStack<T>({
 }: {
   items: T[];
   keyOf: (item: T) => string;
-  /** `isFront` is true only for the card in the middle. */
   render: (item: T, isFront: boolean) => React.ReactNode;
   width: number;
   height: number;
   style?: StyleProp<ViewStyle>;
-  /** What a screen reader hears on the whole group. */
+  /** What a screen reader calls the tap that turns the stack. */
   label?: string;
+  /** Fired with whichever card is at the front, on mount and on every turn. */
   onFrontChange?: (item: T) => void;
 }) {
   const reduced = useReducedMotion();
-  const [index, setIndex] = useState(0);
-  /* 0 at rest; -1 once the group has turned one place towards the next. */
-  const turn = useRef(new Animated.Value(0)).current;
-  const count = items.length;
+  const [order, setOrder] = useState(() => items.map((_, i) => i));
 
-  const at = (offset: number) => items[(((index + offset) % count) + count) % count];
+  /* Each card owns its offset and its depth, as each card in the original
+     owns its own motion values. */
+  const cards = useRef(
+    new Map<number, { drag: Animated.ValueXY; depth: Animated.Value }>(),
+  ).current;
+  const valuesFor = (index: number) => {
+    let found = cards.get(index);
+    if (!found) {
+      found = {
+        drag: new Animated.ValueXY({ x: 0, y: 0 }),
+        depth: new Animated.Value(order.indexOf(index)),
+      };
+      cards.set(index, found);
+    }
+    return found;
+  };
 
-  const front = items[index];
+  /* Whenever the pile reorders, every card springs to its new place. */
+  useEffect(() => {
+    order.forEach((index, depth) => {
+      Animated.spring(valuesFor(index).depth, {
+        toValue: depth,
+        ...STACK_SPRING,
+        useNativeDriver: true,
+      }).start();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order]);
+
+  const front = items[order[0]];
   useEffect(() => {
     if (front) onFrontChange?.(front);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [front]);
 
-  /**
-   * Which card is drawn on top.
-   *
-   * Everything else about a card is read off `turn` on the native driver, but
-   * the drawing order is not something a transform can express, so it is
-   * state — flipped once, when the card being brought in passes the card
-   * being sent back. One change per push, not one per frame.
-   */
-  const [lead, setLead] = useState(0);
-  useEffect(() => {
-    const id = turn.addListener(({ value }) => {
-      const next = value <= -0.5 ? 1 : value >= 0.5 ? -1 : 0;
-      setLead((was) => (was === next ? was : next));
-    });
-    return () => turn.removeListener(id);
-  }, [turn]);
-
-  /* Read by the gesture, which is built once and must not go stale. */
-  const hand = useRef({ reach: 0, go: (_dir: number) => {} });
-  hand.current.reach = width * REACH;
-  hand.current.go = (dir: number) => {
-    if (dir === 0) {
-      return Animated.spring(turn, {
-        toValue: 0,
-        ...BACK_SPRING,
-        useNativeDriver: true,
-      }).start();
-    }
+  /* The card becomes the back of the pile, then springs there from wherever
+     it was let go — it is never thrown off screen. */
+  const sendToBack = () => {
     haptic.tick();
-    Animated.timing(turn, {
-      toValue: -dir,
-      duration: TURN_MS,
-      easing: Easing.out(Easing.cubic),
+    const leaving = order[0];
+    setOrder((prev) => [...prev.slice(1), prev[0]]);
+    Animated.spring(valuesFor(leaving).drag, {
+      toValue: { x: 0, y: 0 },
+      ...CARD_SPRING,
       useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (!finished) return;
-      /* The card that was beside it is the one in the middle now, so the
-         group can go back to nought without anything appearing to move. */
-      setIndex((current) => (((current + dir) % count) + count) % count);
-      turn.setValue(0);
-    });
+    }).start();
   };
 
+  const settle = (index: number) =>
+    Animated.spring(valuesFor(index).drag, {
+      toValue: { x: 0, y: 0 },
+      ...CARD_SPRING,
+      useNativeDriver: true,
+    }).start();
+
+  /* Rebuilt whenever the front changes, so it always writes to that card. */
+  const frontIndex = order[0];
   const pan = useRef(
     PanResponder.create({
+      /* The web original claims any drag. On a phone the stack fills most of
+         the screen, so claiming vertical drags would stop the page scrolling
+         under a thumb. Only a mostly-sideways drag is taken. */
       onMoveShouldSetPanResponder: (_, g) =>
-        Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2,
+        Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy),
       onPanResponderMove: (_, g) => {
-        const reach = hand.current.reach || 1;
-        turn.setValue(Math.max(-1, Math.min(1, g.dx / reach)));
+        /* dragElastic 0.5: the card follows at half the distance. */
+        const { drag } = valuesFor(currentFront.current);
+        drag.setValue({ x: g.dx * ELASTIC, y: g.dy * ELASTIC });
       },
       onPanResponderRelease: (_, g) => {
-        const reach = hand.current.reach || 1;
-        const far = Math.abs(g.dx / reach) > THRESHOLD || Math.abs(g.vx) > FLING;
-        /* Pushed left, the one after it comes forward. */
-        hand.current.go(far ? (g.dx > 0 ? -1 : 1) : 0);
+        if (Math.abs(g.dx) > THRESHOLD || Math.abs(g.dy) > THRESHOLD) {
+          sendToBackRef.current();
+        } else {
+          settleRef.current(currentFront.current);
+        }
       },
-      onPanResponderTerminate: () => hand.current.go(0),
+      onPanResponderTerminate: () => settleRef.current(currentFront.current),
+      /* Once a card is moving, the page's scroll view does not get it. */
+      onPanResponderTerminationRequest: () => false,
+      onShouldBlockNativeResponder: () => true,
     }),
   ).current;
 
-  /* Furthest from the middle first, so the one in front is drawn last. */
-  const painted = [...SLOTS].sort((a, b) =>
-    a === lead ? 1 : b === lead ? -1 : Math.abs(b) - Math.abs(a),
-  );
+  /* The responder is built once, so it reads these rather than closing over
+     a stale front card. */
+  const currentFront = useRef(frontIndex);
+  currentFront.current = frontIndex;
+  /* Deepest first, so the one at the front of the pile is drawn last. */
+  const painted = items
+    .map((item, index) => ({ item, index, depth: order.indexOf(index) }))
+    .sort((a, b) => b.depth - a.depth);
+
+  const sendToBackRef = useRef(sendToBack);
+  sendToBackRef.current = sendToBack;
+  const settleRef = useRef(settle);
+  settleRef.current = settle;
 
   return (
-    <View
-      style={[{ width, height }, style]}
-      accessibilityRole="adjustable"
-      accessibilityLabel={label}
-      {...(reduced ? {} : pan.panHandlers)}
-    >
-      {painted.map((offset) => {
-        const item = at(offset);
-        if (!item) return null;
-        /* Where this card is in the group at this moment. */
-        const slot = Animated.add(turn, offset);
+    <View style={[{ width, height }, style]}>
+      {/* Drawn back to front.
+       *
+       * Each card used to be handed to React in the order the festivals are
+       * listed in, with a `zIndex` to sort it out. That does not sort it out:
+       * a `zIndex` orders a view among its own brothers and sisters, and each
+       * card had a wrapper of its own, so what actually decided which poster
+       * was on top was the order of the list — not which card was at the front
+       * of the pile. Handing them over deepest-first makes the paint order the
+       * pile order, which is the only order there is. */
+      painted.map(({ item, index, depth }) => {
+        const isFront = depth === 0;
+        const { drag, depth: depthValue } = valuesFor(index);
+
         const from = (out: (string | number)[]) =>
-          slot.interpolate({
-            inputRange: SLOTS,
+          depthValue.interpolate({
+            inputRange: DEPTHS,
             outputRange: out as number[],
             extrapolate: "clamp",
           });
 
-        return (
+        /* Dragging leans the card away from you, as the original does. */
+        const rotateY = drag.x.interpolate({
+          inputRange: [-TILT_RANGE, TILT_RANGE],
+          outputRange: [`-${TILT}deg`, `${TILT}deg`],
+          extrapolate: "clamp",
+        });
+        const rotateX = drag.y.interpolate({
+          inputRange: [-TILT_RANGE, TILT_RANGE],
+          outputRange: [`${TILT}deg`, `-${TILT}deg`],
+          extrapolate: "clamp",
+        });
+
+        const body = (
           <Animated.View
-            key={`${keyOf(item)}-${offset}`}
             style={[
               styles.card,
+              { width, height },
               {
-                width,
-                height,
+                opacity: from(FADE),
                 transform: [
-                  { translateX: from(SHIFT) },
-                  { rotate: from(TILT) as unknown as string },
-                  { scale: from(SIZE) },
+                  { perspective: 1200 },
+                  { translateX: Animated.add(drag.x, from(SHIFT)) },
+                  { translateY: drag.y },
+                  { rotateX },
+                  { rotateY },
+                  { rotate: from(ROTATE) as unknown as string },
+                  { scale: from(SCALE) },
                 ],
               },
             ]}
-            pointerEvents={offset === 0 ? "auto" : "none"}
+            {...(isFront && !reduced ? pan.panHandlers : {})}
+            pointerEvents={isFront ? "auto" : "none"}
           >
-            {render(item, offset === 0)}
+            {render(item, isFront)}
           </Animated.View>
         );
-      })}
 
-      {/* Reduced motion turns the group on a tap instead of a push. */}
-      {reduced && (
-        <Tap
-          accessibilityRole="button"
-          accessibilityLabel={label}
-          onPress={() => hand.current.go(1)}
-          style={StyleSheet.absoluteFill}
-        />
-      )}
+        /* Reduced motion turns the stack on a tap instead of a drag. */
+        if (isFront && reduced) {
+          return (
+            <Tap
+              key={keyOf(item)}
+              accessibilityRole="button"
+              accessibilityLabel={label}
+              onPress={sendToBack}
+              style={styles.card}
+            >
+              {body}
+            </Tap>
+          );
+        }
+
+        return <View key={keyOf(item)} style={styles.card}>{body}</View>;
+      })}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  /* Each card turns about its own centre, so the two behind splay evenly
-     either side of the one in front. */
+  /* The comp turns each card about its own centre, so the two behind splay
+     evenly either side of the front one. */
   card: { position: "absolute", left: 0, top: 0 },
 });
