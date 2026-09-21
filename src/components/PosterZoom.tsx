@@ -100,6 +100,8 @@ const TRAVEL_MS = 2200;
  */
 const HANDOVER_AT = TRAVEL_AT + TRAVEL_MS - 200;
 const HANDOVER_MS = 300;
+/** The same hand-over, run short, when someone presses to skip the rest. */
+const SKIP_MS = 180;
 
 /**
  * The system's `ease` is an expo-out: it leaves fast and takes a long time to
@@ -179,6 +181,11 @@ export function PosterZoom({
   const travel = useRef(new Animated.Value(0)).current;
   const handover = useRef(new Animated.Value(0)).current;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const run = useRef<Animated.CompositeAnimation | null>(null);
+  /* Whether the page underneath has been asked for, and whether the run has
+     been cut short — both so neither can happen twice. */
+  const arrived = useRef(false);
+  const done = useRef(false);
   /* Held in refs so the run below never restarts when a parent re-renders. */
   const arrive = useRef(onArrive);
   const finish = useRef(onFinished);
@@ -187,16 +194,51 @@ export function PosterZoom({
   finish.current = onFinished;
   deck.current = restTo;
 
+  /**
+   * Wound back the moment a new one opens, during render rather than after.
+   *
+   * These values keep whatever the last run left them at, and an effect does
+   * not run until after the screen has been drawn — so opening a second
+   * poster showed one frame of the *first* one's ending, full size and turned
+   * over, before snapping back to the start.
+   */
+  const was = useRef(false);
+  if (open && !was.current) {
+    progress.setValue(0);
+    flip.setValue(0);
+    pull.setValue(0);
+    travel.setValue(0);
+    handover.setValue(0);
+    arrived.current = false;
+    done.current = false;
+  }
+  was.current = open;
+
   useEffect(() => {
     if (!open) return;
     /* Re-opening cancels anything the last one had queued. */
     if (timer.current) clearTimeout(timer.current);
-    progress.setValue(reduced ? 1 : 0);
-    flip.setValue(reduced ? 1 : 0);
-    pull.setValue(reduced ? 1 : 0);
-    travel.setValue(0);
-    handover.setValue(0);
-    if (reduced) return;
+    if (reduced) {
+      /**
+       * Reduce Motion is not "no journey".
+       *
+       * This used to set everything to its end state and stop, which meant
+       * the page the record was being carried to was never asked for: the
+       * whole point of the movement was skipped and so was its destination,
+       * leaving a poster on screen and nowhere to go. It goes straight there
+       * instead.
+       */
+      progress.setValue(1);
+      flip.setValue(1);
+      pull.setValue(1);
+      travel.setValue(1);
+      handover.setValue(1);
+      if (!deck.current) return;
+      arrived.current = true;
+      arrive.current?.();
+      timer.current = setTimeout(() => finish.current?.(), 60);
+      return;
+    }
 
     /* One timeline. Each move carries its own delay from this moment, so the
        poster is still growing when it starts to turn, still turning when the
@@ -246,14 +288,28 @@ export function PosterZoom({
       );
       /* The page is pushed as the record sets off, so it is drawn, settled
          and waiting by the time the cover comes off it. */
-      timer.current = setTimeout(() => arrive.current?.(), TRAVEL_AT);
+      timer.current = setTimeout(() => {
+        arrived.current = true;
+        arrive.current?.();
+      }, TRAVEL_AT);
     }
 
-    const run = Animated.parallel(moves);
-    run.start(({ finished }) => {
-      if (finished) finish.current?.();
+    run.current = Animated.parallel(moves);
+    run.current.start(({ finished }) => {
+      if (!finished || done.current) return;
+      done.current = true;
+      /* Somewhere to go, and the hand-over has already uncovered it. Nowhere
+         to go, and the poster has to get itself off the screen — it used to
+         simply stop being drawn. */
+      if (deck.current) return finish.current?.();
+      Animated.timing(progress, {
+        toValue: 0,
+        duration: motion.base,
+        easing: ease,
+        useNativeDriver: true,
+      }).start(() => finish.current?.());
     });
-    return () => run.stop();
+    return () => run.current?.stop();
     /* `restTo` is read off a ref above: it is a rectangle derived from the
        window, so it is a new object on every render, and depending on it here
        would restart the whole run each time the parent re-drew. */
@@ -266,8 +322,45 @@ export function PosterZoom({
     [],
   );
 
+  /**
+   * A press means "get on with it", not "forget it".
+   *
+   * This runs for the better part of four seconds, and there was no way past
+   * it: a press cancelled the run and faded the poster back, which after the
+   * record had already set off left you on a page you had been thrown at with
+   * the cover peeling off behind you. Anyone who has seen it once should be
+   * able to skip the rest of it, and a press is the obvious way to say so.
+   *
+   * Before the record sets off there is nothing to skip to, so a press still
+   * means what it used to: take it away.
+   */
+  const press = () => {
+    if (!deck.current || (!arrived.current && !done.current)) return close();
+    if (done.current) return;
+    done.current = true;
+    if (timer.current) clearTimeout(timer.current);
+    run.current?.stop();
+    progress.setValue(1);
+    flip.setValue(1);
+    pull.setValue(1);
+    travel.setValue(1);
+    if (!arrived.current) {
+      arrived.current = true;
+      arrive.current?.();
+    }
+    /* Not a cut: the page is uncovered on the same fade it would have been,
+       only sooner. */
+    Animated.timing(handover, {
+      toValue: 1,
+      duration: SKIP_MS,
+      easing: ease,
+      useNativeDriver: true,
+    }).start(() => finish.current?.());
+  };
+
   const close = () => {
     if (timer.current) clearTimeout(timer.current);
+    run.current?.stop();
     if (reduced) return onClose();
     Animated.timing(progress, {
       toValue: 0,
@@ -318,7 +411,12 @@ export function PosterZoom({
         style={[styles.fill, { opacity: between2(handover, 1, 0) }]}
         pointerEvents="box-none"
       >
-        <Pressable style={styles.fill} onPress={close} accessibilityLabel="Close">
+        <Pressable
+          style={styles.fill}
+          onPress={press}
+          accessibilityRole="button"
+          accessibilityLabel="Skip"
+        >
           <Animated.View
             style={[styles.fill, styles.page, { opacity: progress }]}
           />
