@@ -814,14 +814,22 @@ export function EventScreen() {
           <View style={[StyleSheet.absoluteFill, styles.barGlass]} />
         </Animated.View>
 
-        <Tap
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          onPress={navigation.goBack}
-          style={styles.barButton}
-        >
-          <Close width={20} height={20} />
-        </Tap>
+        {/* Three containers, as the comp's navigation bar is built: a
+            leading one, the centre, and the actions. All three share the row
+            evenly, which is the only way the thing on the right sits as far
+            from its edge as the thing on the left sits from its. Capping the
+            centre and letting it take the slack left the share button
+            floating 40 short of the margin. */}
+        <View style={styles.barSide}>
+          <Tap
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            onPress={navigation.goBack}
+            style={styles.barButton}
+          >
+            <Close width={20} height={20} />
+          </Tap>
+        </View>
 
         {/* The comp's Center Content slot, which it draws empty. The page's
             own name goes there once the one at the top of it has gone. */}
@@ -831,16 +839,18 @@ export function EventScreen() {
           </Text>
         </Animated.View>
 
-        <Tap
-          accessibilityRole="button"
-          accessibilityLabel={eventCopy.share}
-          onPress={() =>
-            Share.share({ message: `${event.name} — ${event.venue.name}` })
-          }
-          style={styles.barButton}
-        >
-          <ShareIcon width={20} height={20} />
-        </Tap>
+        <View style={[styles.barSide, styles.barActions]}>
+          <Tap
+            accessibilityRole="button"
+            accessibilityLabel={eventCopy.share}
+            onPress={() =>
+              Share.share({ message: `${event.name} — ${event.venue.name}` })
+            }
+            style={styles.barButton}
+          >
+            <ShareIcon width={20} height={20} />
+          </Tap>
+        </View>
       </Animated.View>
     </Page>
   );
@@ -1002,6 +1012,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: gutter,
     paddingBottom: space.s,
   },
+  barSide: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center" },
+  barActions: { justifyContent: "flex-end" },
   barTitle: {
     flex: 1,
     minWidth: 0,
