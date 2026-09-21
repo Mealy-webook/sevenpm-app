@@ -30,7 +30,7 @@ import { MiniPlayer, artworkAt, useDeck } from "../components/MiniPlayer";
 import { COVER_MS } from "../components/PosterZoom";
 import { Tap } from "../components/Tap";
 import { icon } from "../icons";
-import { image } from "../images";
+import { glow, image } from "../images";
 import { Text } from "../theme/Text";
 import { Reveal, RevealWords, ScrollProvider, usePageScroll } from "../theme/scroll";
 import { colors, displaySize, gutter, radii, scaled, space, type } from "../theme/tokens";
@@ -484,10 +484,11 @@ export function EventScreen() {
             ],
           }}
         >
-          {/* blurRadius blurs inside the view, so the bitmap still ends on
-              a straight edge. The sides are hung past the screen and the top
-              and bottom are painted back into the page at full strength — a
-              half-transparent page colour cannot hide an edge. */}
+          {/* A pre-blurred wash, not a filtered poster — see `glow()`. It
+              still ends on a straight edge, so the sides are hung past the
+              screen and the top and bottom are painted back into the page at
+              full strength; a half-transparent page colour cannot hide an
+              edge. */}
           <Animated.View
             style={{
               position: "absolute",
@@ -499,10 +500,9 @@ export function EventScreen() {
             pointerEvents="none"
           >
             <Image
-              source={image("/assets/event-label.webp")}
+              source={glow(EVENT_LABEL)}
               style={[StyleSheet.absoluteFill, styles.glow]}
               contentFit="cover"
-              blurRadius={60}
             />
             <LinearGradient
               colors={[

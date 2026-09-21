@@ -91,7 +91,34 @@ export const images: Record<string, ImageSourcePropType> = {
   "/assets/event-gallery-3.jpg": require("../assets/img/event-gallery-3.jpg"),
   "/assets/event-gallery-4.jpg": require("../assets/img/event-gallery-4.jpg"),
   "/assets/event-gallery-5.jpg": require("../assets/img/event-gallery-5.jpg"),
+
+  /* The pre-blurred washes — see `glow()` below. */
+  "/assets/glow-card-jazzablanca.webp": require("../assets/img/glow-card-jazzablanca.webp"),
+  "/assets/glow-card-tanjazz.webp": require("../assets/img/glow-card-tanjazz.webp"),
+  "/assets/glow-festival-poster-4.webp": require("../assets/img/glow-festival-poster-4.webp"),
+  "/assets/glow-festival-poster-5.webp": require("../assets/img/glow-festival-poster-5.webp"),
+  "/assets/glow-event-label.webp": require("../assets/img/glow-event-label.webp"),
 };
+
+/**
+ * The pre-blurred wash that stands behind a poster.
+ *
+ * A glow is a colour field, not a picture: all it has to carry is the
+ * poster's hues. Asking the device to blur the poster itself at run time
+ * looks identical and costs a filter pass over a very large bitmap on every
+ * frame it is composited — which is fine on a Mac and is not fine on a phone,
+ * where two of them at once during the poster-to-deck flight is what made
+ * that flight stutter. So each one is rendered small and blurred ahead of
+ * time: a 240px source blurred by 22 is the same wash, at 4KB instead of half
+ * a megabyte, and the device only has to draw it.
+ *
+ * Baked with sharp in a scratchpad — never add sharp to this project.
+ */
+export function glow(path: string | undefined): ImageSourcePropType | undefined {
+  if (!path) return undefined;
+  const wash = path.replace(/^\/assets\/(.+)\.(png|jpe?g|webp)$/, "/assets/glow-$1.webp");
+  return images[wash];
+}
 
 export function image(path: string | undefined): ImageSourcePropType | undefined {
   if (!path) return undefined;

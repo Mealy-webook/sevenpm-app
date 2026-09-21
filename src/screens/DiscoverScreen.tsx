@@ -21,7 +21,7 @@ import { PosterZoom, type ZoomFrom } from "../components/PosterZoom";
 import { StoryRing } from "../components/StoryRing";
 import { Tap } from "../components/Tap";
 import { deckLabel, deckRect } from "./EventScreen";
-import { image } from "../images";
+import { glow, image } from "../images";
 import { Text } from "../theme/Text";
 import { ease } from "../theme/motion";
 import { colors, displaySize, radii, space, type } from "../theme/tokens";
@@ -187,20 +187,19 @@ export function DiscoverScreen() {
 
           {/* Festivals */}
           <Reveal index={1} style={styles.festivals}>
-            {/* The front card's own poster, thrown far out of focus.
-                expo-image blurs it live, so it follows the stack. */}
+            {/* The front card's own poster, thrown far out of focus — one
+                pre-blurred wash per poster, so it still follows the stack and
+                the phone never filters anything. See `glow()`. */}
             <View style={styles.glow} pointerEvents="none">
               <Image
-                source={image(front.image)}
+                source={glow(front.image)}
                 style={[StyleSheet.absoluteFill, styles.glowImage]}
                 contentFit="cover"
-                blurRadius={60}
                 transition={400}
               />
-              {/* blurRadius blurs within the view, so the bitmap still ends
-                  on a hard edge. This fades it back into the page top and
-                  bottom at full strength; the sides are hung past the screen
-                  so they never show one. */}
+              {/* The wash still ends on a hard edge. This fades it back
+                  into the page top and bottom at full strength; the sides are
+                  hung past the screen so they never show one. */}
               <LinearGradient
                 colors={[colors.bgPrimary, "transparent", "transparent", colors.bgPrimary]}
                 locations={[0, 0.34, 0.66, 1]}
@@ -492,8 +491,10 @@ const styles = StyleSheet.create({
      */
     shadowColor: "#000",
     shadowOpacity: 0.55,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    /* Kept modest: a shadow on a layer that is being animated is re-derived
+       every frame, and on a phone three of them in a pile is a real cost. */
+    shadowRadius: 12,
     elevation: 12,
   },
   cardText: { alignSelf: "stretch" },

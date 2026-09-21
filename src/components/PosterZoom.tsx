@@ -11,7 +11,7 @@ import {
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
-import { image } from "../images";
+import { glow, image } from "../images";
 import { ease, useReducedMotion } from "../theme/motion";
 import { colors, motion, scaled } from "../theme/tokens";
 
@@ -325,10 +325,9 @@ export function PosterZoom({
               style={[StyleSheet.absoluteFill, { opacity: between(0, 0.4) }]}
             >
               <Image
-                source={image(source)}
+                source={glow(source)}
                 style={StyleSheet.absoluteFill}
                 contentFit="cover"
-                blurRadius={60}
               />
             </Animated.View>
             {/* Drawn over the blur at full strength, so the bitmap's own
