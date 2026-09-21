@@ -30,7 +30,7 @@ import type { PlaylistTrack } from "../data/events";
  */
 export type Deck = ReturnType<typeof useDeck>;
 
-export function useDeck(tracks: PlaylistTrack[]) {
+export function useDeck(tracks: PlaylistTrack[], ready = true) {
   const [index, setIndex] = useState(0);
   const track = tracks[index];
   const source = track?.audioSrc;
@@ -99,17 +99,27 @@ export function useDeck(tracks: PlaylistTrack[]) {
     [player],
   );
 
-  /* A phone on silent should still play a preview it was asked for. */
+  /**
+   * `ready` is how a page keeps this quiet until it wants it.
+   *
+   * Setting the audio session and loading a streamed preview are native work
+   * and they happen the moment this hook runs. The event page runs it while a
+   * record is flying onto it, and on a phone that work stalls the main thread
+   * long enough to swallow the flight — so that page holds this back until
+   * the arm comes down and nothing is lost by waiting.
+   */
   useEffect(() => {
+    if (!ready) return;
+    /* A phone on silent should still play a preview it was asked for. */
     setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
-  }, []);
+  }, [ready]);
 
   /* Load the track, and carry on playing if that is what was happening. */
   useEffect(() => {
-    if (!source) return;
+    if (!ready || !source) return;
     player.replace(source);
     if (wanted.current && !held.current) player.play();
-  }, [source, player]);
+  }, [ready, source, player]);
 
   /* And pick it up again once it has actually loaded, for the times it was
      asked for before there was anything to ask. */

@@ -32,7 +32,7 @@ import { Tap } from "../components/Tap";
 import { icon } from "../icons";
 import { glow, image } from "../images";
 import { Text } from "../theme/Text";
-import { Reveal, RevealWords, ScrollProvider, usePageScroll } from "../theme/scroll";
+import { ScrollProvider, usePageScroll } from "../theme/scroll";
 import { colors, displaySize, gutter, radii, scaled, space, type } from "../theme/tokens";
 import type { RootParamList } from "../navigation/RootNavigator";
 import { eventCopy } from "../data/discover";
@@ -47,6 +47,13 @@ import { getEvent, type ArtistGroup } from "../data/events";
  * The schedule tiles have no panels. They are three columns divided by
  * hairlines, which is why they read as one band of facts rather than three
  * cards.
+ *
+ * **Nothing on this page reveals itself.** The sections were staggered in on
+ * arrival and the headings arrived a word at a time; Ahmed did not like it,
+ * and the page already has one long piece of choreography at the top of it —
+ * a second one running underneath while the arm is still coming down was two
+ * things asking to be watched at once. The page is simply there when the
+ * cover lifts.
  *
  * What is *not* here, on purpose: **tickets, the location and the gallery**.
  * 410:6401 had all three and this comp draws none of them, which Ahmed
@@ -241,7 +248,13 @@ export function EventScreen() {
   /* One deck for the page: the arm starts it, the bar carries on with it.
      Held above the early return below, because a hook that only sometimes
      runs is a hook that breaks the next render. */
-  const player = useDeck(event?.playlist ?? []);
+  /* Held back while the record is in the air. Building a player, setting
+     the audio session and reaching for a streamed preview are native work,
+     and they used to land in the middle of the flight — on a phone that
+     stalls the main thread and the flight is what you lose. Nothing needs
+     sound until the arm comes down, so nothing is asked for until then. */
+  const [deckReady, setDeckReady] = useState(!arriving);
+  const player = useDeck(event?.playlist ?? [], deckReady);
   const start = player.play;
 
   /* Beat two and beat three of an arrival. Both are on timers rather than on
@@ -253,7 +266,10 @@ export function EventScreen() {
     if (!arriving || cued.current) return;
     cued.current = true;
     /* Ask the deck to play. The arm follows that on its own, below. */
-    const cue = setTimeout(() => start(), ARM_AT);
+    const cue = setTimeout(() => {
+      setDeckReady(true);
+      start();
+    }, ARM_AT);
     const page = setTimeout(() => setPageOpen(true), ARRIVE_PAGE);
     return () => {
       clearTimeout(cue);
@@ -611,13 +627,13 @@ export function EventScreen() {
             it: the comp runs the name straight off the bottom of the record,
             and the 32 every other section carries on its top edge pushed it
             a clear third of a line down. */}
-        <Reveal index={0} style={styles.opening}>
+        <View style={styles.opening}>
           {/* The name, the pair, and the paragraph are one block at 12; the
               tiles sit 16 off it, which is the section's own gap. */}
           <View style={styles.blurb}>
-            <RevealWords variant="displayPage" color={colors.white} textStyle={title}>
-              {event.name}
-            </RevealWords>
+            <Text variant="displayPage" uppercase color={colors.white} style={title}>
+            {event.name}
+          </Text>
 
             {/* The time is the accent, and the venue is a link. Neither
                 carries an icon in the comp — the colour and the underline do
@@ -662,18 +678,18 @@ export function EventScreen() {
               );
             })}
           </View>
-        </Reveal>
+        </View>
 
         {/* Line-up. Its two rails are siblings rather than children, so
             they can run off the right edge, which means the heading's block
             carries the section's top padding and the last rail carries its
             bottom one. The comp also gives this one section a 24 margin
             where the rest have 20. */}
-        <Reveal index={1} style={styles.lineupHead}>
-          <RevealWords variant="displayBlock" color={colors.white} textStyle={heading}>
+        <View style={styles.lineupHead}>
+          <Text variant="displayBlock" uppercase color={colors.white} style={heading}>
             {eventCopy.lineup}
-          </RevealWords>
-        </Reveal>
+          </Text>
+        </View>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -702,10 +718,10 @@ export function EventScreen() {
         </ScrollView>
 
         {/* Good to know — panels, two across. */}
-        <Reveal index={2} style={styles.section}>
-          <RevealWords variant="displayBlock" color={colors.white} textStyle={heading}>
+        <View style={styles.section}>
+          <Text variant="displayBlock" uppercase color={colors.white} style={heading}>
             {eventCopy.goodToKnow}
-          </RevealWords>
+          </Text>
           <View style={styles.infoGrid}>
             {event.infoTiles.map((info) => {
               const Mark = icon(info.icon);
@@ -722,13 +738,13 @@ export function EventScreen() {
               );
             })}
           </View>
-        </Reveal>
+        </View>
 
         {/* FAQs — the control is on the left, ahead of the question. */}
-        <Reveal index={3} style={styles.section}>
-          <RevealWords variant="displayBlock" color={colors.white} textStyle={heading}>
+        <View style={styles.section}>
+          <Text variant="displayBlock" uppercase color={colors.white} style={heading}>
             {eventCopy.faqs}
-          </RevealWords>
+          </Text>
           <View>
             {event.faq.map((item, index) => {
               const open = openFaq === index;
@@ -762,7 +778,7 @@ export function EventScreen() {
               );
             })}
           </View>
-        </Reveal>
+        </View>
         </>
         )}
         </Animated.ScrollView>
@@ -812,6 +828,9 @@ export function EventScreen() {
           style={[StyleSheet.absoluteFill, { opacity: barFill }]}
           pointerEvents="none"
         >
+          {/* A live blur costs whether or not it can be seen, and this one
+              cannot be until the page has been scrolled. */}
+          {pageOpen && (
           <BlurView
             intensity={40}
             tint="dark"
@@ -819,6 +838,7 @@ export function EventScreen() {
             blurMethod="dimezisBlurView"
             style={StyleSheet.absoluteFill}
           />
+          )}
           <View style={[StyleSheet.absoluteFill, styles.barGlass]} />
         </Animated.View>
 

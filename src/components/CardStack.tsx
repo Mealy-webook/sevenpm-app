@@ -107,11 +107,28 @@ export function CardStack<T>({
 
   /* The card becomes the back of the pile, then springs there from wherever
      it was let go — it is never thrown off screen. */
-  const sendToBack = () => {
+  /**
+   * Turn the pile one place, either way.
+   *
+   * `+1` is the original move: the front card becomes the back of the pile
+   * and then springs from wherever your finger left it into that back slot,
+   * so the card you pushed visibly travels around the stack.
+   *
+   * `-1` is the same thing run backwards. The card at the back comes to the
+   * front, and the one you were looking at drops to second — it is the same
+   * reorder, and every card's depth is sprung, so nothing else is needed for
+   * it to work. The card under your finger springs back to its own place
+   * either way, because your finger is no longer on it.
+   */
+  const rotate = (dir: number) => {
     haptic.tick();
-    const leaving = order[0];
-    setOrder((prev) => [...prev.slice(1), prev[0]]);
-    Animated.spring(valuesFor(leaving).drag, {
+    const moved = order[0];
+    setOrder((prev) =>
+      dir > 0
+        ? [...prev.slice(1), prev[0]]
+        : [prev[prev.length - 1], ...prev.slice(0, -1)],
+    );
+    Animated.spring(valuesFor(moved).drag, {
       toValue: { x: 0, y: 0 },
       ...CARD_SPRING,
       useNativeDriver: true,
@@ -140,8 +157,12 @@ export function CardStack<T>({
         drag.setValue({ x: g.dx * ELASTIC, y: g.dy * ELASTIC });
       },
       onPanResponderRelease: (_, g) => {
-        if (Math.abs(g.dx) > THRESHOLD || Math.abs(g.dy) > THRESHOLD) {
-          sendToBackRef.current();
+        /* Push it to the right for the next one and to the left for the one
+           before, the way you deal a card off a deck to see what is under it
+           and put it back to see what you just passed. Sideways only: a drag
+           that is mostly up or down is not asking for either. */
+        if (Math.abs(g.dx) > THRESHOLD) {
+          rotateRef.current(g.dx > 0 ? 1 : -1);
         } else {
           settleRef.current(currentFront.current);
         }
@@ -162,8 +183,8 @@ export function CardStack<T>({
     .map((item, index) => ({ item, index, depth: order.indexOf(index) }))
     .sort((a, b) => b.depth - a.depth);
 
-  const sendToBackRef = useRef(sendToBack);
-  sendToBackRef.current = sendToBack;
+  const rotateRef = useRef(rotate);
+  rotateRef.current = rotate;
   const settleRef = useRef(settle);
   settleRef.current = settle;
 
@@ -233,7 +254,7 @@ export function CardStack<T>({
               key={keyOf(item)}
               accessibilityRole="button"
               accessibilityLabel={label}
-              onPress={sendToBack}
+              onPress={() => rotate(1)}
               style={styles.card}
             >
               {body}
