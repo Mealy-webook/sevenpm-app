@@ -18,19 +18,14 @@ import { useNavigation, useRoute, type RouteProp } from "@react-navigation/nativ
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import Close from "../icons/ic-close.svg";
-import MapPin from "../icons/ic-map-pin.svg";
 import Minus from "../icons/ic-minus.svg";
-import Navigate from "../icons/ic-navigate-20.svg";
 import Plus from "../icons/ic-plus.svg";
 import ShareIcon from "../icons/ic-share-20.svg";
-import { Button } from "../components/Button";
 import { Chip } from "../components/Chip";
-import { PhotoPile } from "../components/PhotoPile";
 import { Page } from "../components/Screen";
 import { MiniPlayer, artworkAt, useDeck } from "../components/MiniPlayer";
 import { COVER_MS } from "../components/PosterZoom";
 import { Tap } from "../components/Tap";
-import { TicketStub } from "../components/TicketStub";
 import { icon } from "../icons";
 import { image } from "../images";
 import { Text } from "../theme/Text";
@@ -42,29 +37,20 @@ import { bookingConfig } from "../data/booking";
 import { getEvent, type ArtistGroup } from "../data/events";
 
 /**
- * The event page, from Figma 410:6401 — measured against the comp's 390-wide
- * frame, section by section.
+ * The event page, from Figma 469:72557 — measured against the comp's 390-wide
+ * frame, section by section. It replaced 410:6401, which carried three more
+ * sections than this one does.
  *
- * Three things about this page are not like the rest of the app, and all are
- * deliberate in the comp.
- *
- * The tickets are **paper** (`TicketStub`): a perforated grey stub holding a
- * sheet of textured card, with the type in near-black. Every other surface in
- * this system is dark with light type, and the inversion is the point — a
- * ticket should look like an object you were handed, not like another panel.
- *
- * The gallery is a **pile of polaroids**, not a rail: three prints, one
- * upright in front and two tucked behind at a tilt. `PhotoPile` adds the
- * interaction the still comp implies — flick the front print aside and the
- * pile turns.
- *
- * And the schedule tiles have no panels. They are three columns divided by
+ * The schedule tiles have no panels. They are three columns divided by
  * hairlines, which is why they read as one band of facts rather than three
  * cards.
  *
- * What is *not* here, on purpose: a call-to-action under the schedule, names
- * under the line-up circles, and a sponsors block. The comp has none of them;
- * the tickets themselves are the call to action.
+ * What is *not* here, on purpose: **tickets, the location and the gallery**.
+ * 410:6401 had all three and this comp draws none of them, which Ahmed
+ * confirmed is deliberate. It leaves the page with no route into the booking
+ * journey and the app with no other one, so booking needs an entry somewhere
+ * before this ships. Also absent, as before: a call-to-action under the
+ * schedule, names under the line-up circles, and a sponsors block.
  */
 
 /**
@@ -115,10 +101,10 @@ const ARRIVE_PAGE = ARM_AT + 620;
  * drift and the landing would show a jump.
  */
 export const EVENT_LABEL = "/assets/event-label.webp";
-const RECORD = { left: -9, top: -33, size: 408 };
+const RECORD = { left: -9, top: -63, size: 408 };
 const LABEL = {
   left: (80 - RECORD.left) / RECORD.size,
-  top: (50 - RECORD.top) / RECORD.size,
+  top: (20 - RECORD.top) / RECORD.size,
   width: 228 / RECORD.size,
   height: 230 / RECORD.size,
 };
@@ -205,8 +191,8 @@ function turned(point: { x: number; y: number }, degrees: number) {
 
 /** The comp's page header is 279 tall on a 390 frame; the title sits on it. */
 const HEADER_RATIO = 279 / 390;
-/** The record hero's own height: the comp's Section begins 414 down. */
-const HERO_H = 414;
+/** The record hero's own height: the comp's Section begins 373 down. */
+const HERO_H = 373;
 
 /**
  * The line-up photography ships with the app comps and is not in the web
@@ -225,13 +211,6 @@ const LINEUP = [
   "/assets/lineup-9.jpg",
 ];
 
-const GALLERY = [
-  "/assets/event-gallery-1.jpg",
-  "/assets/event-gallery-2.jpg",
-  "/assets/event-gallery-3.jpg",
-  "/assets/event-gallery-4.jpg",
-  "/assets/event-gallery-5.jpg",
-];
 
 export function EventScreen() {
   const insets = useSafeAreaInsets();
@@ -420,7 +399,6 @@ export function EventScreen() {
     );
   }
 
-  const book = () => navigation.navigate("Booking", { slug: event.slug });
 
   /* Each record wears the cover of the track it is. */
   const coverOf = (at: number) => {
@@ -576,7 +554,7 @@ export function EventScreen() {
             style={{
               position: "absolute",
               left: s(134),
-              top: s(232),
+              top: s(202),
               width: s(288.423),
               height: s(241.54),
               alignItems: "center",
@@ -663,10 +641,10 @@ export function EventScreen() {
                 >
                   {Mark && <Mark width={24} height={24} />}
                   <View style={styles.tileText}>
-                    <Text variant="caption" color={colors.contentSecondary}>
+                    <Text variant="caption2" color={colors.contentSecondary}>
                       {tile.label}
                     </Text>
-                    <Text variant="bodyBold">{tile.value}</Text>
+                    <Text variant="bodySBold">{tile.value}</Text>
                   </View>
                 </View>
               );
@@ -674,24 +652,8 @@ export function EventScreen() {
           </View>
         </Reveal>
 
-        {/* Tickets */}
-        <Reveal index={1} style={styles.section}>
-          <RevealWords variant="displayBlock" color={colors.white} textStyle={heading}>
-            {eventCopy.tickets}
-          </RevealWords>
-        </Reveal>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.ticketRail}
-        >
-          {event.ticketTiers.map((tier) => (
-            <TicketStub key={tier.id} tier={tier} onPress={book} />
-          ))}
-        </ScrollView>
-
         {/* Line-up */}
-        <Reveal index={2} style={styles.section}>
+        <Reveal index={1} style={styles.section}>
           <RevealWords variant="displayBlock" color={colors.white} textStyle={heading}>
             {eventCopy.lineup}
           </RevealWords>
@@ -723,45 +685,8 @@ export function EventScreen() {
           ))}
         </ScrollView>
 
-        {/* Location */}
-        <Reveal index={3} style={styles.section}>
-          <RevealWords variant="displayBlock" color={colors.white} textStyle={heading}>
-            {eventCopy.location}
-          </RevealWords>
-          <View>
-            <Image
-              source={image("/assets/event-map.jpg")}
-              style={styles.map}
-              contentFit="cover"
-              transition={300}
-            />
-            <View style={styles.pin}>
-              <MapPin width={32} height={32} />
-            </View>
-          </View>
-          <View style={styles.venue}>
-            <Text variant="bodyS" color={colors.white} style={styles.venueName}>
-              {event.venue.name}
-            </Text>
-            <Button
-              variant="primary"
-              label={eventCopy.directions}
-              icon={Navigate}
-              onPress={() => Linking.openURL(event.venue.directionsUrl)}
-            />
-          </View>
-        </Reveal>
-
-        {/* Gallery */}
-        <Reveal index={4} style={styles.section}>
-          <RevealWords variant="displayBlock" color={colors.white} textStyle={heading}>
-            {eventCopy.gallery}
-          </RevealWords>
-          <PhotoPile photos={GALLERY} style={styles.pile} />
-        </Reveal>
-
         {/* Good to know — panels, two across. */}
-        <Reveal index={5} style={styles.section}>
+        <Reveal index={2} style={styles.section}>
           <RevealWords variant="displayBlock" color={colors.white} textStyle={heading}>
             {eventCopy.goodToKnow}
           </RevealWords>
@@ -772,8 +697,8 @@ export function EventScreen() {
                 <View key={info.title} style={[styles.info, { width: infoWidth }]}>
                   {Mark && <Mark width={24} height={24} />}
                   <View>
-                    <Text variant="bodyBold">{info.title}</Text>
-                    <Text variant="caption" color={colors.contentSecondary}>
+                    <Text variant="bodySBold">{info.title}</Text>
+                    <Text variant="caption2" color={colors.contentSecondary}>
                       {info.value}
                     </Text>
                   </View>
@@ -784,7 +709,7 @@ export function EventScreen() {
         </Reveal>
 
         {/* FAQs — the control is on the left, ahead of the question. */}
-        <Reveal index={6} style={styles.section}>
+        <Reveal index={3} style={styles.section}>
           <RevealWords variant="displayBlock" color={colors.white} textStyle={heading}>
             {eventCopy.faqs}
           </RevealWords>
@@ -812,7 +737,7 @@ export function EventScreen() {
                       {item.question}
                     </Text>
                     {open && item.answer && (
-                      <Text variant="bodyS" color={colors.contentSecondary}>
+                      <Text variant="body" color={colors.contentSecondary}>
                         {item.answer}
                       </Text>
                     )}
@@ -981,7 +906,6 @@ const styles = StyleSheet.create({
   },
 
   /* Tickets sit flush, so their perforations meet. */
-  ticketRail: { paddingHorizontal: gutter, paddingTop: space.l },
 
   lapped: { marginLeft: -LAP },
   soloCircle: {
@@ -998,12 +922,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgSecondary,
   },
 
-  map: { width: "100%", height: 163 },
-  pin: { position: "absolute", left: "50%", top: 66, marginLeft: -16 },
-  venue: { flexDirection: "row", alignItems: "center", gap: space.l, marginTop: space.xs },
-  venueName: { flex: 1, minWidth: 0 },
 
-  pile: { marginTop: space.m },
 
   infoGrid: { flexDirection: "row", flexWrap: "wrap", gap: space.l },
   info: {
