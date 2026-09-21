@@ -27,7 +27,7 @@ import { Button } from "../components/Button";
 import { Chip } from "../components/Chip";
 import { PhotoPile } from "../components/PhotoPile";
 import { Page } from "../components/Screen";
-import { MiniPlayer, useDeck } from "../components/MiniPlayer";
+import { MiniPlayer, artworkAt, useDeck } from "../components/MiniPlayer";
 import { COVER_MS } from "../components/PosterZoom";
 import { Tap } from "../components/Tap";
 import { TicketStub } from "../components/TicketStub";
@@ -84,13 +84,11 @@ import { getEvent, type ArtistGroup } from "../data/events";
  * after the cover comes off is a thing you watch arrive twice.
  *
  * Two things do move, and they start before the cover has finished coming
- * off: the arm goes down on the record, and the page opens under it.
+ * off: the deck is asked to play, which brings the arm down onto the record,
+ * and the page opens under it.
  */
 const ARM_AT = COVER_MS - 50;
 const ARM_MS = 900;
-/* The record starts turning before the arm has quite settled, so the deck
-   comes to life during the last of the swing rather than after it. */
-const CUE_AT = ARM_AT + 660;
 const ARRIVE_PAGE = ARM_AT + 620;
 
 /**
@@ -124,15 +122,26 @@ const LABEL = {
   height: 230 / RECORD.size,
 };
 
-export function deckRect(width: number) {
+export function deckRect(width: number, label = EVENT_LABEL) {
   const u = (value: number) => scaled(value, width);
   return {
     x: u(RECORD.left),
     y: u(RECORD.top),
     size: u(RECORD.size),
-    label: EVENT_LABEL,
+    label,
     labelRect: LABEL,
   };
+}
+
+/**
+ * The label the deck is wearing when an event's page opens: the cover of the
+ * first track on it, because the record's label *is* the track. Anything
+ * flying a record here asks for this so the record lands wearing what the
+ * page is about to show, and the hand-over changes nothing.
+ */
+export function deckLabel(slug: string | undefined) {
+  const first = slug ? getEvent(slug)?.playlist?.[0] : undefined;
+  return first?.artworkUrl ? artworkAt(first.artworkUrl, 600) : EVENT_LABEL;
 }
 
 /** How far the record has to be pushed before it changes what is playing. */
@@ -199,35 +208,34 @@ export function EventScreen() {
 
   /* Flown to, so the page holds itself back until the record has landed. */
   const arriving = params.arriving === true;
-  const arm = useRef(new Animated.Value(arriving ? 0 : 1)).current;
+  const arm = useRef(new Animated.Value(0)).current;
   const [pageOpen, setPageOpen] = useState(!arriving);
-  /* The record can only be played once the arm is on it. */
-  const [cued, setCued] = useState(!arriving);
   /* The player is not on the page until the record has gone: it is the same
      record, carried on into a bar once there is no deck left to look at. */
   const [playerUp, setPlayerUp] = useState(false);
 
+  /* One deck for the page: the arm starts it, the bar carries on with it.
+     Held above the early return below, because a hook that only sometimes
+     runs is a hook that breaks the next render. */
+  const player = useDeck(event?.playlist ?? []);
+  const start = player.play;
+
   /* Beat two and beat three of an arrival. Both are on timers rather than on
      a callback because the thing they wait for is drawn by another screen. */
+  /* Armed once. An arrival happens once, and a timer that re-arms would
+     reach back in and start the deck again long after it was turned off. */
+  const cued = useRef(false);
   useEffect(() => {
-    if (!arriving) return;
-    /* The arm comes off its rest and down onto the record. */
-    const down = setTimeout(() => {
-      Animated.timing(arm, {
-        toValue: 1,
-        duration: ARM_MS,
-        easing: Easing.inOut(Easing.cubic),
-        useNativeDriver: true,
-      }).start();
-    }, ARM_AT);
-    const cue = setTimeout(() => setCued(true), CUE_AT);
+    if (!arriving || cued.current) return;
+    cued.current = true;
+    /* Ask the deck to play. The arm follows that on its own, below. */
+    const cue = setTimeout(() => start(), ARM_AT);
     const page = setTimeout(() => setPageOpen(true), ARRIVE_PAGE);
     return () => {
-      clearTimeout(down);
       clearTimeout(cue);
       clearTimeout(page);
     };
-  }, [arriving, arm]);
+  }, [arriving, start]);
 
   /* The bar can only be pressed once it is there. The opacity itself runs on
      the native driver off the scroll; this is only the touch target. */
@@ -239,20 +247,21 @@ export function EventScreen() {
     return () => scrollY.removeListener(id);
   }, [scrollY, width]);
 
-  /* One deck for the page: the arm starts it, the bar carries on with it.
-     Held above the early return below, because a hook that only sometimes
-     runs is a hook that breaks the next render. */
-  const player = useDeck(event?.playlist ?? []);
-  const start = player.play;
-  /* Once, on the landing — not on every render that follows it. */
-  const started = useRef(false);
+  /**
+   * The arm is where the sound is. It lies across the record while the deck
+   * is meant to be playing and goes back to its rest the moment it is not,
+   * so stopping the record is a thing you watch happen rather than a thing
+   * you infer from silence. It follows the deck's intent rather than what it
+   * has managed to load, so it moves the moment it is asked.
+   */
   useEffect(() => {
-    /* Only a flown-to page plays itself; a page you opened yourself stays
-       quiet until you ask it for sound. */
-    if (!arriving || !cued || started.current) return;
-    started.current = true;
-    start();
-  }, [arriving, cued, start]);
+    Animated.timing(arm, {
+      toValue: player.intent ? 1 : 0,
+      duration: ARM_MS,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [player.intent, arm]);
 
   /**
    * The record answers to the hand on it: a press stops it, a push to either
@@ -316,7 +325,7 @@ export function EventScreen() {
      sound rather than to the page and the turning record becomes the thing
      that tells you whether anything is coming out of it. */
   const reducedMotion = useReducedMotion();
-  const turning = cued && player.playing;
+  const turning = player.playing;
   const spin = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (reducedMotion || !turning) return;
@@ -348,6 +357,10 @@ export function EventScreen() {
 
   /* The hero is a collage at the comp's own 390-wide measurements. */
   const s = (value: number) => scaled(value, width);
+  /* The record wears the cover of whatever is on it. */
+  const label = player.track?.artworkUrl
+    ? artworkAt(player.track.artworkUrl, 600)
+    : EVENT_LABEL;
 
   const spinning = {
     transform: [
@@ -495,8 +508,11 @@ export function EventScreen() {
                   spinning,
                 ]}
               />
-              <Animated.Image
-                source={image(EVENT_LABEL)}
+              {/* The label is the track: change what is playing and the
+                  record on the deck is wearing the new cover. It crossfades,
+                  for the times the track is changed from the bar rather than
+                  by pushing the record aside. */}
+              <Animated.View
                 style={[
                   {
                     position: "absolute",
@@ -504,11 +520,22 @@ export function EventScreen() {
                     top: `${LABEL.top * 100}%`,
                     width: `${LABEL.width * 100}%`,
                     height: `${LABEL.height * 100}%`,
-                    resizeMode: "cover",
+                    /* A record's label is round, and a cover is square. The
+                       house rule squares everything that is not literally a
+                       circle; this is literally a circle. */
+                    borderRadius: 999,
+                    overflow: "hidden",
                   },
                   spinning,
                 ]}
-              />
+              >
+                <Image
+                  source={image(label)}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="cover"
+                  transition={260}
+                />
+              </Animated.View>
             </Tap>
           </Animated.View>
           {/* The arm is drawn upright and laid across the disc, so it is

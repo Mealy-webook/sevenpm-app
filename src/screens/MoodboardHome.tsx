@@ -10,7 +10,7 @@ import Globe from "../icons/ic-globe-20.svg";
 import { Button } from "../components/Button";
 import { CardStack } from "../components/CardStack";
 import { PosterZoom, type ZoomFrom } from "../components/PosterZoom";
-import { deckRect } from "./EventScreen";
+import { deckLabel, deckRect } from "./EventScreen";
 import { Tap } from "../components/Tap";
 import { image } from "../images";
 import { Text } from "../theme/Text";
@@ -48,7 +48,10 @@ export function MoodboardHome() {
      page's scroll view starts there. The record flies to exactly this, and
      puts on exactly that label on the way, so the two are the same object at
      the moment one fades off the other. */
-  const deck = useMemo(() => deckRect(width), [width]);
+  const deck = useMemo(
+    () => deckRect(width, deckLabel(zoom?.festival.slug)),
+    [width, zoom?.festival.slug],
+  );
 
   const openPoster = (festival: (typeof festivalCards)[number]) => {
     poster.current?.measureInWindow((x, y, w, h) =>

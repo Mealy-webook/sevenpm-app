@@ -351,6 +351,9 @@ export function PosterZoom({
                   top: `${restTo.labelRect.top * 100}%`,
                   width: `${restTo.labelRect.width * 100}%`,
                   height: `${restTo.labelRect.height * 100}%`,
+                  /* A label is round even when the cover it carries is not. */
+                  borderRadius: 999,
+                  overflow: "hidden",
                   opacity: travel.interpolate({
                     inputRange: [0, 0.25, 0.8, 1],
                     outputRange: [0, 0, 1, 1],

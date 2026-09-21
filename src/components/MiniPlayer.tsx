@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import { BlurView } from "expo-blur";
@@ -48,15 +48,37 @@ export function useDeck(tracks: PlaylistTrack[]) {
   const status = useAudioPlayerStatus(player);
   const playing = status?.playing ?? false;
   const loaded = status?.isLoaded ?? false;
-  const ended = status?.didJustFinish ?? false;
+  const at = status?.currentTime ?? 0;
+  const runs = status?.duration ?? 0;
+
+  /**
+   * The last track this player was actually heard playing.
+   *
+   * Everything about the end of a track is latched behind this. A player
+   * that has just been handed a new source keeps reporting the old one's
+   * clock for a moment, and reading "stopped, at the end" off that walked
+   * the whole playlist in a couple of seconds — every advance loaded a
+   * source, every load looked finished, and every finish advanced again.
+   * A track cannot end until it has been heard to start.
+   */
+  const heard = useRef<string | null>(null);
+  useEffect(() => {
+    if (playing && source) heard.current = source;
+  }, [playing, source]);
 
   /**
    * What the deck is *meant* to be doing, which is not the same as what it
    * is doing. These are streamed previews, so a track is asked for well
    * before it can start — the arm comes down on the record while the file is
    * still on its way, and a player with nothing loaded drops the request.
+   * Kept as a ref for the logic below and as state for the page to draw.
    */
   const wanted = useRef(false);
+  const [intent, setIntent] = useState(false);
+  const want = useCallback((on: boolean) => {
+    wanted.current = on;
+    setIntent(on);
+  }, []);
 
   /* A phone on silent should still play a preview it was asked for. */
   useEffect(() => {
@@ -73,40 +95,56 @@ export function useDeck(tracks: PlaylistTrack[]) {
   /* And pick it up again once it has actually loaded, for the times it was
      asked for before there was anything to ask. */
   useEffect(() => {
-    if (!wanted.current || !loaded || playing || ended) return;
+    if (!wanted.current || !loaded || playing) return;
     player.play();
-  }, [loaded, playing, ended, player]);
+  }, [loaded, playing, player]);
 
-  /* A preview runs out after half a minute; the deck moves on rather than
-     stopping. Guarded by the track it finished, because a source being
-     swapped can report the outgoing one as having ended. */
-  const done = useRef<string | null>(null);
+  /* A preview runs out after half a minute; the deck moves on to the next
+     one, and keeps playing, because the intent has not changed. */
   useEffect(() => {
-    if (!ended || !source || done.current === source) return;
-    done.current = source;
+    if (!source || heard.current !== source) return;
+    /* A real duration, really reached. A preview that reports a fraction of
+       a second, or a player that blinks to "not playing" while it buffers,
+       is not a track that has ended. */
+    if (playing || runs < 5 || at < runs - 0.6) return;
     setIndex((current) => (current + 1) % tracks.length);
-  }, [ended, source, tracks.length]);
+  }, [playing, at, runs, source, tracks.length]);
 
-  const step = (by: number) => {
-    haptic.tick();
-    setIndex((current) => (current + by + tracks.length) % tracks.length);
-  };
-
-  return {
-    track,
-    playing,
-    step,
-    play: () => {
-      wanted.current = true;
-      player.play();
-    },
-    toggle: () => {
+  const step = useCallback(
+    (by: number) => {
       haptic.tick();
-      wanted.current = !playing;
-      if (playing) player.pause();
-      else player.play();
+      setIndex((current) => (current + by + tracks.length) % tracks.length);
     },
-  };
+    [tracks.length],
+  );
+
+  const play = useCallback(() => {
+    want(true);
+    player.play();
+  }, [player, want]);
+
+  const toggle = useCallback(() => {
+    haptic.tick();
+    const on = !wanted.current;
+    want(on);
+    if (on) player.play();
+    else player.pause();
+  }, [player, want]);
+
+  /* Stable, so a caller can put these in an effect's dependencies without
+     that effect running again on every render. */
+  return useMemo(
+    () => ({
+      track,
+      playing,
+      /** What it is meant to be doing. The arm on the page follows this. */
+      intent,
+      step,
+      play,
+      toggle,
+    }),
+    [track, playing, intent, step, play, toggle],
+  );
 }
 
 /**
@@ -234,7 +272,7 @@ export function MiniPlayer({ deck }: { deck: Deck }) {
 }
 
 /** The store serves the cover at any square size; ask for a crisp one. */
-function artworkAt(url: string, px: number) {
+export function artworkAt(url: string, px: number) {
   return url.replace(/\/\d+x\d+bb\./, `/${px}x${px}bb.`);
 }
 
