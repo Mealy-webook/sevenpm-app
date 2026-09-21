@@ -1,425 +1,252 @@
-import { useRef, useState } from "react";
-import {
-  Animated,
-  ScrollView,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-} from "react-native";
+import { useMemo, useRef, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import ArrowRight from "../icons/ic-arrow-right-20.svg";
+import Globe from "../icons/ic-globe-20.svg";
 import { Button } from "../components/Button";
-import { StoryRing } from "../components/StoryRing";
-import { Tap } from "../components/Tap";
+import { CardStack } from "../components/CardStack";
+import { PosterZoom, type ZoomFrom } from "../components/PosterZoom";
+import { deckLabel, deckRect } from "./EventScreen";
 import { image } from "../images";
 import { Text } from "../theme/Text";
-import { colors, displaySize, radii, space, type } from "../theme/tokens";
-import type { RootParamList } from "../navigation/RootNavigator";
+import { colors, displaySize, space, type } from "../theme/tokens";
 import { TAB_BAR_CLEARANCE } from "../navigation/TabBar";
-import { useTabBarScroll } from "../navigation/tabBarScroll";
-import { Reveal, RevealWords, ScrollProvider, usePageScroll } from "../theme/scroll";
+import { discoverCopy, festivalCards } from "../data/discover";
+import type { RootParamList } from "../navigation/RootNavigator";
+import { menuCopy } from "../data/account";
 import { loyaltyBalance } from "../data/account";
-import { useWatchedStories } from "./watchedStories";
-import {
-  discoverCopy,
-  festivalCards,
-  galleryTiles,
-  merchandise,
-  newsRows,
-  stories,
-} from "../data/discover";
-
-/** How far a poster drifts inside its card as the rail moves. */
-const PARALLAX = 58;
-
-/* Card and tile figures come straight off the comp's 390px frame. */
-const CARD_WIDTH = 289;
-const MEDIA_RATIO = 170 / 212.5;
-const STORY = 72;
 
 /**
- * Discover, from Figma 378:27332 — the app's home screen.
+ * Discover — Moodboard file hH59yXcVCdjIhf2TtGG23j, node 182:1352.
  *
- * The comp is a stack of sections, each with a Daltown heading at 88px and a
- * rail or grid under it: stories, the festivals, merchandise, the gallery, the
- * news. It scrolls as one page under a header that stays put.
- *
- * Headings are sized against the viewport for the same reason the onboarding
- * headline is — 88px is measured against a 390px screen — and their line
- * boxes are opened from the comp's 71 to the full size, because React Native
- * clips glyphs out of a box tighter than their own size.
+ * This replaced an earlier Discover built from the app file, which ranged its
+ * heading left and laid the festivals out as a rail. This one centres the
+ * heading and makes the festivals a single stacked card you push aside, with
+ * a warm glow behind it that is the front card's own poster thrown out of
+ * focus. Tapping the poster opens it, and the record inside it is carried up
+ * to the event page's deck.
  */
 export function DiscoverScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
-  const [card, setCard] = useState(0);
-  const watched = useWatchedStories();
-  const tabScroll = useTabBarScroll();
-  /* One onScroll per scroll view, so the tab bar's shrink rides along with
-     the page's own scroll value. */
-  const { scrollY, props: scrollProps } = usePageScroll(tabScroll.onScroll);
-  const cardsX = useRef(new Animated.Value(0)).current;
+  /* The glow is the card you are looking at, so it follows the stack. */
+  const [front, setFront] = useState(festivalCards[0]);
+  /* Tapping the poster opens it full screen, growing out of where it sat. */
+  const poster = useRef<View>(null);
+  const [zoom, setZoom] = useState<
+    { festival: (typeof festivalCards)[number]; from: ZoomFrom } | null
+  >(null);
 
-  const heading = displaySize(type.displaySection, width);
-  const cardName = displaySize(type.displayCard, width);
-  const cardStep = CARD_WIDTH + space.l;
+  /* Where the event page puts its record, taken from that page itself so
+     the two cannot drift apart — it is at the top of the window because that
+     page's scroll view starts there. The record flies to exactly this, and
+     puts on exactly that label on the way, so the two are the same object at
+     the moment one fades off the other. */
+  const deck = useMemo(
+    () => deckRect(width, deckLabel(zoom?.festival.slug)),
+    [width, zoom?.festival.slug],
+  );
+
+  const openPoster = (festival: (typeof festivalCards)[number]) => {
+    poster.current?.measureInWindow((x, y, w, h) =>
+      setZoom({ festival, from: { x, y, width: w, height: h } }),
+    );
+  };
 
   return (
     <View style={styles.page}>
-      {/* Header: the wordmark, and what you have to spend. */}
-      <View style={[styles.header, { paddingTop: insets.top + space.xs }]}>
+      {/* Wordmark left, balance and language right. */}
+      <View style={[styles.bar, { paddingTop: insets.top + space.xs }]}>
         <Image
           source={image("/assets/wordmark.png")}
           style={styles.wordmark}
           contentFit="contain"
-          accessibilityLabel="SEVENPM"
         />
-        <View style={styles.headerActions}>
-          <Button
-            label={discoverCopy.beats(loyaltyBalance)}
-            size="m"
-            /* The comp does not say where this goes. It states a Beats
-               balance, so it opens the Beats. */
-            onPress={() => navigation.navigate("Rewards")}
-          />
+        <View style={styles.spacer} />
+        <Button size="m" label={menuCopy.beats(loyaltyBalance)} />
+        {/* The comp's language button. It is drawn and not wired: this app
+            speaks one language, and a control that answers a press by doing
+            nothing is worse than one that plainly does not take presses.
+            Flagged for the designer. */}
+        <View style={styles.iconButton}>
+          <Globe width={20} height={20} />
         </View>
       </View>
 
-      {/* The bar floats over this screen, so the last row buys its own room. */}
-      <ScrollProvider value={scrollY}>
-      <Animated.ScrollView
-        contentContainerStyle={{ paddingBottom: TAB_BAR_CLEARANCE }}
-        {...scrollProps}
+      <ScrollView
+        contentContainerStyle={[styles.body, { paddingBottom: TAB_BAR_CLEARANCE }]}
       >
-        {/* Stories */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.stories}
-        >
-          {stories.map((story) => (
-            <Tap
-              key={story.id}
-              accessibilityRole="button"
-              accessibilityLabel={discoverCopy.story(story.label)}
-              onPress={() => navigation.navigate("Story", { id: story.id })}
-              style={styles.story}
-            >
-              {/* Yellow while there is something new in it; grey once it
-                  has been seen. */}
-              <StoryRing watched={watched.has(story.id)}>
-                <Image
-                  source={image(story.image)}
-                  style={styles.storyPhoto}
-                  contentFit="cover"
-                  transition={200}
-                />
-              </StoryRing>
-              <Text variant="bodyS" numberOfLines={1} style={styles.storyLabel}>
-                {story.label}
-              </Text>
-            </Tap>
-          ))}
-        </ScrollView>
-
-        {/* Festivals */}
-        <Reveal index={1} style={styles.section}>
-          <RevealWords
-            variant="displaySection"
-            color={colors.white}
-            textStyle={heading}
-          >
-            {discoverCopy.festivals}
-          </RevealWords>
-
-          <Animated.ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            snapToInterval={cardStep}
-            decelerationRate="fast"
-            contentContainerStyle={styles.cards}
-            scrollEventThrottle={16}
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { x: cardsX } } }],
-              { useNativeDriver: true },
-            )}
-            onMomentumScrollEnd={(e: NativeSyntheticEvent<NativeScrollEvent>) =>
-              setCard(Math.round(e.nativeEvent.contentOffset.x / cardStep))
-            }
-          >
-            {festivalCards.map((festival, index) => (
-              <Tap
-                key={festival.id}
-                accessibilityRole="button"
-                accessibilityLabel={festival.name}
-                disabled={!festival.slug}
-                onPress={() =>
-                  festival.slug &&
-                  navigation.navigate("Event", { slug: festival.slug })
-                }
-                /* A 289px card dips less than a 72px story ring. */
-                scale={0.985}
-                style={styles.card}
-              >
-                <View style={styles.cardMedia}>
-                  <Animated.View
-                    style={[
-                      StyleSheet.absoluteFill,
-                      {
-                        transform: [
-                          {
-                            /* A third of the rail's speed, the other way, so
-                               the poster looks like it sits behind the card
-                               rather than on it. */
-                            translateX: cardsX.interpolate({
-                              inputRange: [
-                                (index - 1) * cardStep,
-                                (index + 1) * cardStep,
-                              ],
-                              outputRange: [-PARALLAX, PARALLAX],
-                              extrapolate: "clamp",
-                            }),
-                          },
-                        ],
-                      },
-                    ]}
-                  >
-                    <Image
-                      source={image(festival.image)}
-                      style={styles.cardPoster}
-                      contentFit="cover"
-                      transition={200}
-                    />
-                  </Animated.View>
-                </View>
-                <View>
-                  <Text
-                    variant="displayCard"
-                    uppercase
-                    color={colors.white}
-                    numberOfLines={1}
-                    style={cardName}
-                  >
-                    {festival.name}
-                  </Text>
-                  {/* Absent until content sets it — see data/discover.ts. */}
-                  {festival.dates && (
-                    <Text variant="bodyBold" color={colors.brand}>
-                      {festival.dates}
-                    </Text>
-                  )}
-                  <Text variant="bodyS" color={colors.contentSecondary}>
-                    {festival.venue}
-                  </Text>
-                </View>
-              </Tap>
-            ))}
-          </Animated.ScrollView>
-
-          <View style={styles.marks}>
-            {festivalCards.map((festival, index) => (
-              <View
-                key={festival.id}
-                style={[
-                  styles.mark,
-                  index === card ? styles.markOn : styles.markOff,
-                ]}
-              />
-            ))}
-          </View>
-        </Reveal>
-
-        {/* Merchandise */}
-        <Reveal index={2} style={styles.section}>
-          <RevealWords
-            variant="displaySection"
-            color={colors.white}
-            textStyle={heading}
-          >
-            {discoverCopy.merchandise}
-          </RevealWords>
-          <View style={styles.grid}>
-            {merchandise.map((item) => (
-              <View key={item.id} style={styles.product}>
-                <Image
-                  source={image(item.image)}
-                  style={styles.productMedia}
-                  contentFit="cover"
-                  transition={200}
-                />
-                <View style={styles.productBody}>
-                  <Text variant="bodyBold" numberOfLines={2}>
-                    {item.name}
-                  </Text>
-                  <Text variant="bodyBold">{item.price}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </Reveal>
-
-        {/* Gallery */}
-        <Reveal index={3} style={styles.section}>
-          <RevealWords
-            variant="displaySection"
-            color={colors.white}
-            textStyle={heading}
-          >
-            {discoverCopy.gallery}
-          </RevealWords>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.gallery}
-          >
-            <View style={styles.galleryRows}>
-              {[galleryTiles.slice(0, 3), galleryTiles.slice(3)].map((row, i) => (
-                <View key={i} style={styles.galleryRow}>
-                  {row.map((tile) => (
-                    <Image
-                      key={tile}
-                      source={image(tile)}
-                      style={styles.tile}
-                      contentFit="cover"
-                      transition={200}
-                    />
-                  ))}
-                </View>
-              ))}
-            </View>
-          </ScrollView>
-        </Reveal>
-
-        {/* News */}
-        <Reveal index={4} style={styles.section}>
-          <RevealWords
-            variant="displaySection"
-            color={colors.white}
-            textStyle={heading}
-          >
-            {discoverCopy.news}
-          </RevealWords>
-          <View>
-            {newsRows.map((row) => (
-              <View key={row.id} style={styles.newsRow}>
-                <Image
-                  source={image(row.image)}
-                  style={styles.newsTile}
-                  contentFit="cover"
-                  transition={200}
-                />
-                <View style={styles.newsBody}>
-                  <Text variant="bodySBold" color={colors.brand}>
-                    {row.date}
-                  </Text>
-                  <Text variant="bodyL" color={colors.white} numberOfLines={2}>
-                    {row.title}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-          {/* Discover shows three stories; this opens the newsroom rather
-              than appending three more rows to a five-section home screen. */}
-          <Button
-            variant="primary"
-            label={discoverCopy.loadMore}
-            icon={ArrowRight}
-            iconSide="right"
-            onPress={() => navigation.navigate("Tabs", { screen: "News" } as never)}
+        {/* The glow is the front card's own poster, thrown far out of focus.
+            expo-image blurs it live, so it follows the stack and needs no
+            second copy of every poster. */}
+        <View style={styles.glow} pointerEvents="none">
+          <Image
+            source={image(front.image)}
+            style={[StyleSheet.absoluteFill, styles.glowImage]}
+            contentFit="cover"
+            blurRadius={60}
+            transition={400}
           />
-        </Reveal>
-      </Animated.ScrollView>
-      </ScrollProvider>
+          {/* blurRadius blurs within the view, so the bitmap still ends on a
+              hard edge. This fades it back into the page at top and bottom;
+              left and right are hung past the screen so they never show one.
+              The fade is drawn over the image rather than around it, and the
+              image carries the opacity — a half-transparent page colour
+              cannot hide anything. */}
+          <LinearGradient
+            colors={[colors.bgPrimary, "transparent", "transparent", colors.bgPrimary]}
+            locations={[0, 0.34, 0.66, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
+
+        <Text
+          variant="displaySection"
+          uppercase
+          color={colors.white}
+          style={[displaySize(type.displaySection, width), styles.heading]}
+        >
+          {discoverCopy.festivals}
+        </Text>
+
+        {/* One card at a time, the rest fanned behind it. Swipe the front
+            one away and it goes to the back. */}
+        <CardStack
+          items={festivalCards}
+          keyOf={(festival) => festival.id}
+          width={CARD_W}
+          height={CARD_H}
+          style={styles.stack}
+          label="Next festival"
+          onFrontChange={setFront}
+          render={(festival, isFront) => (
+            <View style={[styles.card, isFront ? styles.cardFront : styles.cardBehind]}>
+              {/* Only the card you can see responds; the ones behind are
+                  inert until they reach the front. */}
+              <Pressable
+                ref={isFront ? poster : undefined}
+                disabled={!isFront}
+                accessibilityRole="imagebutton"
+                accessibilityLabel={festival.name}
+                onPress={() => openPoster(festival)}
+                style={styles.poster}
+              >
+                <Image
+                  source={image(festival.image)}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="cover"
+                  transition={300}
+                />
+              </Pressable>
+              <View>
+                <Text
+                  variant="displayCard"
+                  uppercase
+                  color={colors.white}
+                  numberOfLines={1}
+                  style={displaySize(type.displayCard, width)}
+                >
+                  {festival.name}
+                </Text>
+                {festival.dates && (
+                  <Text variant="bodyBold" color={colors.brand}>
+                    {festival.dates}
+                  </Text>
+                )}
+                <Text variant="bodyS" color={colors.contentSecondary}>
+                  {festival.venue}
+                </Text>
+              </View>
+            </View>
+          )}
+        />
+
+      </ScrollView>
+
+      {/* The record comes out of the sleeve, turns, then rides up to the
+          deck at the top of its own page and keeps playing there. Only
+          Jazzablanca has a page, so the rest simply stay on the record. */}
+      <PosterZoom
+        source={zoom?.festival.image ?? null}
+        from={zoom?.from ?? null}
+        restTo={zoom?.festival.slug ? deck : null}
+        onClose={() => setZoom(null)}
+        onArrive={() => {
+          const slug = zoom?.festival.slug;
+          if (slug) navigation.navigate("Event", { slug, arriving: true });
+        }}
+        onFinished={() => setZoom(null)}
+      />
     </View>
   );
 }
 
+/** The comp's card, and the room the fanned stack needs around it. */
+const CARD_W = 289;
+/* 16 padding + a square poster across the inner 257 + 16 gap + room for all
+   three lines of text + 16 padding. Fixed, because a stack of differing
+   heights would shuffle as it turns, and tall enough for the card that has
+   dates so the ones without simply end early. */
+const CARD_H = 424;
+
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.bgPrimary },
 
-  header: {
+  bar: {
     flexDirection: "row",
     alignItems: "center",
     gap: space.m,
-    paddingHorizontal: space.l + space.xs,
+    paddingHorizontal: 20,
     paddingBottom: space.xs,
   },
   wordmark: { width: 98, height: 18 },
-  headerActions: { flex: 1, alignItems: "flex-end" },
-
-  stories: {
-    flexDirection: "row",
-    gap: space.l,
-    paddingHorizontal: space.l + space.xs,
-    paddingVertical: space.l,
-  },
-  story: { alignItems: "center", gap: space.xs, paddingTop: space.xs },
-  storyPhoto: {
-    width: STORY,
-    height: STORY,
-    borderRadius: radii.pill,
-    backgroundColor: colors.bgTertiary,
-  },
-  storyLabel: { width: 72, textAlign: "center" },
-
-  section: {
-    paddingHorizontal: space.l + space.xs,
-    paddingVertical: space.l,
-    gap: space.l,
+  spacer: { flex: 1 },
+  iconButton: {
+    padding: 10,
+    backgroundColor: colors.overlay5,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.overlay10,
   },
 
-  cards: { flexDirection: "row", gap: space.l },
+  body: { alignItems: "center", gap: space.xl, padding: 20 },
+  /* The comp filters a 392px image by 63px and sits it low behind the
+     stack. It is hung past both side edges rather than given the comp's
+     392 — on a wider phone a fixed width stops short of the screen and the
+     blur ends on a straight line down the page. */
+  glow: {
+    position: "absolute",
+    left: -32,
+    right: -32,
+    top: 221,
+    height: 392,
+  },
+  glowImage: { opacity: 0.4 },
+  heading: { textAlign: "center", alignSelf: "stretch" },
+
+  /* The fan leans cards out past the front one, so the stack is given a
+     little room rather than being clipped by the page padding. */
+  stack: { marginBottom: space.xl },
   card: {
-    width: CARD_WIDTH,
+    width: CARD_W,
+    height: CARD_H,
+    /* Nothing from the cards behind may show through the front one. */
+    overflow: "hidden",
     gap: space.l,
     padding: space.l,
-    borderWidth: 1,
-    borderColor: colors.borderTertiary,
+    /* The comp gives every card the same drop shadow. */
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
   },
-  cardMedia: {
-    width: "100%",
-    aspectRatio: MEDIA_RATIO,
-    backgroundColor: colors.bgTertiary,
-    overflow: "hidden",
-  },
-  /* Wider than its frame, so there is something to drift into. */
-  cardPoster: { width: `${100 + (PARALLAX * 2 * 100) / CARD_WIDTH}%`, height: "100%" },
-
-  marks: { flexDirection: "row", gap: space.s, alignItems: "center" },
-  mark: { width: 8, height: 8 },
-  markOn: { width: 52, backgroundColor: colors.brand },
-  markOff: { backgroundColor: "rgba(251,235,28,0.2)" },
-
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: space.l },
-  product: { width: "47%", gap: space.xs },
-  productMedia: {
-    width: "100%",
-    aspectRatio: MEDIA_RATIO,
-    backgroundColor: colors.bgTertiary,
-  },
-  productBody: { gap: space.xs, paddingHorizontal: space.xs },
-
-  gallery: { paddingRight: space.l },
-  galleryRows: { gap: space.l },
-  galleryRow: { flexDirection: "row", gap: space.l },
-  tile: { width: 228, height: 152, backgroundColor: "#27272a" },
-
-  newsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.l,
-    paddingVertical: space.l,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderTertiary,
-  },
-  newsTile: { width: 106, height: 106, backgroundColor: "#27272a" },
-  newsBody: { flex: 1, minWidth: 0, gap: space.xs },
+  /* The comp lifts the front card onto the lighter surface and leaves the
+     ones behind on the darker one, so the top of the pile separates. */
+  cardFront: { backgroundColor: colors.bgTertiary },
+  cardBehind: { backgroundColor: colors.bgSecondary },
+  poster: { width: "100%", aspectRatio: 1, backgroundColor: colors.bgTertiary },
 });

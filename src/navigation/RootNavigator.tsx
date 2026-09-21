@@ -24,7 +24,6 @@ import { WalletScreen } from "../screens/account/WalletScreen";
 import { ProfileScreen } from "../screens/account/ProfileScreen";
 import { PaymentsScreen } from "../screens/account/PaymentsScreen";
 import { InstallmentsScreen } from "../screens/InstallmentsScreen";
-import { MoodboardHome } from "../screens/MoodboardHome";
 import { RewardsScreen } from "../screens/RewardsScreen";
 
 export type RootParamList = {
@@ -41,7 +40,6 @@ export type RootParamList = {
   Profile: undefined;
   Payments: undefined;
   Installments: { bookingId?: string } | undefined;
-  Moodboard: undefined;
   Story: { id: string };
   Article: { slug: string };
 };
@@ -120,7 +118,6 @@ export function RootNavigator() {
   return (
     <NavigationContainer theme={theme}>
       <Stack.Navigator
-        initialRouteName="Moodboard"
         screenOptions={{
           headerShown: false,
           contentStyle: styles.page,
@@ -154,24 +151,22 @@ export function RootNavigator() {
           component={BookingScreen}
           options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
         />
-        {/* A story is a full-screen player that covers the tabs, and it
-            comes up from the bottom like the booking journey rather than
-            sliding in as another page. */}
-        <Stack.Screen
-          name="Story"
-          component={StoryScreen}
-          options={{ presentation: "fullScreenModal", animation: "fade" }}
-        />
         <Stack.Screen name="Article" component={ArticleScreen} />
         <Stack.Screen name="Wallet" component={WalletScreen} />
         <Stack.Screen name="Rewards" component={RewardsScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Payments" component={PaymentsScreen} />
         <Stack.Screen name="Installments" component={InstallmentsScreen} />
-        {/* TEST ONLY — the Moodboard homepage concept, opened first on this
-            branch so it can be looked at. Drop the initialRouteName below to
-            put the app back on its own Discover. */}
-        <Stack.Screen name="Moodboard" component={MoodboardHome} />
+        {/* The story player has no way in at the moment. It was opened from
+            the ring on the Discover screen this app used to have, and the
+            Discover that replaced it — the Moodboard's — has no ring. The
+            screen is kept and routed so it is one call away once there is
+            somewhere to put that entry. */}
+        <Stack.Screen
+          name="Story"
+          component={StoryScreen}
+          options={{ presentation: "fullScreenModal", animation: "fade" }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
