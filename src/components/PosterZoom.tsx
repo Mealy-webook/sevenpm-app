@@ -38,6 +38,14 @@ const VINYL = 322;
 const SLEEVE_DROP = 58;
 const VINYL_RISE = 136;
 
+/**
+ * The turn is half a revolution, not a whole one: a full turn passes edge-on
+ * twice and reads as two flips. At the halfway point the face is mirrored, so
+ * it is flipped back on itself there and the poster lands the right way round
+ * having gone edge-on exactly once.
+ */
+const FLIP_MS = 900;
+
 export type ZoomFrom = { x: number; y: number; width: number; height: number };
 
 export function PosterZoom({
@@ -76,7 +84,7 @@ export function PosterZoom({
       }),
       Animated.timing(flip, {
         toValue: 1,
-        duration: motion.slow,
+        duration: FLIP_MS,
         easing: ease,
         useNativeDriver: true,
       }),
@@ -186,7 +194,7 @@ export function PosterZoom({
                 {
                   rotateY: flip.interpolate({
                     inputRange: [0, 1],
-                    outputRange: ["0deg", "360deg"],
+                    outputRange: ["0deg", "180deg"],
                   }),
                 },
               ],
@@ -194,11 +202,29 @@ export function PosterZoom({
           ]}
           pointerEvents="none"
         >
-          <Image
-            source={image(source)}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-          />
+          {/* Counter-mirrored the moment the card passes edge-on, so the
+              artwork is never seen back to front. */}
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                transform: [
+                  {
+                    scaleX: flip.interpolate({
+                      inputRange: [0, 0.499, 0.5, 1],
+                      outputRange: [1, 1, -1, -1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <Image
+              source={image(source)}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+            />
+          </Animated.View>
         </Animated.View>
       </Pressable>
     </Modal>
