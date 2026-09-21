@@ -28,12 +28,36 @@ import { useReducedMotion } from "../theme/motion";
  * tap, because the interaction is the only way to reach the other cards.
  */
 
-/** The web component's own numbers, kept so the feel matches. */
+/** How far a drag must travel before the card is let go (the web original's). */
 const THRESHOLD = 120;
-const STACK_ROTATION = 5;
-const STACK_SCALE = 0.035;
 const TILT = 25;
 const TILT_RANGE = 200;
+
+/**
+ * The fan, from the comp (Moodboard 182:1630) rather than the web component:
+ * the two cards behind splay to opposite sides at the same tilt and size, so
+ * the stack reads as a hand rather than a one-way cascade. Anything deeper
+ * than those two waits out of sight behind them.
+ */
+const FAN_ROTATION = 10;
+const FAN_SCALE = 0.9106;
+const FAN_SHIFT = 22;
+
+/**
+ * Where a card sits for a given depth. The comp stacks the next card to the
+ * left and the one after it to the right (199:1779 sits above 199:1764), so
+ * odd depths lean left.
+ */
+function slot(depth: number) {
+  if (depth <= 0) return { rotate: 0, shift: 0, scale: 1, opacity: 1 };
+  const side = depth % 2 === 1 ? -1 : 1;
+  return {
+    rotate: side * FAN_ROTATION,
+    shift: side * FAN_SHIFT,
+    scale: FAN_SCALE,
+    opacity: depth <= 2 ? 1 : 0,
+  };
+}
 
 export function CardStack<T>({
   items,
@@ -74,6 +98,13 @@ export function CardStack<T>({
 
   /* The front card goes to the back, which is what makes this a carousel
      rather than a pile you can empty. */
+  /* Put the stack back the way it was, without turning it. */
+  const reset = () => {
+    drag.setValue({ x: 0, y: 0 });
+    turn.setValue(0);
+    busy.current = false;
+  };
+
   const commit = () => {
     setOrder((prev) => [...prev.slice(1), prev[0]]);
     drag.setValue({ x: 0, y: 0 });
@@ -98,7 +129,11 @@ export function CardStack<T>({
         useNativeDriver: true,
       }),
     ]).start(({ finished }) => {
+      /* An interrupted flight must not leave the stack half-turned: the top
+         card would stay invisible and every other card stuck a place
+         forward, with nothing able to move again. */
       if (finished) commit();
+      else reset();
     });
   };
 
@@ -166,26 +201,22 @@ export function CardStack<T>({
         const layer = { zIndex: items.length - depth };
         /* Each card behind eases from its own place to the one in front of
            it while the top card flies off. */
+        const here = slot(depth);
+        const next = slot(depth - 1);
+        const between = (from: number, to: number) =>
+          turn.interpolate({ inputRange: [0, 1], outputRange: [from, to] });
+
         const reflow = {
+          opacity: between(here.opacity, next.opacity),
           transform: [
             {
               rotate: turn.interpolate({
                 inputRange: [0, 1],
-                outputRange: [
-                  `${depth * STACK_ROTATION}deg`,
-                  `${Math.max(depth - 1, 0) * STACK_ROTATION}deg`,
-                ],
+                outputRange: [`${here.rotate}deg`, `${next.rotate}deg`],
               }),
             },
-            {
-              scale: turn.interpolate({
-                inputRange: [0, 1],
-                outputRange: [
-                  1 - depth * STACK_SCALE,
-                  1 - Math.max(depth - 1, 0) * STACK_SCALE,
-                ],
-              }),
-            },
+            { translateX: between(here.shift, next.shift) },
+            { scale: between(here.scale, next.scale) },
           ],
         };
 
@@ -248,7 +279,7 @@ export function CardStack<T>({
 }
 
 const styles = StyleSheet.create({
-  /* The fan turns about a point near the bottom-right, as the original sets
-     its transform origin, so the cards splay from one corner. */
-  card: { position: "absolute", left: 0, top: 0, transformOrigin: "85% 85%" },
+  /* The comp turns each card about its own centre, so the two behind splay
+     evenly either side of the front one. */
+  card: { position: "absolute", left: 0, top: 0 },
 });

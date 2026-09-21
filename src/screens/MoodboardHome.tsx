@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import { useRef, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Globe from "../icons/ic-globe-20.svg";
 import { Button } from "../components/Button";
 import { CardStack } from "../components/CardStack";
+import { PosterZoom, type ZoomFrom } from "../components/PosterZoom";
 import { Tap } from "../components/Tap";
 import { image } from "../images";
 import { Text } from "../theme/Text";
@@ -31,6 +32,15 @@ export function MoodboardHome() {
   const { width } = useWindowDimensions();
   /* The glow is the card you are looking at, so it follows the stack. */
   const [front, setFront] = useState(festivalCards[0]);
+  /* Tapping the poster opens it full screen, growing out of where it sat. */
+  const poster = useRef<View>(null);
+  const [zoom, setZoom] = useState<{ source: string; from: ZoomFrom } | null>(null);
+
+  const openPoster = (source: string) => {
+    poster.current?.measureInWindow((x, y, w, h) =>
+      setZoom({ source, from: { x, y, width: w, height: h } }),
+    );
+  };
 
   return (
     <View style={styles.page}>
@@ -95,14 +105,25 @@ export function MoodboardHome() {
           style={styles.stack}
           label="Next festival"
           onFrontChange={setFront}
-          render={(festival) => (
-            <View style={styles.card}>
-              <Image
-                source={image(festival.image)}
+          render={(festival, isFront) => (
+            <View style={[styles.card, isFront ? styles.cardFront : styles.cardBehind]}>
+              {/* Only the card you can see responds; the ones behind are
+                  inert until they reach the front. */}
+              <Pressable
+                ref={isFront ? poster : undefined}
+                disabled={!isFront}
+                accessibilityRole="imagebutton"
+                accessibilityLabel={festival.name}
+                onPress={() => openPoster(festival.image)}
                 style={styles.poster}
-                contentFit="cover"
-                transition={300}
-              />
+              >
+                <Image
+                  source={image(festival.image)}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="cover"
+                  transition={300}
+                />
+              </Pressable>
               <View>
                 <Text
                   variant="displayCard"
@@ -127,6 +148,12 @@ export function MoodboardHome() {
         />
 
       </ScrollView>
+
+      <PosterZoom
+        source={zoom?.source ?? null}
+        from={zoom?.from ?? null}
+        onClose={() => setZoom(null)}
+      />
     </View>
   );
 }
@@ -181,7 +208,15 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     gap: space.l,
     padding: space.l,
-    backgroundColor: colors.bgSecondary,
+    /* The comp gives every card the same drop shadow. */
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
   },
+  /* The comp lifts the front card onto the lighter surface and leaves the
+     ones behind on the darker one, so the top of the pile separates. */
+  cardFront: { backgroundColor: colors.bgTertiary },
+  cardBehind: { backgroundColor: colors.bgSecondary },
   poster: { width: "100%", aspectRatio: 1, backgroundColor: colors.bgTertiary },
 });
