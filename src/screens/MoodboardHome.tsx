@@ -1,15 +1,18 @@
+import { useState } from "react";
 import { ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Globe from "../icons/ic-globe-20.svg";
 import { Button } from "../components/Button";
+import { CardStack } from "../components/CardStack";
 import { Tap } from "../components/Tap";
 import { image } from "../images";
 import { Text } from "../theme/Text";
 import { colors, displaySize, space, type } from "../theme/tokens";
 import { TAB_BAR_CLEARANCE } from "../navigation/TabBar";
-import { discoverCopy } from "../data/discover";
+import { discoverCopy, festivalCards } from "../data/discover";
 import { menuCopy } from "../data/account";
 import { loyaltyBalance } from "../data/account";
 
@@ -26,6 +29,8 @@ import { loyaltyBalance } from "../data/account";
 export function MoodboardHome() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  /* The glow is the card you are looking at, so it follows the stack. */
+  const [front, setFront] = useState(festivalCards[0]);
 
   return (
     <View style={styles.page}>
@@ -50,13 +55,26 @@ export function MoodboardHome() {
       <ScrollView
         contentContainerStyle={[styles.body, { paddingBottom: TAB_BAR_CLEARANCE }]}
       >
-        {/* The glow sits behind the card, bleeding off the left edge. */}
-        <Image
-          source={image("/assets/moodboard-glow.webp")}
-          style={styles.glow}
-          contentFit="cover"
-          pointerEvents="none"
-        />
+        {/* The glow is the front card's own poster, thrown far out of focus.
+            expo-image blurs it live, so it follows the stack and needs no
+            second copy of every poster. */}
+        <View style={styles.glow} pointerEvents="none">
+          <Image
+            source={image(front.image)}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            blurRadius={60}
+            transition={400}
+          />
+          {/* blurRadius blurs within the view, so the bitmap still ends on a
+              hard edge. This fades it back into the page at top and bottom;
+              left and right already bleed past the screen. */}
+          <LinearGradient
+            colors={[colors.bgPrimary, "transparent", "transparent", colors.bgPrimary]}
+            locations={[0, 0.28, 0.72, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
 
         <Text
           variant="displaySection"
@@ -67,45 +85,59 @@ export function MoodboardHome() {
           {discoverCopy.festivals}
         </Text>
 
-        <View style={styles.card}>
-          <Image
-            source={image("/assets/card-jazzablanca.jpg")}
-            style={styles.poster}
-            contentFit="cover"
-            transition={300}
-          />
-          <View>
-            <Text
-              variant="displayCard"
-              uppercase
-              color={colors.white}
-              numberOfLines={1}
-              style={displaySize(type.displayCard, width)}
-            >
-              {festival.name}
-            </Text>
-            <Text variant="bodyBold" color={colors.brand}>
-              {festival.dates}
-            </Text>
-            <Text variant="bodyS" color={colors.contentSecondary}>
-              {festival.venue}
-            </Text>
-          </View>
-        </View>
+        {/* One card at a time, the rest fanned behind it. Swipe the front
+            one away and it goes to the back. */}
+        <CardStack
+          items={festivalCards}
+          keyOf={(festival) => festival.id}
+          width={CARD_W}
+          height={CARD_H}
+          style={styles.stack}
+          label="Next festival"
+          onFrontChange={setFront}
+          render={(festival) => (
+            <View style={styles.card}>
+              <Image
+                source={image(festival.image)}
+                style={styles.poster}
+                contentFit="cover"
+                transition={300}
+              />
+              <View>
+                <Text
+                  variant="displayCard"
+                  uppercase
+                  color={colors.white}
+                  numberOfLines={1}
+                  style={displaySize(type.displayCard, width)}
+                >
+                  {festival.name}
+                </Text>
+                {festival.dates && (
+                  <Text variant="bodyBold" color={colors.brand}>
+                    {festival.dates}
+                  </Text>
+                )}
+                <Text variant="bodyS" color={colors.contentSecondary}>
+                  {festival.venue}
+                </Text>
+              </View>
+            </View>
+          )}
+        />
+
       </ScrollView>
     </View>
   );
 }
 
-/* The comp's own card, spelling included ("Jullet"). */
-const festival = {
-  name: "Jazzablanca",
-  dates: "02 - 11 Jullet 2026",
-  venue: "Anfa Park in Casablanca, Morocco",
-};
-
-/** The transparent margin baked around the glow, in the comp's own units. */
-const GLOW_PAD = 392 * (180 / 600);
+/** The comp's card, and the room the fanned stack needs around it. */
+const CARD_W = 289;
+/* 16 padding + a square poster across the inner 257 + 16 gap + room for all
+   three lines of text + 16 padding. Fixed, because a stack of differing
+   heights would shuffle as it turns, and tall enough for the card that has
+   dates so the ones without simply end early. */
+const CARD_H = 424;
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.bgPrimary },
@@ -127,21 +159,26 @@ const styles = StyleSheet.create({
   },
 
   body: { alignItems: "center", gap: space.xl, padding: 20 },
-  /* The comp filters a 392px image by 63px. The blur is baked in here, on a
-     padded canvas, so the falloff is part of the asset — which is why this is
-     drawn wider than 392 and offset back by the padding. */
+  /* The comp filters a 392px image by 63px, positioned to bleed off the
+     left edge and sit low behind the stack. */
   glow: {
     position: "absolute",
-    left: -1 - GLOW_PAD,
-    top: 221 - GLOW_PAD,
-    width: 392 + GLOW_PAD * 2,
-    height: 392 + GLOW_PAD * 2,
+    left: -1,
+    top: 221,
+    width: 392,
+    height: 392,
     opacity: 0.4,
   },
   heading: { textAlign: "center", alignSelf: "stretch" },
 
+  /* The fan leans cards out past the front one, so the stack is given a
+     little room rather than being clipped by the page padding. */
+  stack: { marginBottom: space.xl },
   card: {
-    width: 289,
+    width: CARD_W,
+    height: CARD_H,
+    /* Nothing from the cards behind may show through the front one. */
+    overflow: "hidden",
     gap: space.l,
     padding: space.l,
     backgroundColor: colors.bgSecondary,

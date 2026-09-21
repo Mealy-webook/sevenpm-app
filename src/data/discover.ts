@@ -118,6 +118,25 @@ export const festivalCards: FestivalCard[] = [
     venue: "Tangier, Morocco",
     image: "/assets/card-tanjazz.jpg",
   },
+  /*
+   * The other two festivals the app already carries posters and names for,
+   * in home.ts. Neither states dates anywhere in the project, so both render
+   * without the accent line rather than being given invented ones. Casa Anfa
+   * Latina's venue is the one the stories data gives it; Arma Taghazout has
+   * none written down, so its town is taken from its own name.
+   */
+  {
+    id: "casa-anfa-latina",
+    name: "Casa Anfa Latina",
+    venue: "Casablanca, Morocco",
+    image: "/assets/festival-poster-4.png",
+  },
+  {
+    id: "arma-taghazout",
+    name: "Arma Taghazout",
+    venue: "Taghazout, Morocco",
+    image: "/assets/festival-poster-5.png",
+  },
 ];
 
 /** The comp's two "Product name / 50 MAD" tiles, filled from the real shop. */
