@@ -3,6 +3,8 @@ import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "re
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import Globe from "../icons/ic-globe-20.svg";
 import { Button } from "../components/Button";
@@ -14,6 +16,7 @@ import { Text } from "../theme/Text";
 import { colors, displaySize, space, type } from "../theme/tokens";
 import { TAB_BAR_CLEARANCE } from "../navigation/TabBar";
 import { discoverCopy, festivalCards } from "../data/discover";
+import type { RootParamList } from "../navigation/RootNavigator";
 import { menuCopy } from "../data/account";
 import { loyaltyBalance } from "../data/account";
 
@@ -28,6 +31,7 @@ import { loyaltyBalance } from "../data/account";
  * it.
  */
 export function MoodboardHome() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   /* The glow is the card you are looking at, so it follows the stack. */
@@ -53,9 +57,12 @@ export function MoodboardHome() {
         />
         <View style={styles.spacer} />
         <Button size="m" label={menuCopy.beats(loyaltyBalance)} />
+        {/* TEST ONLY — the comp's language button, borrowed on this branch as
+            the way off the concept and into the rest of the app. */}
         <Tap
           accessibilityRole="button"
-          accessibilityLabel="Language"
+          accessibilityLabel="Open the app"
+          onPress={() => navigation.navigate("Tabs")}
           style={styles.iconButton}
         >
           <Globe width={20} height={20} />

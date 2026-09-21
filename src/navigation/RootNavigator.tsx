@@ -115,6 +115,7 @@ export function RootNavigator() {
   return (
     <NavigationContainer theme={theme}>
       <Stack.Navigator
+        initialRouteName="Moodboard"
         screenOptions={{
           headerShown: false,
           contentStyle: styles.page,
