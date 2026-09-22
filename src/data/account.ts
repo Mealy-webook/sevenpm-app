@@ -549,6 +549,11 @@ export const ticketCopy = {
   entry: "Doors",
   code: "Ticket number",
   share: "Share ticket",
+  /* The two things you can do with a ticket you are holding. "Resale" is the
+     app's own word for it — the tab, the menu row and the empty state all say
+     resale, and a screen that said "resell" would be naming a fourth thing. */
+  send: "Send tickets",
+  resell: "Submit tickets for resale",
   /** A prototype should say so where it would otherwise be mistaken. */
   note: "These tickets are a prototype. The code is made up and will not scan at a real gate.",
 };

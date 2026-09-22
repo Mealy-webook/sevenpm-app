@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 import { Image } from "expo-image";
-import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Clear from "../../icons/ic-clear-20.svg";
 import Plus from "../../icons/ic-plus-16.svg";
@@ -20,7 +20,7 @@ import { SignedOut } from "../../components/SignedOut";
 import { Tap } from "../../components/Tap";
 import { Chip } from "../../components/Chip";
 import { ListRow } from "../../components/ListRow";
-import { NavBar, Page } from "../../components/Screen";
+import { Page } from "../../components/Screen";
 import { TAB_BAR_CLEARANCE } from "../../navigation/TabBar";
 import { useSession } from "../../session";
 import { signedOutCopy } from "../../data/session";
@@ -51,10 +51,8 @@ import {
  * day offset, so those headings stay true however long this mock data lives.
  */
 export function WalletScreen() {
-  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const tabScroll = useTabBarScroll();
-  /* Reached from the account list rather than from the bar. */
-  const pushed = navigation.canGoBack();
   const { signedIn } = useSession();
   const { width } = useWindowDimensions();
   const [extra, setExtra] = useState<WalletTransaction[]>([]);
@@ -94,13 +92,12 @@ export function WalletScreen() {
   if (!signedIn) {
     return (
       <Page>
-        {pushed && <NavBar onBack={navigation.goBack} />}
         <ScrollView
           {...tabScroll}
           contentContainerStyle={[
             styles.body,
             styles.empty,
-            { paddingBottom: pushed ? space.section : TAB_BAR_CLEARANCE },
+            { paddingTop: insets.top + gutter, paddingBottom: TAB_BAR_CLEARANCE },
           ]}
         >
           <Text
@@ -124,17 +121,15 @@ export function WalletScreen() {
 
   return (
     <Page>
-      {/* Wallet is both a tab and a push from the account list, so the back
-          control appears only when there is something to go back to. */}
-      {pushed && <NavBar onBack={navigation.goBack} />}
-
+      {/* No back control: 454:67370 gives Wallet a tab of its own, so this is
+          a root rather than somewhere you arrived from. The menu's Wallet row
+          switches to the tab rather than pushing a second copy of it. */}
       <ScrollView
         {...tabScroll}
-        /* As a tab the bar floats over the foot of this; as a push there is
-           no bar to clear. */
+        /* The bar floats over the foot of this. */
         contentContainerStyle={[
           styles.body,
-          { paddingBottom: pushed ? space.section : TAB_BAR_CLEARANCE },
+          { paddingTop: insets.top + gutter, paddingBottom: TAB_BAR_CLEARANCE },
         ]}
       >
         <Text
@@ -476,7 +471,8 @@ function groupByDay(ledger: WalletTransaction[]) {
 }
 
 const styles = StyleSheet.create({
-  body: { padding: gutter, gap: space.l },
+  /* The same figures Bookings uses, so the two tabs open identically. */
+  body: { paddingHorizontal: gutter, gap: space.l },
   /* With nothing in it, the page centres that nothing in what is left. */
   empty: { flexGrow: 1 },
   card: {
