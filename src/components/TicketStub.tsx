@@ -30,34 +30,39 @@ export const STUB_HEIGHT = 262;
 const STRIP = 23;
 const MARGIN = 16;
 /** Corner bites and edge holes, as the comp cuts them. */
-const BITE = 18;
+export const TICKET_BITE = 18;
 const HOLE = 7;
 const HOLE_PITCH = 18;
-const HOLES = 12;
 
 const texture = require("../../assets/img/ticket-texture.jpg");
 
-/** The outline, clockwise from the top-left bite. Every arc is concave. */
-function outline() {
-  const W = STUB_WIDTH;
-  const H = STUB_HEIGHT;
-  const first = (H - HOLE_PITCH * (HOLES - 1)) / 2;
-  const centres = Array.from({ length: HOLES }, (_, i) => first + i * HOLE_PITCH);
+/**
+ * The outline, clockwise from the top-left bite. Every arc is concave.
+ *
+ * Exported at an arbitrary size because the full-screen ticket is cut the same
+ * way the rail card is — it is the same object, printed larger — and the comp
+ * only draws it once. The hole count follows the height rather than being
+ * fixed, so the pitch stays the comp's whatever the card is asked to be.
+ */
+export function ticketOutline(W = STUB_WIDTH, H = STUB_HEIGHT) {
+  const holes = Math.max(2, Math.round((H - TICKET_BITE * 2) / HOLE_PITCH));
+  const first = (H - HOLE_PITCH * (holes - 1)) / 2;
+  const centres = Array.from({ length: holes }, (_, i) => first + i * HOLE_PITCH);
 
-  const d: string[] = [`M ${BITE} 0`, `L ${W - BITE} 0`, `A ${BITE} ${BITE} 0 0 0 ${W} ${BITE}`];
+  const d: string[] = [`M ${TICKET_BITE} 0`, `L ${W - TICKET_BITE} 0`, `A ${TICKET_BITE} ${TICKET_BITE} 0 0 0 ${W} ${TICKET_BITE}`];
   for (const y of centres) {
     d.push(`L ${W} ${y - HOLE}`, `A ${HOLE} ${HOLE} 0 0 0 ${W} ${y + HOLE}`);
   }
-  d.push(`L ${W} ${H - BITE}`, `A ${BITE} ${BITE} 0 0 0 ${W - BITE} ${H}`);
-  d.push(`L ${BITE} ${H}`, `A ${BITE} ${BITE} 0 0 0 0 ${H - BITE}`);
+  d.push(`L ${W} ${H - TICKET_BITE}`, `A ${TICKET_BITE} ${TICKET_BITE} 0 0 0 ${W - TICKET_BITE} ${H}`);
+  d.push(`L ${TICKET_BITE} ${H}`, `A ${TICKET_BITE} ${TICKET_BITE} 0 0 0 0 ${H - TICKET_BITE}`);
   for (const y of [...centres].reverse()) {
     d.push(`L 0 ${y + HOLE}`, `A ${HOLE} ${HOLE} 0 0 0 0 ${y - HOLE}`);
   }
-  d.push(`L 0 ${BITE}`, `A ${BITE} ${BITE} 0 0 0 ${BITE} 0`, "Z");
+  d.push(`L 0 ${TICKET_BITE}`, `A ${TICKET_BITE} ${TICKET_BITE} 0 0 0 ${TICKET_BITE} 0`, "Z");
   return d.join(" ");
 }
 
-const OUTLINE = outline();
+const OUTLINE = ticketOutline();
 
 export function TicketStub({
   tier,

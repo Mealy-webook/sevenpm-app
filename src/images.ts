@@ -77,7 +77,7 @@ export const images: Record<string, ImageSourcePropType> = {
   "/assets/event-hero.jpg": require("../assets/img/event-hero.jpg"),
   "/assets/event-map.jpg": require("../assets/img/event-map.jpg"),
   "/assets/tab-light.png": require("../assets/img/tab-light.png"),
-  "/assets/paper-grain.png": require("../assets/img/paper-grain.png"),
+  "/assets/ticket-texture.jpg": require("../assets/img/ticket-texture.jpg"),
   "/assets/lineup-1.jpg": require("../assets/img/lineup-1.jpg"),
   "/assets/lineup-2.jpg": require("../assets/img/lineup-2.jpg"),
   "/assets/lineup-3.jpg": require("../assets/img/lineup-3.jpg"),

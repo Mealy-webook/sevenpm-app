@@ -15,6 +15,7 @@ import {
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import QRCode from "react-native-qrcode-svg";
+import Svg, { Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -23,6 +24,7 @@ import Close from "../../icons/ic-close.svg";
 import MapPin from "../../icons/ic-map-pin.svg";
 import { Button } from "../../components/Button";
 import { image } from "../../images";
+import { ticketOutline } from "../../components/TicketStub";
 import { Page } from "../../components/Screen";
 import { Tap } from "../../components/Tap";
 import { Text } from "../../theme/Text";
@@ -333,6 +335,8 @@ function Sheet({
      become the whole screen on a tablet. */
   const qr = Math.min(width - gutter * 2 - space.xl * 2, 260);
   const sheetWidth = width - gutter * 2;
+  /* The cut follows the sheet, so the sheet has to be measured first. */
+  const [sheetHeight, setSheetHeight] = useState(0);
 
   /**
    * The fan: read straight off the rail's offset, so it tracks the finger and
@@ -389,16 +393,18 @@ function Sheet({
       showsVerticalScrollIndicator={false}
       accessibilityLabel={label}
     >
-      <View style={styles.sheet}>
+      <View
+        style={styles.sheet}
+        onLayout={(event) => setSheetHeight(event.nativeEvent.layout.height)}
+      >
         {/* Card stock. A tile of grain and fibre laid over the white, so the
             sheet reads as something printed rather than as a white rectangle.
             Faint enough that the code still scans against it. */}
+        {/* The comp's own paper, from the ticket it already draws
+            (426:50829). It is the same stock as the rail card on the event
+            page, because it is the same ticket printed larger. */}
         <RNImage
-          source={image("/assets/paper-grain.png")}
-          /* Stretched over the sheet rather than tiled: RN's `repeat` draws
-             this once on iOS and leaves the rest of the paper blank. Upscaling
-             softens the grain into mottling, which is what paper does anyway,
-             and it keeps the asset small. */
+          source={image("/assets/ticket-texture.jpg")}
           resizeMode="cover"
           style={styles.grain}
         />
@@ -438,21 +444,23 @@ function Sheet({
           </View>
         </View>
 
-        {/* The tear. Two bites out of the edges and a row of punches between
-            them — the one shape that says "ticket" before anything is read.
-            The bites are drawn in the page's own colour and clipped by the
-            sheet, so each shows as the half-circle a die would leave. Round,
-            because a punched hole is one of the few things in this app that
-            literally is. */}
-        <View style={styles.tear}>
-          <View style={[styles.notch, styles.notchLeft]} />
-          <View style={styles.punches}>
-            {Array.from({ length: 22 }).map((_, index) => (
-              <View key={index} style={styles.punch} />
-            ))}
-          </View>
-          <View style={[styles.notch, styles.notchRight]} />
-        </View>
+        {/* The comp cuts this shape, so this cuts it too: bitten corners
+            and a run of half-punched holes down both long edges (426:50829).
+            Painted as the page showing *through* the paper — one rect with
+            the outline subtracted — so it bites the artwork at the head as
+            well as the white below it. */}
+        <Svg
+          width={sheetWidth}
+          height={sheetHeight}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        >
+          <Path
+            d={`M0 0 H${sheetWidth} V${sheetHeight} H0 Z ${ticketOutline(sheetWidth, sheetHeight)}`}
+            fill={colors.bgPrimary}
+            fillRule="evenodd"
+          />
+        </Svg>
 
         {/* Light crossing the sheet, once, as it arrives. Only on the one
             being held — the others are not being looked at. */}
@@ -588,9 +596,8 @@ const FAN_DROP = 26;
 const FAN_SCALE = 0.9;
 const FAN_DIM = 0.55;
 
-/** The artwork band across the head of the ticket, and the bites in its edges. */
+/** The artwork band across the head of the ticket. */
 const ART_H = 132;
-const NOTCH = 22;
 
 /** The paging dots, resting and held. */
 const DOT = 8;
@@ -623,14 +630,13 @@ const styles = StyleSheet.create({
     /* The light, the grain and the punched edges all have to stop here. */
     overflow: "hidden",
   },
-  /* Laid over the white at a fraction of its strength — texture, not tint.
-     Sized in percentages rather than by `absoluteFill` alone, which leaves an
-     Image at the bitmap's own size. */
+  /* The comp lays its paper at 80%. Sized in percentages rather than by
+     `absoluteFill` alone, which leaves an Image at the bitmap's own size. */
   grain: {
     ...StyleSheet.absoluteFill,
     width: "100%",
     height: "100%",
-    opacity: 0.5,
+    opacity: 0.8,
   },
   body: { padding: space.xl, gap: space.m, alignItems: "center" },
 
@@ -646,26 +652,6 @@ const styles = StyleSheet.create({
   code: { padding: space.m },
   codeText: { letterSpacing: 1.5, textAlign: "center" },
   centred: { textAlign: "center", alignSelf: "stretch" },
-
-  /* The bites and the punches between them. */
-  tear: { flexDirection: "row", alignItems: "center", height: NOTCH },
-  punches: {
-    flex: 1,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginHorizontal: NOTCH / 2 + space.s,
-  },
-  punch: { width: 6, height: 2, backgroundColor: "#d4d4d8" },
-  /* Drawn in the page's colour and clipped by the sheet, so each reads as the
-     half-circle a die would leave. Round because a punched hole is. */
-  notch: {
-    width: NOTCH,
-    height: NOTCH,
-    borderRadius: NOTCH / 2,
-    backgroundColor: colors.bgPrimary,
-  },
-  notchLeft: { marginLeft: -NOTCH / 2 },
-  notchRight: { marginRight: -NOTCH / 2 },
 
   venue: { flexDirection: "row", alignItems: "center", gap: space.xs },
   venueName: { textDecorationLine: "underline" },

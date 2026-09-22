@@ -3,22 +3,18 @@ import { ScrollView, StyleSheet, useWindowDimensions, View } from "react-native"
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 
-import Download from "../../icons/ic-download-16.svg";
 import Trash from "../../icons/ic-trash-red-16.svg";
 import { Button } from "../../components/Button";
 import { Confirm } from "../../components/Confirm";
 import { NavBar, Page } from "../../components/Screen";
 import { Switch } from "../../components/Switch";
-import { CardSheet, type SavedCard } from "../booking/BookingSheets";
 import { icon } from "../../icons";
 import { Text } from "../../theme/Text";
 import { colors, displaySize, gutter, radii, space, type } from "../../theme/tokens";
 import {
   accountUser,
-  billingDetails,
   paymentCards,
   paymentsCopy,
-  receipts,
   type PaymentCard,
 } from "../../data/account";
 
@@ -37,27 +33,18 @@ import {
  * remove the card everything is charged to, and a missing button leaves you
  * hunting for one that was never there.
  *
- * Billing and receipts are below what the comp draws. It stops at the cards.
+ * **The comp stops at the cards**, and so does this. Billing details,
+ * receipts and an Add card button were all here and are all gone: none of
+ * them is drawn in 454:61192, and a page that shows more than its comp is a
+ * page the comp can no longer be checked against.
  */
 export function PaymentsScreen() {
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
   const [cards, setCards] = useState<PaymentCard[]>(paymentCards);
-  const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<PaymentCard | null>(null);
 
   const copy = paymentsCopy;
-
-  const add = (card: SavedCard) =>
-    setCards((current) => [
-      ...current,
-      {
-        id: `${card.brand}-${card.last4}-${current.length}`,
-        brand: card.brand,
-        last4: card.last4,
-        mark: card.mark,
-      },
-    ]);
 
   const makeDefault = (id: string) =>
     setCards((current) =>
@@ -146,73 +133,8 @@ export function PaymentsScreen() {
             })
           )}
 
-          <Button label={copy.cards.addCard} onPress={() => setAdding(true)} />
-
-          <Text variant="caption" color={colors.contentSecondary}>
-            {copy.cards.note}
-          </Text>
-        </View>
-
-        {/* Billing */}
-        <View style={styles.block}>
-          <Text variant="titleBody" uppercase>
-            {copy.billing.title}
-          </Text>
-          {billingDetails.map((detail) => (
-            <View key={detail.label} style={styles.row}>
-              <View style={styles.rowBody}>
-                <Text variant="bodyS" color={colors.contentSecondary}>
-                  {detail.label}
-                </Text>
-                <Text
-                  variant="bodyBold"
-                  color={detail.value ? colors.contentPrimary : colors.contentSecondary}
-                  numberOfLines={1}
-                >
-                  {detail.value ?? copy.billing.emptyValue}
-                </Text>
-              </View>
-              {detail.action && <Button label={detail.action} />}
-            </View>
-          ))}
-        </View>
-
-        {/* Receipts */}
-        <View style={styles.block}>
-          <Text variant="titleBody" uppercase>
-            {copy.receipts.title}
-          </Text>
-          {receipts.map((receipt) => (
-            <View key={receipt.id} style={styles.row}>
-              <View style={styles.rowBody}>
-                <Text variant="bodyBold" numberOfLines={1}>
-                  {receipt.label}
-                </Text>
-                <Text variant="bodyS" color={colors.contentSecondary}>
-                  {receipt.date} · {receipt.method}
-                </Text>
-              </View>
-              <Text variant="bodySBold">{receipt.amount}</Text>
-              <Button
-                label={copy.receipts.download}
-                icon={Download}
-                /* There is no receipt to hand over, so the button is drawn
-                   dead rather than promising a file that never arrives. */
-                disabled
-              />
-            </View>
-          ))}
         </View>
       </ScrollView>
-
-      <CardSheet
-        open={adding}
-        onClose={() => setAdding(false)}
-        onSave={(card) => {
-          add(card);
-          setAdding(false);
-        }}
-      />
 
       <Confirm
         open={removing !== null}
