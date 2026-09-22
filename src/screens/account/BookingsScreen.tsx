@@ -83,8 +83,11 @@ export function BookingsScreen() {
               <BookingRow
                 key={booking.id}
                 booking={booking}
+                /* The row's one action names the tickets, so it opens
+                   them — the payment plan is reached from inside a ticket's
+                   own booking rather than from the word "tickets". */
                 onOpen={() =>
-                  navigation.navigate("Installments", { bookingId: booking.id })
+                  navigation.navigate("Tickets", { bookingId: booking.id })
                 }
               />
             ))
@@ -141,12 +144,12 @@ function BookingRow({
 
         <Tap
           accessibilityRole="button"
-          accessibilityLabel={bookingsCopy.tickets(booking.tickets)}
+          accessibilityLabel={bookingsCopy.tickets(booking.tickets.length)}
           onPress={onOpen}
           scale={0.98}
           style={styles.link}
         >
-          <Text variant="bodyBold">{bookingsCopy.tickets(booking.tickets)}</Text>
+          <Text variant="bodyBold">{bookingsCopy.tickets(booking.tickets.length)}</Text>
           <ChevronRight width={16} height={16} />
         </Tap>
       </View>

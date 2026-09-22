@@ -24,6 +24,7 @@ import { WalletScreen } from "../screens/account/WalletScreen";
 import { ProfileScreen } from "../screens/account/ProfileScreen";
 import { PaymentsScreen } from "../screens/account/PaymentsScreen";
 import { InstallmentsScreen } from "../screens/InstallmentsScreen";
+import { TicketsScreen } from "../screens/account/TicketsScreen";
 import { RewardsScreen } from "../screens/RewardsScreen";
 
 export type RootParamList = {
@@ -40,6 +41,7 @@ export type RootParamList = {
   Profile: undefined;
   Payments: undefined;
   Installments: { bookingId?: string } | undefined;
+  Tickets: { bookingId: string };
   Story: { id: string };
   Article: { slug: string };
 };
@@ -157,6 +159,13 @@ export function RootNavigator() {
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Payments" component={PaymentsScreen} />
         <Stack.Screen name="Installments" component={InstallmentsScreen} />
+        {/* A ticket is held up at a gate, so it comes up over the app the way
+            the booking journey does rather than sliding in beside it. */}
+        <Stack.Screen
+          name="Tickets"
+          component={TicketsScreen}
+          options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
+        />
         {/* The story player has no way in at the moment. It was opened from
             the ring on the Discover screen this app used to have, and the
             Discover that replaced it — the Moodboard's — has no ring. The

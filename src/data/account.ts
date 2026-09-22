@@ -457,6 +457,25 @@ export const loyaltyCopy = {
  * Bookings
  * ------------------------------------------------------------------ */
 
+/**
+ * One admission, as the gate sees it.
+ *
+ * `code` is what the QR carries and what a scanner reads back. It is the only
+ * field on here that has to be unique, and it is printed under the QR as well
+ * so a ticket is still usable when a scanner will not read the screen — a
+ * phone at the wrong angle in the dark is the normal case, not the rare one.
+ */
+export type Ticket = {
+  id: string;
+  code: string;
+  /** The tier as it was bought, verbatim from the booking. */
+  tier: string;
+  holder: string;
+  gate: string;
+  /** When this ticket lets you in, which is not always the event's own time. */
+  entry: string;
+};
+
 export type Booking = {
   id: string;
   eventName: string;
@@ -467,7 +486,7 @@ export type Booking = {
   endsAt: string;
   venue: string;
   venueUrl?: string;
-  tickets: number;
+  tickets: Ticket[];
 };
 
 export const bookings: Booking[] = [
@@ -481,7 +500,24 @@ export const bookings: Booking[] = [
     venue: "Palais des Institutions Italiennes",
     venueUrl:
       "https://www.google.com/maps/search/?api=1&query=Palais+des+Institutions+Italiennes+Casablanca",
-    tickets: 2,
+    tickets: [
+      {
+        id: "tk-0918-a",
+        code: "SPM-0918-4K7Q-2XR9",
+        tier: "Single day: Fri 19 Sept",
+        holder: "Ahmed Mealy",
+        gate: "Gate B",
+        entry: "7:00 PM",
+      },
+      {
+        id: "tk-0918-b",
+        code: "SPM-0918-9WJ3-6LT4",
+        tier: "Single day: Fri 19 Sept",
+        holder: "Guest",
+        gate: "Gate B",
+        entry: "7:00 PM",
+      },
+    ],
   },
 ];
 
@@ -491,6 +527,21 @@ export const bookingsCopy = {
   empty: "No bookings yet",
   /** The row's one action — "4 tickets \u203a" (454:56757). */
   tickets: (count: number) => `${count} ${count === 1 ? "ticket" : "tickets"}`,
+};
+
+export const ticketCopy = {
+  title: "Tickets",
+  /** Which of how many, for the rail and for screen readers. */
+  which: (index: number, total: number) => `Ticket ${index} of ${total}`,
+  scan: "Show this at the gate",
+  holder: "Admits",
+  tier: "Type",
+  gate: "Gate",
+  entry: "Doors",
+  code: "Ticket number",
+  share: "Share ticket",
+  /** A prototype should say so where it would otherwise be mistaken. */
+  note: "These tickets are a prototype. The code is made up and will not scan at a real gate.",
 };
 
 /* ------------------------------------------------------------------ *
