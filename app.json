@@ -37,7 +37,8 @@
       ],
       "expo-image",
       "expo-status-bar",
-      "expo-audio"
+      "expo-audio",
+      "expo-asset"
     ],
     "backgroundColor": "#0b0b0e",
     "primaryColor": "#fbeb1c"
