@@ -49,18 +49,18 @@ export type RootParamList = {
 /**
  * The five tabs, in the order the comps draw them.
  *
- * **Two comps disagree about this bar.** Discover (378:27388) shows
- * Discover / Tickets / Wallet / Resale / Menu; the account screen (359:7929)
- * shows Discover / Bookings / News / Resale / Menu. The account one is
- * followed because it is the one that is self-consistent with the rest of the
- * file: its menu lists Wallet as a row, so Wallet does not also need a tab,
- * and News is a section the app now has. Flagged for the designer.
+ * **The comps disagreed about this bar.** Discover (378:27388) showed
+ * Discover / Tickets / Wallet / Resale / Menu and the account screen
+ * (359:7929) showed Discover / Bookings / News / Resale / Menu. The newer
+ * account screen (454:67370) settles it: Discover / Resale / News / Bookings
+ * / Menu, which is what this follows. Wallet keeps its menu row rather than a
+ * tab of its own, as it did before.
  */
 export type TabParamList = {
   Discover: undefined;
-  Bookings: undefined;
-  News: undefined;
   Resale: undefined;
+  News: undefined;
+  Bookings: undefined;
   Menu: undefined;
 };
 
@@ -69,9 +69,9 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 const TAB_ICONS: Record<keyof TabParamList, React.FC<SvgProps>> = {
   Discover: IcDiscover,
-  Bookings: IcBookings,
-  News: IcNews,
   Resale: IcResale,
+  News: IcNews,
+  Bookings: IcBookings,
   Menu: IcMenu,
 };
 
@@ -87,15 +87,15 @@ function Tabs() {
         options={{ title: "Discover" }}
       />
       <Tab.Screen
-        name="Bookings"
-        component={BookingsScreen}
-        options={{ title: "Bookings" }}
-      />
-      <Tab.Screen name="News" component={NewsScreen} options={{ title: "News" }} />
-      <Tab.Screen
         name="Resale"
         component={ResaleScreen}
         options={{ title: "Resale" }}
+      />
+      <Tab.Screen name="News" component={NewsScreen} options={{ title: "News" }} />
+      <Tab.Screen
+        name="Bookings"
+        component={BookingsScreen}
+        options={{ title: "Bookings" }}
       />
       <Tab.Screen name="Menu" component={AccountScreen} options={{ title: "Menu" }} />
     </Tab.Navigator>
