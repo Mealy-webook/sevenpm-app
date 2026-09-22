@@ -15,6 +15,7 @@ import { View } from "react-native";
 
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { SessionProvider } from "./src/session";
+import { ResaleProvider } from "./src/resale";
 import { FirstRun } from "./src/screens/onboarding/FirstRun";
 import { SplashScreen } from "./src/screens/onboarding/SplashScreen";
 import { colors } from "./src/theme/tokens";
@@ -61,6 +62,7 @@ export default function App() {
       {/* Above both, because the first run is where signing in happens and
           the app is what reads the answer. */}
       <SessionProvider>
+        <ResaleProvider>
         <View style={{ flex: 1, backgroundColor: colors.bgPrimary }}>
           {ready && (
             <>
@@ -75,6 +77,7 @@ export default function App() {
             </>
           )}
         </View>
+        </ResaleProvider>
       </SessionProvider>
     </SafeAreaProvider>
   );

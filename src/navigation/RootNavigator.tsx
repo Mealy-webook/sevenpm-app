@@ -15,6 +15,7 @@ import { colors } from "../theme/tokens";
 
 import { DiscoverScreen } from "../screens/DiscoverScreen";
 import { ResaleScreen } from "../screens/ResaleScreen";
+import { ResaleListingScreen } from "../screens/ResaleListingScreen";
 import { StoryScreen } from "../screens/StoryScreen";
 import { ArticleScreen, NewsScreen } from "../screens/NewsScreen";
 import { EventScreen } from "../screens/EventScreen";
@@ -40,6 +41,7 @@ export type RootParamList = {
   Booking: { slug: string };
   Rewards: undefined;
   News: undefined;
+  ResaleListing: { id: string };
   Profile: undefined;
   Payments: undefined;
   Installments: { bookingId?: string } | undefined;
@@ -176,6 +178,7 @@ export function RootNavigator() {
         />
         <Stack.Screen name="Article" component={ArticleScreen} />
         <Stack.Screen name="News" component={NewsScreen} />
+        <Stack.Screen name="ResaleListing" component={ResaleListingScreen} />
         <Stack.Screen name="Rewards" component={RewardsScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Payments" component={PaymentsScreen} />

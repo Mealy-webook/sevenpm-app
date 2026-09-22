@@ -21,4 +21,5 @@ export const signedOutCopy = {
   /** Where a list would be, if there were an account behind it. */
   bookings: "Sign in to see your bookings",
   wallet: "Sign in to see your wallet",
+  resale: "Sign in to buy and sell tickets",
 };
