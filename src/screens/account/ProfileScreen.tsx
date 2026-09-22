@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 import { Button } from "../../components/Button";
 import { Confirm } from "../../components/Confirm";
 import { NavBar, Page } from "../../components/Screen";
 import { Text } from "../../theme/Text";
-import { colors, gutter, space } from "../../theme/tokens";
+import { colors, displaySize, gutter, space, type } from "../../theme/tokens";
 import { profileCopy, profileSections } from "../../data/account";
 
 /**
@@ -17,20 +17,33 @@ import { profileCopy, profileSections } from "../../data/account";
  * "Edit" — that is how the comp distinguishes a blank you have never filled in
  * from one you could change. A row with no action is read-only and says so by
  * having no button, not by having a disabled one.
+ *
+ * 486:58839 restates the head of it: the page's name at display size over the
+ * secondary ground rather than a word in the bar, and nothing between that and
+ * the first section.
  */
 export function ProfileScreen() {
   const navigation = useNavigation();
+  const { width } = useWindowDimensions();
   const [deleting, setDeleting] = useState(false);
 
   return (
     <Page>
-      <NavBar title={profileCopy.title} onBack={navigation.goBack} />
+      <NavBar onBack={navigation.goBack} />
+
+      <View style={styles.header}>
+        <Text
+          variant="displayScreen"
+          uppercase
+          color={colors.white}
+          numberOfLines={1}
+          style={displaySize(type.displayScreen, width)}
+        >
+          {profileCopy.title}
+        </Text>
+      </View>
 
       <ScrollView contentContainerStyle={styles.body}>
-        <Text variant="body" color={colors.contentSecondary}>
-          {profileCopy.description}
-        </Text>
-
         {profileSections.map((section) => (
           <View key={section.id} style={styles.card}>
             <Text variant="titleBody" uppercase>
@@ -81,6 +94,12 @@ export function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  /* The comp bands the title over the secondary ground. */
+  header: {
+    backgroundColor: colors.bgSecondary,
+    paddingHorizontal: gutter,
+    paddingBottom: gutter,
+  },
   body: { padding: gutter, paddingBottom: space.section, gap: space.l },
   card: {
     gap: space.l,
