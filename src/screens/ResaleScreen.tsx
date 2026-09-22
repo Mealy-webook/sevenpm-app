@@ -6,6 +6,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { EmptyState } from "../components/EmptyState";
 import { SignedOut } from "../components/SignedOut";
+import { Tag } from "../components/Tag";
 import { Tap } from "../components/Tap";
 import { image } from "../images";
 import { Text } from "../theme/Text";
@@ -246,28 +247,22 @@ function MineRow({ listing }: { listing: MyListing }) {
 }
 
 /**
- * The state of a listing, as a tag.
+ * The state of a listing.
  *
- * Colour carries it — lime for done, orange for waiting on somebody, plain
- * for up and unremarkable — and the word is always there too, because a
- * colour on its own is not a state anybody can read.
+ * `Tag` is the system's status pill (454:31838) and it already has the two
+ * accents this needs — lime for settled, orange for something still waiting
+ * on somebody. The word is always there beside the colour, because a colour
+ * on its own is not a state anybody can read.
  */
 function Status({ status }: { status: ResaleStatus }) {
-  const ink = STATUS_INK[status];
-  return (
-    <View style={[styles.status, { borderColor: ink }]}>
-      <Text variant="caption2" uppercase color={ink}>
-        {resaleCopy.status[status]}
-      </Text>
-    </View>
-  );
+  return <Tag label={resaleCopy.status[status]} tone={STATUS_TONE[status]} />;
 }
 
-const STATUS_INK: Record<ResaleStatus, string> = {
-  listed: colors.contentSecondary,
-  pending: colors.orange,
-  sold: colors.lime,
-  withdrawn: colors.disabled,
+const STATUS_TONE: Record<ResaleStatus, "default" | "lime" | "orange"> = {
+  listed: "default",
+  pending: "orange",
+  sold: "lime",
+  withdrawn: "default",
 };
 
 const styles = StyleSheet.create({
@@ -289,9 +284,4 @@ const styles = StyleSheet.create({
   rowBody: { flex: 1, minWidth: 0, gap: 2 },
   rowEnd: { alignItems: "flex-end", gap: space.xs },
 
-  status: {
-    paddingHorizontal: space.s,
-    paddingVertical: 2,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
 });

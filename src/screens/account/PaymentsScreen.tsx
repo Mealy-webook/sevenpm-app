@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 
 import Download from "../../icons/ic-download-16.svg";
@@ -7,11 +8,13 @@ import Trash from "../../icons/ic-trash-red-16.svg";
 import { Button } from "../../components/Button";
 import { Confirm } from "../../components/Confirm";
 import { NavBar, Page } from "../../components/Screen";
+import { Switch } from "../../components/Switch";
 import { CardSheet, type SavedCard } from "../booking/BookingSheets";
 import { icon } from "../../icons";
 import { Text } from "../../theme/Text";
-import { colors, gutter, radii, space } from "../../theme/tokens";
+import { colors, displaySize, gutter, radii, space, type } from "../../theme/tokens";
 import {
+  accountUser,
   billingDetails,
   paymentCards,
   paymentsCopy,
@@ -20,18 +23,25 @@ import {
 } from "../../data/account";
 
 /**
- * Payments: the cards on file, the billing details, and every receipt.
+ * Payments, from Figma 454:61192.
  *
- * The card face is the one drawn object in this system that keeps its corners
- * — `radii.card`, 24px. Everything around it is square, which is what makes
- * the face read as a card rather than as another panel.
+ * The comp opens on the page's name at display size over the secondary
+ * ground, then gives each card two parts: the face, and one action row
+ * clamped to its bottom edge. The face is the one drawn object in this system
+ * that keeps its corners — `radii.card`, 24px — and it carries the name at
+ * the top, then the number, the expiry and the brand at the bottom. The row
+ * under it holds "Set as default" with the system's Switch, and Remove.
  *
- * The default card's Remove is present but dead, with the reason stated. A
- * missing button leaves you hunting for it; a disabled one with an explanation
- * answers the question on the spot.
+ * **The default card's Remove is drawn dead**, which is the comp's own answer:
+ * 454:61219 is the disabled button and the second card's is not. You cannot
+ * remove the card everything is charged to, and a missing button leaves you
+ * hunting for one that was never there.
+ *
+ * Billing and receipts are below what the comp draws. It stops at the cards.
  */
 export function PaymentsScreen() {
   const navigation = useNavigation();
+  const { width } = useWindowDimensions();
   const [cards, setCards] = useState<PaymentCard[]>(paymentCards);
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<PaymentCard | null>(null);
@@ -56,22 +66,23 @@ export function PaymentsScreen() {
 
   return (
     <Page>
-      <NavBar title={copy.title} onBack={navigation.goBack} />
+      <NavBar onBack={navigation.goBack} />
+
+      <View style={styles.header}>
+        <Text
+          variant="displayScreen"
+          uppercase
+          color={colors.white}
+          numberOfLines={1}
+          style={displaySize(type.displayScreen, width)}
+        >
+          {copy.title}
+        </Text>
+      </View>
 
       <ScrollView contentContainerStyle={styles.body}>
-        <Text variant="body" color={colors.contentSecondary}>
-          {copy.description}
-        </Text>
-
         {/* Cards */}
         <View style={styles.block}>
-          <View style={styles.blockHead}>
-            <Text variant="titleBody" uppercase style={styles.blockTitle}>
-              {copy.cards.title}
-            </Text>
-            <Button label={copy.cards.addCard} onPress={() => setAdding(true)} />
-          </View>
-
           {cards.length === 0 ? (
             <Text variant="bodyBold" color={colors.contentSecondary}>
               {copy.cards.empty}
@@ -82,52 +93,60 @@ export function PaymentsScreen() {
               return (
                 <View key={card.id} style={styles.cardWrap}>
                   <View style={styles.face}>
-                    <View style={styles.faceHead}>
-                      {Mark ? (
-                        <Mark width={48} height={20} />
-                      ) : (
-                        <Text variant="bodyBold">{card.brand}</Text>
-                      )}
-                      {card.primary && (
-                        <Text variant="captionBold" uppercase color={colors.brand}>
-                          Default
+                    <LinearGradient
+                      /* 454:61201 — 111.7°, #282828 to #0b0b0b. */
+                      colors={["#282828", "#0b0b0b"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0.92 }}
+                      style={styles.faceFill}
+                    />
+                    <Text variant="bodyL" color={colors.contentPrimary}>
+                      {accountUser.name}
+                    </Text>
+                    <View style={styles.faceFoot}>
+                      <View style={styles.faceFigures}>
+                        <Text variant="titleBody" uppercase color={colors.contentPrimary}>
+                          xxxx xxxx xxxx {card.last4}
                         </Text>
-                      )}
+                        <Text variant="bodyS" color={colors.contentPrimary}>
+                          {copy.cards.expires} {card.expiry}
+                        </Text>
+                      </View>
+                      {Mark && <Mark width={48} height={48} />}
                     </View>
-                    <Text variant="title" color={colors.white}>
-                      •••• {card.last4}
-                    </Text>
-                    <Text variant="bodyS" color={colors.contentSecondary}>
-                      {card.expiry
-                        ? `${copy.cards.expires} ${card.expiry}`
-                        : copy.cards.expires}
-                    </Text>
                   </View>
 
+                  {/* Clamped to the face's bottom edge, as the comp draws it:
+                      one bar, the toggle at the left, Remove at the right. */}
                   <View style={styles.cardActions}>
-                    {!card.primary && (
-                      <Button
-                        label={copy.cards.setDefault}
-                        onPress={() => makeDefault(card.id)}
+                    <View style={styles.setDefault}>
+                      <Text variant="bodyL" color={colors.contentSecondary}>
+                        {copy.cards.setDefault}
+                      </Text>
+                      {/* Drawn live either way, as the comp draws it. Turning
+                          the default off would leave nothing to charge, so the
+                          only move it makes is turning another one on. */}
+                      <Switch
+                        on={Boolean(card.primary)}
+                        label={`${copy.cards.setDefault} — ${card.brand} ${card.last4}`}
+                        onChange={() => !card.primary && makeDefault(card.id)}
                       />
-                    )}
+                    </View>
                     <Button
                       label={copy.cards.remove}
                       icon={Trash}
+                      size="m"
                       tone="destructive"
-                      disabled={card.primary}
+                      disabled={Boolean(card.primary)}
                       onPress={() => setRemoving(card)}
                     />
                   </View>
-                  {card.primary && (
-                    <Text variant="caption" color={colors.contentSecondary}>
-                      {copy.cards.defaultLocked}
-                    </Text>
-                  )}
                 </View>
               );
             })
           )}
+
+          <Button label={copy.cards.addCard} onPress={() => setAdding(true)} />
 
           <Text variant="caption" color={colors.contentSecondary}>
             {copy.cards.note}
@@ -214,21 +233,46 @@ export function PaymentsScreen() {
   );
 }
 
+/** The comp draws the face 190 tall. */
+const CARD_H = 190;
+
 const styles = StyleSheet.create({
   body: { padding: gutter, paddingBottom: space.section, gap: space.xl },
+
   block: { gap: space.m },
   blockHead: { flexDirection: "row", alignItems: "center", gap: space.m },
   blockTitle: { flex: 1, minWidth: 0 },
 
-  cardWrap: { gap: space.s },
-  face: {
-    gap: space.xs,
-    padding: space.xl,
-    backgroundColor: colors.bgTertiary,
-    borderRadius: radii.card,
+  /* The comp bands the title over the secondary ground rather than putting
+     it in the bar. */
+  header: {
+    backgroundColor: colors.bgSecondary,
+    paddingHorizontal: gutter,
+    paddingBottom: gutter,
   },
-  faceHead: { flexDirection: "row", alignItems: "center", gap: space.m },
-  cardActions: { flexDirection: "row", gap: space.s },
+
+  /* Face and action row are one object: no gap between them. */
+  cardWrap: { gap: 0 },
+  face: {
+    height: CARD_H,
+    justifyContent: "space-between",
+    padding: space.l,
+    borderRadius: radii.card,
+    overflow: "hidden",
+  },
+  faceFill: { ...StyleSheet.absoluteFill },
+  faceFoot: { flexDirection: "row", alignItems: "flex-end", gap: space.m },
+  faceFigures: { flex: 1, minWidth: 0, gap: space.xs },
+  cardActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.l,
+    paddingLeft: space.l,
+    paddingRight: space.m,
+    paddingVertical: space.m,
+    backgroundColor: colors.overlay5,
+  },
+  setDefault: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: space.s },
 
   row: { flexDirection: "row", alignItems: "center", gap: space.m },
   rowBody: { flex: 1, minWidth: 0, gap: space.xs },
