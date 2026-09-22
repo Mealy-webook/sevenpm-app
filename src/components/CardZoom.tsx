@@ -13,8 +13,10 @@ import { Image } from "expo-image";
 import Close from "../icons/ic-close.svg";
 import { Tap } from "./Tap";
 import { image } from "../images";
+import { Text } from "../theme/Text";
 import { ease, useReducedMotion } from "../theme/motion";
-import { colors, gutter } from "../theme/tokens";
+import { colors, gutter, space } from "../theme/tokens";
+import { walletCopy } from "../data/account";
 
 /**
  * The cashless card, drawn out of its pocket and stood up.
@@ -29,6 +31,10 @@ import { colors, gutter } from "../theme/tokens";
  * up to be read stands upright, so it rotates a quarter turn and grows into
  * the page as it does. Both are one movement: the turn starts while it is
  * still rising.
+ *
+ * Held up, it is a card being paid with rather than a card being looked at,
+ * so a line beneath it says where to hold the phone. It is drawn outside the
+ * card rather than on it, so the quarter turn leaves it upright.
  *
  * Every offset comes from the caller measuring the two on screen, so this
  * works wherever on the page they sit.
@@ -96,14 +102,24 @@ export function CardZoom({
    * width. So the size it grows to is set by fitting its *height* across the
    * page, and it is scaled about its own centre.
    */
-  const stand = (width - gutter * 2) / card.height;
+  const stand = (width - gutter * 4) / card.height;
+  /* Standing, the card is as tall as it was wide. */
+  const standHeight = card.width * stand;
   const restX = card.x + card.width / 2;
   const restY = card.y + card.height / 2;
   const toX = width / 2;
-  const toY = height / 2;
+  /* Held a little above centre, to leave the line beneath it room. */
+  const toY = height / 2 - space.xl;
 
   const from = (a: number, b: number) =>
     out.interpolate({ inputRange: [0, 1], outputRange: [a, b] });
+
+  /** Everything that only belongs to the card once it has stopped turning. */
+  const settled = out.interpolate({
+    inputRange: [0.82, 1],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
 
   /* Clear of the leather before anything else happens to it. */
   const lift = out.interpolate({
@@ -156,6 +172,20 @@ export function CardZoom({
             style={StyleSheet.absoluteFill}
             contentFit="fill"
           />
+        </Animated.View>
+
+        {/* The line arrives once the card has stopped moving, and is drawn
+            outside it so the quarter turn leaves it upright. */}
+        <Animated.View
+          style={[
+            styles.caption,
+            { top: toY + standHeight / 2 + space.xl, opacity: settled },
+          ]}
+          pointerEvents="none"
+        >
+          <Text variant="bodyS" color={colors.contentSecondary} style={styles.centred}>
+            {walletCopy.tapToPay}
+          </Text>
         </Animated.View>
 
         {/* The pocket, exactly where the page had it, fading once it has been
@@ -215,6 +245,9 @@ const styles = StyleSheet.create({
   fill: { ...StyleSheet.absoluteFill },
   page: { backgroundColor: "#09090b" },
   bar: { position: "absolute", top: 60, left: gutter },
+  /* Hangs off the card's centre line, so it stays with it on any screen. */
+  caption: { position: "absolute", left: gutter * 2, right: gutter * 2 },
+  centred: { textAlign: "center" },
   barButton: {
     padding: 10,
     backgroundColor: colors.overlay5,

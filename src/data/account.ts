@@ -124,6 +124,8 @@ export const walletCopy = {
   cardBody:
     "Buy food, drinks, and merch at any SEVENPM bar or stand. Just tap or show your code — your wallet balance takes care of the rest.",
   appleWallet: "Add to Apple Wallet",
+  /* Said on the card once it is held up, where the tapping happens. */
+  tapToPay: "Place the back of your phone against the card reader",
   transactionsTitle: "Transactions",
   transactionsBody:
     "Your tickets live here. Wristbands are issued at the gate on presentation of your booking reference.",
