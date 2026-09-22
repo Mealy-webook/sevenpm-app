@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -14,7 +14,9 @@ import Plus from "../../icons/ic-plus-16.svg";
 import TxIn from "../../icons/ic-tx-in.svg";
 import TxOut from "../../icons/ic-tx-out.svg";
 import { Button } from "../../components/Button";
+import { CardZoom, type CardFrom } from "../../components/CardZoom";
 import { EmptyState } from "../../components/EmptyState";
+import { Tap } from "../../components/Tap";
 import { Chip } from "../../components/Chip";
 import { ListRow } from "../../components/ListRow";
 import { NavBar, Page } from "../../components/Screen";
@@ -48,6 +50,23 @@ export function WalletScreen() {
   const { width } = useWindowDimensions();
   const [extra, setExtra] = useState<WalletTransaction[]>([]);
   const [open, setOpen] = useState(false);
+  /* Taking the card out: both pieces are measured where the page drew them,
+     so the card can be shown coming out from behind the leather. */
+  const cardRef = useRef<View>(null);
+  const folderRef = useRef<View>(null);
+  const [taken, setTaken] = useState<{ card: CardFrom; folder: CardFrom } | null>(
+    null,
+  );
+  const takeOut = () => {
+    cardRef.current?.measureInWindow((x, y, w, h) =>
+      folderRef.current?.measureInWindow((fx, fy, fw, fh) =>
+        setTaken({
+          card: { x, y, width: w, height: h },
+          folder: { x: fx, y: fy, width: fw, height: fh },
+        }),
+      ),
+    );
+  };
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const ledger = [...extra, ...walletTransactions];
@@ -82,8 +101,14 @@ export function WalletScreen() {
             modes that React Native has none of, so it arrives as two exported
             sheets and only the balance and its button are live. */}
         <View style={[styles.wallet, { height: u(250) }]}>
-          <Image
-            source={image("/assets/wallet-card.png")}
+          {/* The card is behind the leather and only its top edge shows, so
+              that edge is the whole of what can be pressed. Pressing it takes
+              the card out — see `CardZoom`. */}
+          {/* The ref is on the box rather than on the control, because
+              `Tap` is a Pressable and does not forward one, and the box is
+              what has to be measured. */}
+          <View
+            ref={cardRef}
             style={{
               position: "absolute",
               left: u(22),
@@ -91,10 +116,23 @@ export function WalletScreen() {
               width: u(307),
               height: u(203),
             }}
-            contentFit="fill"
-          />
-          <Image
-            source={image("/assets/wallet-folder.png")}
+          >
+            <Tap
+              accessibilityRole="button"
+              accessibilityLabel={walletCopy.cardTitle}
+              onPress={takeOut}
+              scale={1}
+              style={StyleSheet.absoluteFill}
+            >
+              <Image
+                source={image("/assets/wallet-card.png")}
+                style={StyleSheet.absoluteFill}
+                contentFit="fill"
+              />
+            </Tap>
+          </View>
+          <View
+            ref={folderRef}
             style={{
               position: "absolute",
               left: 0,
@@ -102,8 +140,14 @@ export function WalletScreen() {
               top: u(43),
               height: u(207),
             }}
-            contentFit="fill"
-          />
+            pointerEvents="none"
+          >
+            <Image
+              source={image("/assets/wallet-folder.png")}
+              style={StyleSheet.absoluteFill}
+              contentFit="fill"
+            />
+          </View>
           <View style={[styles.balance, { left: u(24), right: u(24), top: u(175) }]}>
             <View style={styles.figures}>
               <Text variant="caption" color={colors.contentSecondary}>
@@ -211,6 +255,13 @@ export function WalletScreen() {
           ))
         )}
       </ScrollView>
+
+      <CardZoom
+        open={taken !== null}
+        card={taken?.card ?? null}
+        folder={taken?.folder ?? null}
+        onClose={() => setTaken(null)}
+      />
 
       <TopUpSheet
         open={open}
