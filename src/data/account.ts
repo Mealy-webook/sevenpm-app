@@ -117,10 +117,17 @@ export const logoutCopy = {
 
 export const walletCopy = {
   title: "Wallet",
-  balanceLabel: "Available balance",
+  /* 480:56496 spells it "Avaiable". The comp is the spec, typo and all. */
+  balanceLabel: "Avaiable balance",
   topUpCta: "Top up",
+  cardTitle: "Sevenpm cashless card",
+  cardBody:
+    "Buy food, drinks, and merch at any SEVENPM bar or stand. Just tap or show your code — your wallet balance takes care of the rest.",
+  appleWallet: "Add to Apple Wallet",
   transactionsTitle: "Transactions",
-  empty: "No transactions yet",
+  transactionsBody:
+    "Your tickets live here. Wristbands are issued at the gate on presentation of your booking reference.",
+  empty: "No Transactions yet",
   /** Top up, from Figma 2196:10582, 2196:11179 and 2196:12115. */
   topUp: {
     title: "Top up",
@@ -523,7 +530,7 @@ export const bookings: Booking[] = [
 
 export const bookingsCopy = {
   title: "Bookings",
-  filters: ["Upcoming", "Past"] as const,
+  filters: ["Upcoming", "Past", "VIP Box requests"] as const,
   empty: "No bookings yet",
   /** The row's one action — "4 tickets \u203a" (454:56757). */
   tickets: (count: number) => `${count} ${count === 1 ? "ticket" : "tickets"}`,

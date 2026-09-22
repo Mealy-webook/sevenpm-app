@@ -1,11 +1,20 @@
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { Image } from "expo-image";
 import { useNavigation } from "@react-navigation/native";
 
 import Clear from "../../icons/ic-clear-20.svg";
+import Plus from "../../icons/ic-plus-16.svg";
 import TxIn from "../../icons/ic-tx-in.svg";
 import TxOut from "../../icons/ic-tx-out.svg";
 import { Button } from "../../components/Button";
+import { EmptyState } from "../../components/EmptyState";
 import { Chip } from "../../components/Chip";
 import { ListRow } from "../../components/ListRow";
 import { NavBar, Page } from "../../components/Screen";
@@ -13,7 +22,8 @@ import { Field, Sheet } from "../../components/Sheet";
 import { Option } from "../booking/BookingSheets";
 import { icon } from "../../icons";
 import { Text } from "../../theme/Text";
-import { colors, gutter, space } from "../../theme/tokens";
+import { image } from "../../images";
+import { colors, displaySize, gutter, scaled, space, type } from "../../theme/tokens";
 import {
   formatAmount,
   walletCopy,
@@ -35,6 +45,7 @@ import {
  */
 export function WalletScreen() {
   const navigation = useNavigation();
+  const { width } = useWindowDimensions();
   const [extra, setExtra] = useState<WalletTransaction[]>([]);
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -45,43 +56,117 @@ export function WalletScreen() {
 
   const days = groupByDay(ledger);
 
+  /* The comp's pocket is 350 wide on a 390 frame; everything inside it is
+     placed in those units and scaled to whatever screen it lands on. */
+  const u = (value: number) => scaled(value, width);
+
   return (
     <Page>
       {/* Wallet is both a tab and a push from the account list, so the back
           control appears only when there is something to go back to. */}
-      <NavBar
-        title={walletCopy.title}
-        onBack={navigation.canGoBack() ? navigation.goBack : undefined}
-      />
+      {navigation.canGoBack() && <NavBar onBack={navigation.goBack} />}
 
       <ScrollView contentContainerStyle={styles.body}>
-        <View style={styles.card}>
-          <Text variant="bodyS" color={colors.contentSecondary}>
-            {walletCopy.balanceLabel}
-          </Text>
-          <View style={styles.figure}>
-            <Text variant="displayL" color={colors.white}>
-              {balance.toLocaleString("en-US")}
-            </Text>
-            <Text variant="displayM" uppercase color={colors.brand}>
-              {walletCurrency}
-            </Text>
-          </View>
-          <Button
-            variant="primary"
-            label={walletCopy.topUpCta}
-            onPress={() => setOpen(true)}
-          />
-        </View>
-
-        <Text variant="sectionTitle" uppercase>
-          {walletCopy.transactionsTitle}
+        <Text
+          variant="displayName"
+          uppercase
+          color={colors.white}
+          style={displaySize(type.displayName, width)}
+        >
+          {walletCopy.title}
         </Text>
 
-        {ledger.length === 0 ? (
-          <Text variant="bodyBold" color={colors.contentSecondary}>
-            {walletCopy.empty}
+        {/* The card and the pocket it sits in are one piece of artwork in two
+            parts: the card behind, the leather in front, and the card's top
+            edge showing above it. Figma builds it from blurs, masks and blend
+            modes that React Native has none of, so it arrives as two exported
+            sheets and only the balance and its button are live. */}
+        <View style={[styles.wallet, { height: u(250) }]}>
+          <Image
+            source={image("/assets/wallet-card.png")}
+            style={{
+              position: "absolute",
+              left: u(22),
+              top: 0,
+              width: u(307),
+              height: u(203),
+            }}
+            contentFit="fill"
+          />
+          <Image
+            source={image("/assets/wallet-folder.png")}
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: u(43),
+              height: u(207),
+            }}
+            contentFit="fill"
+          />
+          <View style={[styles.balance, { left: u(24), right: u(24), top: u(175) }]}>
+            <View style={styles.figures}>
+              <Text variant="caption" color={colors.contentSecondary}>
+                {walletCopy.balanceLabel}
+              </Text>
+              <View style={styles.figure}>
+                <Text variant="displayBalance" color={colors.contentPrimary}>
+                  {balance.toLocaleString("en-US")}
+                </Text>
+                <Text variant="displayCurrency" uppercase color={colors.brand}>
+                  {walletCurrency}
+                </Text>
+              </View>
+            </View>
+            <Button
+              variant="primary"
+              size="m"
+              icon={Plus}
+              label={walletCopy.topUpCta}
+              onPress={() => setOpen(true)}
+            />
+          </View>
+        </View>
+
+        <View style={styles.blurb}>
+          <Text variant="titleBody" uppercase>
+            {walletCopy.cardTitle}
           </Text>
+          <Text variant="bodyS" color={colors.contentSecondary}>
+            {walletCopy.cardBody}
+          </Text>
+        </View>
+
+        {/* Apple's own badge, drawn to Apple's own measurements. It does
+            nothing yet: there is no pass to add. */}
+        <View style={styles.appleWallet}>
+          <Image
+            source={image("/assets/apple-wallet-mark.png")}
+            style={styles.appleMark}
+            contentFit="contain"
+          />
+          <Text variant="body" color={colors.white}>
+            {walletCopy.appleWallet}
+          </Text>
+        </View>
+
+        <View style={styles.blurb}>
+          <Text variant="titleBody" uppercase>
+            {walletCopy.transactionsTitle}
+          </Text>
+          <Text variant="bodyS" color={colors.contentSecondary}>
+            {walletCopy.transactionsBody}
+          </Text>
+        </View>
+
+        {ledger.length === 0 ? (
+          <EmptyState
+            art="/assets/empty-transactions.png"
+            width={152}
+            height={101}
+            title={walletCopy.empty}
+            style={styles.nothing}
+          />
         ) : (
           days.map(([heading, entries]) => (
             <View key={heading}>
@@ -291,7 +376,35 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderDimmed,
   },
-  figure: { flexDirection: "row", alignItems: "flex-end", gap: space.s },
+  /* The pocket, and the live parts that sit on it. */
+  wallet: { width: "100%" },
+  balance: {
+    position: "absolute",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.xl,
+  },
+  figures: { flex: 1, minWidth: 0, gap: space.xs },
+  figure: { flexDirection: "row", alignItems: "flex-end", gap: space.xs },
+
+  blurb: { gap: space.xs },
+  /* Apple draws this badge to its own measurements, not ours — including the
+     one radius in this app that is neither square nor a circle. */
+  appleWallet: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingLeft: 10,
+    paddingRight: 12,
+    paddingVertical: 7.5,
+    backgroundColor: "#000000",
+    borderWidth: 0.67,
+    borderColor: "#a6a6a6",
+    borderRadius: 7,
+  },
+  appleMark: { width: 37, height: 27 },
+  nothing: { minHeight: 280 },
   detail: { paddingBottom: space.m },
   quick: { flexDirection: "row", gap: space.s, flexWrap: "wrap" },
 });

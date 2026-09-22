@@ -92,6 +92,12 @@ export const images: Record<string, ImageSourcePropType> = {
   "/assets/event-gallery-4.jpg": require("../assets/img/event-gallery-4.jpg"),
   "/assets/event-gallery-5.jpg": require("../assets/img/event-gallery-5.jpg"),
 
+  "/assets/wallet-card.png": require("../assets/img/wallet-card.png"),
+  "/assets/wallet-folder.png": require("../assets/img/wallet-folder.png"),
+  "/assets/apple-wallet-mark.png": require("../assets/img/apple-wallet-mark.png"),
+  "/assets/empty-bookings.png": require("../assets/img/empty-bookings.png"),
+  "/assets/empty-transactions.png": require("../assets/img/empty-transactions.png"),
+
   /* The pre-blurred washes — see `glow()` below. */
   "/assets/glow-card-jazzablanca.webp": require("../assets/img/glow-card-jazzablanca.webp"),
   "/assets/glow-card-tanjazz.webp": require("../assets/img/glow-card-tanjazz.webp"),

@@ -140,12 +140,17 @@ export const type = {
   displayStep: { font: fonts.display, size: 56, line: 46, tracking: 0.56 },
   displayL: { font: fonts.display, size: 64, line: 68 },
   displayM: { font: fonts.display, size: 40, line: 44 },
+  /* The wallet's balance and its currency, from 480:56498 and 480:56499. */
+  displayBalance: { font: fonts.display, size: 56, line: 39 },
+  displayCurrency: { font: fonts.display, size: 36, line: 24 },
 
   /** The sheets' own heading — Roboto Black, 24/28 (432:3329). */
   displayXS: { font: fonts.black, size: 24, line: 28, tracking: -0.5 },
 
   /* Titles — Roboto Bold, uppercase, negative tracking. */
   sectionTitle: { font: fonts.bold, size: 26, line: 32, tracking: -0.13 },
+  /* Titles/Title Section — the size an empty state announces itself at. */
+  titleSection: { font: fonts.bold, size: 22, line: 28, tracking: -0.11 },
   title: { font: fonts.bold, size: 22, line: 28, tracking: -0.11 },
   titleBody: { font: fonts.bold, size: 18, line: 24, tracking: -0.09 },
 

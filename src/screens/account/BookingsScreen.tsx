@@ -8,15 +8,18 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import ChevronRight from "../../icons/ic-chevron-right-16.svg";
 import Clock from "../../icons/ic-clock-16.svg";
 import Pin from "../../icons/ic-pin-16.svg";
+import { Button } from "../../components/Button";
 import { Chip } from "../../components/Chip";
+import { EmptyState } from "../../components/EmptyState";
 import { Tap } from "../../components/Tap";
 import { image } from "../../images";
 import { Text } from "../../theme/Text";
-import { colors, displaySize, space, type } from "../../theme/tokens";
+import { colors, displaySize, gutter, space, type } from "../../theme/tokens";
 import type { RootParamList } from "../../navigation/RootNavigator";
 import { TAB_BAR_CLEARANCE } from "../../navigation/TabBar";
 import { useTabBarScroll } from "../../navigation/tabBarScroll";
-import { bookings, bookingsCopy } from "../../data/account";
+import { bookings, bookingsCopy, loyaltyBalance } from "../../data/account";
+import { discoverCopy } from "../../data/discover";
 
 /**
  * Bookings, from Figma 454:56720.
@@ -46,13 +49,30 @@ export function BookingsScreen() {
 
   return (
     <View style={styles.page}>
-      <View style={[styles.header, { paddingTop: insets.top + space.l }]}>
+      {/* Wordmark left, what there is to spend right — the same bar
+          Discover carries, which 476:29659 gives this screen too. */}
+      <View style={[styles.bar, { paddingTop: insets.top + space.xs }]}>
+        <Image
+          source={image("/assets/wordmark.png")}
+          style={styles.wordmark}
+          contentFit="contain"
+          accessibilityLabel="SEVENPM"
+        />
+        <View style={styles.spacer} />
+        <Button
+          label={discoverCopy.beats(loyaltyBalance)}
+          size="m"
+          onPress={() => navigation.navigate("Rewards")}
+        />
+      </View>
+
+      <View style={styles.header}>
         <Text
-          variant="displayScreen"
+          variant="displayName"
           uppercase
           color={colors.white}
           numberOfLines={1}
-          style={displaySize(type.displayScreen, width)}
+          style={displaySize(type.displayName, width)}
         >
           {bookingsCopy.title}
         </Text>
@@ -75,9 +95,13 @@ export function BookingsScreen() {
           </View>
 
           {shown.length === 0 ? (
-            <Text variant="bodyBold" color={colors.contentSecondary}>
-              {bookingsCopy.empty}
-            </Text>
+            <EmptyState
+              art="/assets/empty-bookings.png"
+              width={138}
+              height={94}
+              title={bookingsCopy.empty}
+              style={styles.nothing}
+            />
           ) : (
             shown.map((booking) => (
               <BookingRow
@@ -173,6 +197,18 @@ function when(startsAt: string, endsAt: string) {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.bgPrimary },
+  bar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.m,
+    paddingHorizontal: gutter,
+    paddingBottom: space.xs,
+  },
+  wordmark: { width: 98, height: 18 },
+  spacer: { flex: 1 },
+  /* The comp gives the empty state the whole of what is left below the
+     chips, so it sits in the middle of the page rather than under them. */
+  nothing: { minHeight: 320 },
 
   header: {
     backgroundColor: colors.bgSecondary,
