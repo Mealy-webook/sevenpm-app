@@ -35,6 +35,14 @@ import {
 const PUBLIC_ROWS = ["notifications", "language"];
 
 /**
+ * Rows the tab bar now carries. 454:67370 gives Bookings, Wallet and Resale
+ * tabs of their own, so listing them here as well offers the same three
+ * places twice and makes the menu longer than what is only reachable through
+ * it. They are dropped rather than kept as a shortcut.
+ */
+const IN_THE_TAB_BAR = ["bookings", "wallet", "resale"];
+
+/**
  * Menu, from Figma 359:7929 — the app's version of the web build's account
  * sidebar, and the fifth tab.
  *
@@ -73,17 +81,14 @@ export function AccountScreen() {
 
   /** Where each row goes. The three with no screen simply do not move. */
   const routes: Record<string, (() => void) | undefined> = {
-    bookings: () => navigation.navigate("Tabs", { screen: "Bookings" } as never),
-    wallet: () => navigation.navigate("Tabs", { screen: "Wallet" } as never),
-    resale: () => navigation.navigate("Tabs", { screen: "Resale" } as never),
     rewards: () => navigation.navigate("Rewards"),
     settings: () => navigation.navigate("Profile"),
     payments: () => navigation.navigate("Payments"),
   };
 
-  const rows = signedIn
-    ? menuNav
-    : menuNav.filter((item) => PUBLIC_ROWS.includes(item.id));
+  const rows = menuNav
+    .filter((item) => !IN_THE_TAB_BAR.includes(item.id))
+    .filter((item) => signedIn || PUBLIC_ROWS.includes(item.id));
 
   return (
     <ScrollView

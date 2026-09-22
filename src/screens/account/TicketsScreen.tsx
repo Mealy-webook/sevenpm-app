@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
+  Image as RNImage,
   Linking,
   ScrollView,
   Share,
@@ -11,6 +12,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import QRCode from "react-native-qrcode-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,6 +22,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Close from "../../icons/ic-close.svg";
 import MapPin from "../../icons/ic-map-pin.svg";
 import { Button } from "../../components/Button";
+import { image } from "../../images";
 import { Page } from "../../components/Screen";
 import { Tap } from "../../components/Tap";
 import { Text } from "../../theme/Text";
@@ -71,6 +74,8 @@ export function TicketsScreen() {
   const booking = bookings.find((item) => item.id === params.bookingId);
 
   const [shown, setShown] = useState(0);
+  /* Measured, because the sheets have to be able to scroll clear of it. */
+  const [foot, setFoot] = useState(0);
   const reduced = useReducedMotion();
   /* Where the rail is, in pixels — every sheet's tilt is read off this. */
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -185,17 +190,9 @@ export function TicketsScreen() {
               day={day}
               venue={booking.venue}
               venueUrl={booking.venueUrl}
+              poster={booking.image}
               label={ticketCopy.which(index + 1, booking.tickets.length)}
-              onSend={() =>
-                Share.share({
-                  message: `${booking.eventName} — ${day}\n${ticketCopy.code}: ${item.code}`,
-                })
-              }
-              /* Resale has no screens yet. The tab says so plainly, which is
-                 a truer answer than a button that does nothing. */
-              onResell={() =>
-                navigation.navigate("Tabs", { screen: "Resale" } as never)
-              }
+              foot={foot}
             />
           ))}
         </Animated.ScrollView>
@@ -224,39 +221,72 @@ export function TicketsScreen() {
         <View style={styles.barSpacer} />
       </View>
 
-      {/* The dots the rail is paged by, for a booking that has more than one. */}
-      {booking.tickets.length > 1 && (
-        <View style={[styles.dots, { bottom: Math.max(insets.bottom, 20) }]}>
-          {booking.tickets.map((item, index) => (
-            <Animated.View
-              key={item.id}
-              style={[
-                styles.dot,
-                reduced !== false
-                  ? index === shown
-                    ? null
-                    : styles.dotOff
-                  : {
-                      opacity: scrollX.interpolate({
-                        inputRange: span(index, page),
-                        outputRange: [0.3, 1, 0.3],
-                        extrapolate: "clamp",
-                      }),
-                      transform: [
-                        {
-                          scaleX: scrollX.interpolate({
-                            inputRange: span(index, page),
-                            outputRange: [DOT / DOT_ON, 1, DOT / DOT_ON],
-                            extrapolate: "clamp",
-                          }),
-                        },
-                      ],
-                    },
-              ]}
-            />
-          ))}
-        </View>
-      )}
+      {/* Fixed at the foot of the screen: what you can do with the ticket in
+          front of you, and which of how many that is. The rail scrolls under
+          it, so the actions are reachable without reading to the bottom of a
+          ticket first. */}
+      <View
+        style={[styles.footer, { paddingBottom: Math.max(insets.bottom, space.l) }]}
+        onLayout={(event) => setFoot(event.nativeEvent.layout.height)}
+      >
+        <LinearGradient
+          colors={["rgba(11,11,14,0)", colors.bgPrimary]}
+          locations={[0, 0.38]}
+          style={styles.footerShade}
+          pointerEvents="none"
+        />
+
+        {booking.tickets.length > 1 && (
+          <View style={styles.dots}>
+            {booking.tickets.map((item, index) => (
+              <Animated.View
+                key={item.id}
+                style={[
+                  styles.dot,
+                  reduced !== false
+                    ? index === shown
+                      ? null
+                      : styles.dotOff
+                    : {
+                        opacity: scrollX.interpolate({
+                          inputRange: span(index, page),
+                          outputRange: [0.3, 1, 0.3],
+                          extrapolate: "clamp",
+                        }),
+                        transform: [
+                          {
+                            scaleX: scrollX.interpolate({
+                              inputRange: span(index, page),
+                              outputRange: [DOT / DOT_ON, 1, DOT / DOT_ON],
+                              extrapolate: "clamp",
+                            }),
+                          },
+                        ],
+                      },
+                ]}
+              />
+            ))}
+          </View>
+        )}
+
+        <Button
+          variant="primary"
+          label={ticketCopy.send}
+          onPress={() =>
+            ticket &&
+            Share.share({
+              message: `${booking.eventName} — ${day}\n${ticketCopy.code}: ${ticket.code}`,
+            })
+          }
+        />
+        {/* Resale has no screens of its own yet; the tab says so plainly,
+            which is a truer answer than a button that does nothing. */}
+        <Button
+          label={ticketCopy.resell}
+          onPress={() => navigation.navigate("Tabs", { screen: "Resale" } as never)}
+        />
+      </View>
+
     </Page>
   );
 }
@@ -276,9 +306,9 @@ function Sheet({
   day,
   venue,
   venueUrl,
+  poster,
   label,
-  onSend,
-  onResell,
+  foot,
 }: {
   ticket: Ticket;
   index: number;
@@ -295,9 +325,9 @@ function Sheet({
   day: string;
   venue: string;
   venueUrl?: string;
+  poster: string;
   label: string;
-  onSend: () => void;
-  onResell: () => void;
+  foot: number;
 }) {
   /* The code fills the sheet's width less its padding, capped so it does not
      become the whole screen on a tablet. */
@@ -355,11 +385,75 @@ function Sheet({
   return (
     <Animated.View style={[{ width }, fan]}>
     <ScrollView
-      contentContainerStyle={styles.sheetPage}
+      contentContainerStyle={[styles.sheetPage, { paddingBottom: foot + space.l }]}
       showsVerticalScrollIndicator={false}
       accessibilityLabel={label}
     >
       <View style={styles.sheet}>
+        {/* Card stock. A tile of grain and fibre laid over the white, so the
+            sheet reads as something printed rather than as a white rectangle.
+            Faint enough that the code still scans against it. */}
+        <RNImage
+          source={image("/assets/paper-grain.png")}
+          /* Stretched over the sheet rather than tiled: RN's `repeat` draws
+             this once on iOS and leaves the rest of the paper blank. Upscaling
+             softens the grain into mottling, which is what paper does anyway,
+             and it keeps the asset small. */
+          resizeMode="cover"
+          style={styles.grain}
+        />
+
+        {/* The key visual, printed across the head of the ticket the way a
+            real one carries the event's artwork. It is scrimmed hard: what
+            it has to do here is say which night this is at a glance, and the
+            name is set over it rather than left to the poster to carry. */}
+        <View style={styles.art}>
+          <Image
+            source={image(poster)}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            /* The top of the poster, not its middle: the middle is where the
+               poster prints its own name, and two of the same name stacked on
+               one band is worse than either alone. */
+            contentPosition="top"
+            transition={240}
+          />
+          <LinearGradient
+            colors={["rgba(11,11,14,0.25)", "rgba(11,11,14,0.88)"]}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.artText}>
+            <Text
+              variant="displayCard"
+              uppercase
+              color={colors.white}
+              numberOfLines={1}
+              style={title}
+            >
+              {eventName}
+            </Text>
+            <Text variant="bodySBold" color={colors.white}>
+              {day} · {ticket.entry}
+            </Text>
+          </View>
+        </View>
+
+        {/* The tear. Two bites out of the edges and a row of punches between
+            them — the one shape that says "ticket" before anything is read.
+            The bites are drawn in the page's own colour and clipped by the
+            sheet, so each shows as the half-circle a die would leave. Round,
+            because a punched hole is one of the few things in this app that
+            literally is. */}
+        <View style={styles.tear}>
+          <View style={[styles.notch, styles.notchLeft]} />
+          <View style={styles.punches}>
+            {Array.from({ length: 22 }).map((_, index) => (
+              <View key={index} style={styles.punch} />
+            ))}
+          </View>
+          <View style={[styles.notch, styles.notchRight]} />
+        </View>
+
         {/* Light crossing the sheet, once, as it arrives. Only on the one
             being held — the others are not being looked at. */}
         {active && !still && (
@@ -393,6 +487,7 @@ function Sheet({
           </Animated.View>
         )}
 
+        <View style={styles.body}>
         {/* The code, first and largest. */}
         <Animated.View
           style={[
@@ -416,7 +511,10 @@ function Sheet({
             value={ticket.code}
             size={qr}
             color="#0b0b0e"
-            backgroundColor="#ffffff"
+            /* Transparent, so the code is printed on the paper rather than
+               sitting on a whiter patch of sticker over it. The grain is 3%
+               grey, which is still white as far as a scanner is concerned. */
+            backgroundColor="transparent"
           />
         </Animated.View>
         <Text variant="bodySBold" color="#0b0b0e" style={styles.codeText}>
@@ -426,22 +524,6 @@ function Sheet({
           {ticketCopy.scan}
         </Text>
 
-        {/* The perforation: this sheet's one borrowed detail from the paper
-            ticket on the event page, and the line the eye stops at. Punched
-            rather than dashed — a 1px dashed border does not draw reliably on
-            iOS, and the app squares everything anyway. */}
-        <View style={styles.tear}>
-          {Array.from({ length: 24 }).map((_, index) => (
-            <View key={index} style={styles.punch} />
-          ))}
-        </View>
-
-        <Text variant="displayCard" uppercase color="#0b0b0e" style={[title, styles.centred]}>
-          {eventName}
-        </Text>
-        <Text variant="bodyBold" color="#0b0b0e" style={styles.centred}>
-          {day} · {ticket.entry}
-        </Text>
         <Tap
           accessibilityRole="link"
           disabled={!venueUrl}
@@ -461,14 +543,7 @@ function Sheet({
           <Fact label={ticketCopy.gate} value={ticket.gate} />
           <Fact label={ticketCopy.entry} value={ticket.entry} />
         </View>
-      </View>
-
-      {/* The two things you can do with the ticket above. They live on the
-          sheet rather than in the bar because they act on *this* ticket, and
-          the rail is one ticket to a page. */}
-      <View style={styles.actions}>
-        <Button variant="primary" label={ticketCopy.send} onPress={onSend} />
-        <Button label={ticketCopy.resell} onPress={onResell} />
+        </View>
       </View>
 
       <Text variant="caption2" color={colors.contentSecondary} style={styles.note}>
@@ -513,6 +588,10 @@ const FAN_DROP = 26;
 const FAN_SCALE = 0.9;
 const FAN_DIM = 0.55;
 
+/** The artwork band across the head of the ticket, and the bites in its edges. */
+const ART_H = 132;
+const NOTCH = 22;
+
 /** The paging dots, resting and held. */
 const DOT = 8;
 const DOT_ON = 28;
@@ -537,14 +616,26 @@ const styles = StyleSheet.create({
   },
   /* White, and staying white: a scanner wants contrast and a phone dims
      itself, so this one sheet borrows nothing from the page under it. */
+  /* The sheet itself carries no padding now: the artwork runs to its edges
+     and the tear crosses it, so the padding belongs to the body under them. */
   sheet: {
     backgroundColor: "#ffffff",
-    padding: space.xl,
-    gap: space.m,
-    alignItems: "center",
-    /* The light has to stop at the paper's edge. */
+    /* The light, the grain and the punched edges all have to stop here. */
     overflow: "hidden",
   },
+  /* Laid over the white at a fraction of its strength — texture, not tint.
+     Sized in percentages rather than by `absoluteFill` alone, which leaves an
+     Image at the bitmap's own size. */
+  grain: {
+    ...StyleSheet.absoluteFill,
+    width: "100%",
+    height: "100%",
+    opacity: 0.5,
+  },
+  body: { padding: space.xl, gap: space.m, alignItems: "center" },
+
+  art: { height: ART_H, justifyContent: "flex-end" },
+  artText: { padding: space.l, gap: 2 },
   sheen: {
     position: "absolute",
     top: -SHEEN_W,
@@ -552,18 +643,29 @@ const styles = StyleSheet.create({
     left: 0,
     width: SHEEN_W,
   },
-  code: { padding: space.m, backgroundColor: "#ffffff" },
+  code: { padding: space.m },
   codeText: { letterSpacing: 1.5, textAlign: "center" },
   centred: { textAlign: "center", alignSelf: "stretch" },
 
-  /* A row of punches, the way the paper ticket is perforated. */
-  tear: {
-    alignSelf: "stretch",
+  /* The bites and the punches between them. */
+  tear: { flexDirection: "row", alignItems: "center", height: NOTCH },
+  punches: {
+    flex: 1,
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: space.m,
+    marginHorizontal: NOTCH / 2 + space.s,
   },
   punch: { width: 6, height: 2, backgroundColor: "#d4d4d8" },
+  /* Drawn in the page's colour and clipped by the sheet, so each reads as the
+     half-circle a die would leave. Round because a punched hole is. */
+  notch: {
+    width: NOTCH,
+    height: NOTCH,
+    borderRadius: NOTCH / 2,
+    backgroundColor: colors.bgPrimary,
+  },
+  notchLeft: { marginLeft: -NOTCH / 2 },
+  notchRight: { marginRight: -NOTCH / 2 },
 
   venue: { flexDirection: "row", alignItems: "center", gap: space.xs },
   venueName: { textDecorationLine: "underline" },
@@ -576,8 +678,20 @@ const styles = StyleSheet.create({
   },
   fact: { width: "50%", paddingVertical: space.s, gap: 2 },
 
-  actions: { gap: space.m },
   note: { paddingHorizontal: space.xs },
+
+  footer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: gutter,
+    paddingTop: space.l,
+    gap: space.m,
+  },
+  /* Reaching above the footer so the rail fades into it rather than meeting
+     it at a line. */
+  footerShade: { ...StyleSheet.absoluteFill, top: -space.section },
 
   bar: {
     position: "absolute",
@@ -601,12 +715,10 @@ const styles = StyleSheet.create({
   barSpacer: { width: 40, height: 40 },
 
   dots: {
-    position: "absolute",
-    left: 0,
-    right: 0,
     flexDirection: "row",
     justifyContent: "center",
     gap: space.s,
+    paddingBottom: space.xs,
   },
   /* One size, scaled down when it is not the one being held, because width
      cannot be animated off the main thread and scaleX can. */
