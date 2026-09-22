@@ -11,8 +11,6 @@ import { image } from "../images";
 import { Text } from "../theme/Text";
 import { colors, gutter, space } from "../theme/tokens";
 import type { RootParamList } from "../navigation/RootNavigator";
-import { TAB_BAR_CLEARANCE } from "../navigation/TabBar";
-import { useTabBarScroll } from "../navigation/tabBarScroll";
 import { newsArticles, newsCategories, newsCopy } from "../data/news";
 
 /**
@@ -28,11 +26,13 @@ import { newsArticles, newsCategories, newsCopy } from "../data/news";
  * long, it opens the full list — which is what somebody pressing it wants,
  * and it means the home screen stays a summary of everything rather than
  * becoming the newsroom.
+ *
+ * It used to be a tab as well. 454:67370 gives that tab to Wallet, so this is
+ * now only ever pushed, and Discover's row is the only way in.
  */
 export function NewsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
   const [category, setCategory] = useState<string>(newsCategories[0]);
-  const tabScroll = useTabBarScroll();
 
   const shown =
     category === "All"
@@ -41,14 +41,9 @@ export function NewsScreen() {
 
   return (
     <Page>
-      {/* News is both a tab root and a push from Discover's "Load more", so
-          the back control appears only when there is somewhere to go back to. */}
-      <NavBar
-        title={newsCopy.title}
-        onBack={navigation.canGoBack() ? navigation.goBack : undefined}
-      />
+      <NavBar title={newsCopy.title} onBack={navigation.goBack} />
 
-      <ScrollView contentContainerStyle={styles.body} {...tabScroll}>
+      <ScrollView contentContainerStyle={styles.body}>
         <Text variant="body" color={colors.contentSecondary}>
           {newsCopy.description}
         </Text>
@@ -165,8 +160,7 @@ export function ArticleScreen() {
 }
 
 const styles = StyleSheet.create({
-  /* News is a tab, and the bar floats over it. */
-  body: { padding: gutter, paddingBottom: TAB_BAR_CLEARANCE, gap: space.l },
+  body: { padding: gutter, paddingBottom: space.section, gap: space.l },
   chips: { flexDirection: "row", gap: space.s, paddingRight: gutter },
 
   row: {

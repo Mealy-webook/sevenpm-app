@@ -156,6 +156,8 @@ export const type = {
 
   /* Body. */
   bodyL: { font: fonts.regular, size: 17, line: 24, tracking: 0.085 },
+  /* Body bold/Body-L-Bold — the size a row's one action is set at. */
+  bodyLBold: { font: fonts.semibold, size: 17, line: 24, tracking: 0 },
   body: { font: fonts.regular, size: 15, line: 22, tracking: 0.15 },
   bodyBold: { font: fonts.semibold, size: 15, line: 22, tracking: 0.19 },
   bodyS: { font: fonts.regular, size: 13, line: 20, tracking: 0.13 },

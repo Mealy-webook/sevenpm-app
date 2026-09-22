@@ -27,6 +27,8 @@ import { ease } from "../theme/motion";
 import { colors, displaySize, radii, space, type } from "../theme/tokens";
 import type { RootParamList } from "../navigation/RootNavigator";
 import { TAB_BAR_CLEARANCE } from "../navigation/TabBar";
+import { useSession } from "../session";
+import { signedOutCopy } from "../data/session";
 import { useTabBarScroll } from "../navigation/tabBarScroll";
 import { Reveal, RevealWords, ScrollProvider, usePageScroll } from "../theme/scroll";
 import { loyaltyBalance } from "../data/account";
@@ -77,6 +79,7 @@ export function DiscoverScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
   const watched = useWatchedStories();
   const tabScroll = useTabBarScroll();
+  const { signedIn } = useSession();
   /* One onScroll per scroll view, so the tab bar's shrink rides along with
      the page's own scroll value. */
   const { scrollY, props: scrollProps } = usePageScroll(tabScroll.onScroll);
@@ -121,7 +124,7 @@ export function DiscoverScreen() {
 
   const heading = displaySize(type.displaySection, width);
   const cardName = displaySize(type.displayCard, width);
-  const news = () => navigation.navigate("Tabs", { screen: "News" } as never);
+  const news = () => navigation.navigate("News");
 
   return (
     <View style={styles.page}>
@@ -134,13 +137,23 @@ export function DiscoverScreen() {
           accessibilityLabel="SEVENPM"
         />
         <View style={styles.spacer} />
-        <Button
-          label={discoverCopy.beats(loyaltyBalance)}
-          size="m"
-          /* The comp does not say where this goes. It states a Beats
-             balance, so it opens the Beats. */
-          onPress={() => navigation.navigate("Rewards")}
-        />
+        {/* A Beats balance is a thing an account has. Signed out the slot
+            still holds the one action worth offering there. */}
+        {signedIn ? (
+          <Button
+            label={discoverCopy.beats(loyaltyBalance)}
+            size="m"
+            /* The comp does not say where this goes. It states a Beats
+               balance, so it opens the Beats. */
+            onPress={() => navigation.navigate("Rewards")}
+          />
+        ) : (
+          <Button
+            label={signedOutCopy.signIn}
+            size="m"
+            onPress={() => navigation.navigate("SignIn")}
+          />
+        )}
         {/* The comp's language button. Drawn and not wired: this app speaks
             one language, and a control that answers a press by doing nothing
             is worse than one that plainly does not take presses. */}

@@ -16,10 +16,15 @@ import TxOut from "../../icons/ic-tx-out.svg";
 import { Button } from "../../components/Button";
 import { CardZoom, type CardFrom } from "../../components/CardZoom";
 import { EmptyState } from "../../components/EmptyState";
+import { SignedOut } from "../../components/SignedOut";
 import { Tap } from "../../components/Tap";
 import { Chip } from "../../components/Chip";
 import { ListRow } from "../../components/ListRow";
 import { NavBar, Page } from "../../components/Screen";
+import { TAB_BAR_CLEARANCE } from "../../navigation/TabBar";
+import { useSession } from "../../session";
+import { signedOutCopy } from "../../data/session";
+import { useTabBarScroll } from "../../navigation/tabBarScroll";
 import { Field, Sheet } from "../../components/Sheet";
 import { Option } from "../booking/BookingSheets";
 import { icon } from "../../icons";
@@ -47,6 +52,10 @@ import {
  */
 export function WalletScreen() {
   const navigation = useNavigation();
+  const tabScroll = useTabBarScroll();
+  /* Reached from the account list rather than from the bar. */
+  const pushed = navigation.canGoBack();
+  const { signedIn } = useSession();
   const { width } = useWindowDimensions();
   const [extra, setExtra] = useState<WalletTransaction[]>([]);
   const [open, setOpen] = useState(false);
@@ -79,13 +88,55 @@ export function WalletScreen() {
      placed in those units and scaled to whatever screen it lands on. */
   const u = (value: number) => scaled(value, width);
 
+  /* Nothing on this page exists without an account: the balance, the card,
+     the ledger. So it offers the way in rather than an emptied version of
+     itself — the title stays because it names the page, not the reader. */
+  if (!signedIn) {
+    return (
+      <Page>
+        {pushed && <NavBar onBack={navigation.goBack} />}
+        <ScrollView
+          {...tabScroll}
+          contentContainerStyle={[
+            styles.body,
+            styles.empty,
+            { paddingBottom: pushed ? space.section : TAB_BAR_CLEARANCE },
+          ]}
+        >
+          <Text
+            variant="displayName"
+            uppercase
+            color={colors.white}
+            style={displaySize(type.displayName, width)}
+          >
+            {walletCopy.title}
+          </Text>
+          <SignedOut
+            art="/assets/empty-transactions.png"
+            width={152}
+            height={101}
+            title={signedOutCopy.wallet}
+          />
+        </ScrollView>
+      </Page>
+    );
+  }
+
   return (
     <Page>
       {/* Wallet is both a tab and a push from the account list, so the back
           control appears only when there is something to go back to. */}
-      {navigation.canGoBack() && <NavBar onBack={navigation.goBack} />}
+      {pushed && <NavBar onBack={navigation.goBack} />}
 
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView
+        {...tabScroll}
+        /* As a tab the bar floats over the foot of this; as a push there is
+           no bar to clear. */
+        contentContainerStyle={[
+          styles.body,
+          { paddingBottom: pushed ? space.section : TAB_BAR_CLEARANCE },
+        ]}
+      >
         <Text
           variant="displayName"
           uppercase
@@ -99,8 +150,14 @@ export function WalletScreen() {
             parts: the card behind, the leather in front, and the card's top
             edge showing above it. Figma builds it from blurs, masks and blend
             modes that React Native has none of, so it arrives as two exported
-            sheets and only the balance and its button are live. */}
-        <View style={[styles.wallet, { height: u(250) }]}>
+            sheets and only the balance and its button are live.
+            
+            The leather export arrived with 18 rows of opaque page-black above
+            it — invisible against the page on its own, but it fell between the
+            card's edge and the leather and read as a gap. Cropped off the
+            asset rather than absorbed here, so the two pieces meet; every
+            figure below is 16.5 shorter than the comp's for the same reason. */}
+        <View style={[styles.wallet, { height: u(233.5) }]}>
           {/* The card is behind the leather and only its top edge shows, so
               that edge is the whole of what can be pressed. Pressing it takes
               the card out — see `CardZoom`. */}
@@ -138,7 +195,7 @@ export function WalletScreen() {
               left: 0,
               right: 0,
               top: u(43),
-              height: u(207),
+              height: u(190.5),
             }}
             pointerEvents="none"
           >
@@ -148,7 +205,7 @@ export function WalletScreen() {
               contentFit="fill"
             />
           </View>
-          <View style={[styles.balance, { left: u(24), right: u(24), top: u(175) }]}>
+          <View style={[styles.balance, { left: u(24), right: u(24), top: u(158.5) }]}>
             <View style={styles.figures}>
               <Text variant="caption" color={colors.contentSecondary}>
                 {walletCopy.balanceLabel}
@@ -419,7 +476,9 @@ function groupByDay(ledger: WalletTransaction[]) {
 }
 
 const styles = StyleSheet.create({
-  body: { padding: gutter, paddingBottom: space.section, gap: space.l },
+  body: { padding: gutter, gap: space.l },
+  /* With nothing in it, the page centres that nothing in what is left. */
+  empty: { flexGrow: 1 },
   card: {
     gap: space.m,
     padding: space.xl,

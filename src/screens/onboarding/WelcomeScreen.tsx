@@ -17,6 +17,7 @@ import { image } from "../../images";
 import { Text } from "../../theme/Text";
 import { colors, displaySize, space, type } from "../../theme/tokens";
 import { onboardingCopy, welcomeCopy } from "../../data/onboarding";
+import { useSession } from "../../session";
 
 /**
  * Welcome, from Figma 393:39475 — the screen that follows the last onboarding
@@ -27,12 +28,23 @@ import { onboardingCopy, welcomeCopy } from "../../data/onboarding";
  * quietly, at the bottom. A sign-in screen that looks like it authenticated
  * you and did not is the most misleading thing a prototype can do.
  *
+ * What it does record is *which* route you took. Skip leaves you signed out
+ * and the three sign-in buttons do not — not because any of them authenticate
+ * anything, but because the app behind them looks different depending on the
+ * answer, and until now it could not tell that the question had been asked.
+ *
  * The comp also carries a failed-Google alert and a Face ID button as hidden
  * variants. Neither is built: an error state with nothing that can error, and
  * a biometric prompt that unlocks nothing, are both worse than their absence.
  */
 export function WelcomeScreen({ onDone }: { onDone: () => void }) {
   const insets = useSafeAreaInsets();
+  const { signIn } = useSession();
+  /* The only difference between the two ways off this screen. */
+  const enter = () => {
+    signIn();
+    onDone();
+  };
   const { width, height } = useWindowDimensions();
   const [email, setEmail] = useState("");
 
@@ -100,7 +112,7 @@ export function WelcomeScreen({ onDone }: { onDone: () => void }) {
           <Button
             variant="brand"
             label={welcomeCopy.continueWithEmail}
-            onPress={onDone}
+            onPress={enter}
           />
 
           <View style={styles.orRow}>
@@ -113,13 +125,13 @@ export function WelcomeScreen({ onDone }: { onDone: () => void }) {
             variant="primary"
             icon={Apple}
             label={welcomeCopy.apple}
-            onPress={onDone}
+            onPress={enter}
           />
           <Button
             variant="primary"
             icon={Google}
             label={welcomeCopy.google}
-            onPress={onDone}
+            onPress={enter}
           />
 
         </View>

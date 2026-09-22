@@ -5,12 +5,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import ChevronRight from "../../icons/ic-chevron-right-16.svg";
+import ChevronRight from "../../icons/ic-chevron-right-20.svg";
 import Clock from "../../icons/ic-clock-16.svg";
 import Pin from "../../icons/ic-pin-16.svg";
-import { Button } from "../../components/Button";
 import { Chip } from "../../components/Chip";
 import { EmptyState } from "../../components/EmptyState";
+import { SignedOut } from "../../components/SignedOut";
 import { Tap } from "../../components/Tap";
 import { image } from "../../images";
 import { Text } from "../../theme/Text";
@@ -18,20 +18,30 @@ import { colors, displaySize, gutter, space, type } from "../../theme/tokens";
 import type { RootParamList } from "../../navigation/RootNavigator";
 import { TAB_BAR_CLEARANCE } from "../../navigation/TabBar";
 import { useTabBarScroll } from "../../navigation/tabBarScroll";
-import { bookings, bookingsCopy, loyaltyBalance } from "../../data/account";
-import { discoverCopy } from "../../data/discover";
+import { useSession } from "../../session";
+import { signedOutCopy } from "../../data/session";
+import { bookings, bookingsCopy } from "../../data/account";
 
 /**
- * Bookings, from Figma 454:56720.
+ * Bookings, from Figma 462:70918.
  *
- * The title sits on its own lighter band, and everything below it is one
- * outlined area — the comp draws the whole content region inside a dimmed
- * hairline rather than boxing each booking. A booking is a flat row, not a
- * card: the poster, the name, when and where, and a single link into it.
+ * The screen it replaces (454:56720) put the title on its own lighter band
+ * and drew the whole content region inside a hairline; this one does neither.
+ * There is no top bar either — no wordmark, no Beats balance — so the page
+ * opens on its own name at display size and goes straight into the filters.
+ * Everything sits on one ground with nothing boxing it.
+ *
+ * A booking is a flat row: a 106pt poster, the name in title type, when and
+ * where, and a single link into the tickets. Rows are separated by a rule
+ * rather than by being carded.
  *
  * Upcoming and past are decided against the clock rather than stored on the
  * booking, so the filter stays honest the day this mock data is older than
  * the event it describes.
+ *
+ * **Signed out there is nothing here that belongs to anybody**, so the
+ * filters go with the list and the page offers the way in instead. The title
+ * stays: it is the name of the page, not a claim about the reader.
  */
 export function BookingsScreen() {
   const insets = useSafeAreaInsets();
@@ -39,6 +49,7 @@ export function BookingsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
   const [filter, setFilter] = useState<string>(bookingsCopy.filters[0]);
   const tabScroll = useTabBarScroll();
+  const { signedIn } = useSession();
 
   const now = Date.now();
   const shown = bookings.filter((booking) =>
@@ -49,24 +60,13 @@ export function BookingsScreen() {
 
   return (
     <View style={styles.page}>
-      {/* Wordmark left, what there is to spend right — the same bar
-          Discover carries, which 476:29659 gives this screen too. */}
-      <View style={[styles.bar, { paddingTop: insets.top + space.xs }]}>
-        <Image
-          source={image("/assets/wordmark.png")}
-          style={styles.wordmark}
-          contentFit="contain"
-          accessibilityLabel="SEVENPM"
-        />
-        <View style={styles.spacer} />
-        <Button
-          label={discoverCopy.beats(loyaltyBalance)}
-          size="m"
-          onPress={() => navigation.navigate("Rewards")}
-        />
-      </View>
-
-      <View style={styles.header}>
+      <ScrollView
+        {...tabScroll}
+        contentContainerStyle={[
+          styles.section,
+          { paddingTop: insets.top + gutter, paddingBottom: TAB_BAR_CLEARANCE },
+        ]}
+      >
         <Text
           variant="displayName"
           uppercase
@@ -76,48 +76,58 @@ export function BookingsScreen() {
         >
           {bookingsCopy.title}
         </Text>
-      </View>
 
-      <View style={styles.content}>
-        <ScrollView
-          {...tabScroll}
-          contentContainerStyle={[styles.list, { paddingBottom: TAB_BAR_CLEARANCE }]}
-        >
-          <View style={styles.chips}>
-            {bookingsCopy.filters.map((item) => (
-              <Chip
-                key={item}
-                label={item}
-                selected={filter === item}
-                onPress={() => setFilter(item)}
-              />
-            ))}
-          </View>
+        {!signedIn ? (
+          <SignedOut
+            art="/assets/empty-bookings.png"
+            width={138}
+            height={94}
+            title={signedOutCopy.bookings}
+            style={styles.nothing}
+          />
+        ) : (
+          <>
+            <View style={styles.chips}>
+              {bookingsCopy.filters.map((item) => (
+                <Chip
+                  key={item}
+                  label={item}
+                  selected={filter === item}
+                  onPress={() => setFilter(item)}
+                />
+              ))}
+            </View>
 
-          {shown.length === 0 ? (
-            <EmptyState
-              art="/assets/empty-bookings.png"
-              width={138}
-              height={94}
-              title={bookingsCopy.empty}
-              style={styles.nothing}
-            />
-          ) : (
-            shown.map((booking) => (
-              <BookingRow
-                key={booking.id}
-                booking={booking}
-                /* The row's one action names the tickets, so it opens
-                   them — the payment plan is reached from inside a ticket's
-                   own booking rather than from the word "tickets". */
-                onOpen={() =>
-                  navigation.navigate("Tickets", { bookingId: booking.id })
-                }
+            {shown.length === 0 ? (
+              <EmptyState
+                art="/assets/empty-bookings.png"
+                width={138}
+                height={94}
+                title={bookingsCopy.empty}
+                style={styles.nothing}
               />
-            ))
-          )}
-        </ScrollView>
-      </View>
+            ) : (
+              <View style={styles.list}>
+                {shown.map((booking, index) => (
+                  <View key={booking.id} style={styles.listItem}>
+                    {index > 0 && <View style={styles.divider} />}
+                    <BookingRow
+                      booking={booking}
+                      /* The row's one action names the tickets, so it opens
+                         them — the payment plan is reached from inside a
+                         ticket's own booking rather than from the word
+                         "tickets". */
+                      onOpen={() =>
+                        navigation.navigate("Tickets", { bookingId: booking.id })
+                      }
+                    />
+                  </View>
+                ))}
+              </View>
+            )}
+          </>
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -141,7 +151,7 @@ function BookingRow({
 
       <View style={styles.rowBody}>
         <View style={styles.rowText}>
-          <Text variant="bodyL" numberOfLines={1}>
+          <Text variant="titleBody" uppercase color={colors.white} numberOfLines={1}>
             {booking.eventName}
           </Text>
 
@@ -173,8 +183,8 @@ function BookingRow({
           scale={0.98}
           style={styles.link}
         >
-          <Text variant="bodyBold">{bookingsCopy.tickets(booking.tickets.length)}</Text>
-          <ChevronRight width={16} height={16} />
+          <Text variant="bodyLBold">{bookingsCopy.tickets(booking.tickets.length)}</Text>
+          <ChevronRight width={20} height={20} />
         </Tap>
       </View>
     </View>
@@ -197,40 +207,25 @@ function when(startsAt: string, endsAt: string) {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.bgPrimary },
-  bar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.m,
-    paddingHorizontal: gutter,
-    paddingBottom: space.xs,
-  },
-  wordmark: { width: 98, height: 18 },
-  spacer: { flex: 1 },
-  /* The comp gives the empty state the whole of what is left below the
-     chips, so it sits in the middle of the page rather than under them. */
+  /* The comp's one Section: 20 all round, 16 between everything in it. */
+  section: { flexGrow: 1, paddingHorizontal: gutter, gap: space.l },
+  chips: { flexDirection: "row", gap: space.m },
+  /* Whatever is left below the title, so a page with nothing on it centres
+     that nothing rather than hanging it under the chips. */
   nothing: { minHeight: 320 },
 
-  header: {
-    backgroundColor: colors.bgSecondary,
-    paddingHorizontal: 20,
-    paddingBottom: space.l,
-  },
+  list: { gap: space.l },
+  /* The rule belongs to the row below it, so the gap either side of it is
+     the list's own 16 rather than something the divider adds. */
+  listItem: { gap: space.l },
+  divider: { height: 1, backgroundColor: colors.overlay5 },
 
-  /* The comp outlines the whole content region, not each booking. */
-  content: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.overlay5,
-  },
-  list: { padding: 20, gap: space.xl },
-  chips: { flexDirection: "row", gap: space.xl },
-
-  row: { flexDirection: "row", alignItems: "center", gap: space.l, minHeight: 44 },
-  thumb: { width: 80, height: 80, backgroundColor: colors.bgTertiary },
+  row: { flexDirection: "row", alignItems: "center", gap: space.m, minHeight: 44 },
+  thumb: { width: 106, height: 106, backgroundColor: colors.bgTertiary },
   rowBody: { flex: 1, minWidth: 0, gap: space.s },
-  rowText: { gap: space.xs },
+  rowText: { gap: space.s },
   metaGroup: { gap: space.xs },
   meta: { flexDirection: "row", alignItems: "center", gap: space.xs },
   underline: { textDecorationLine: "underline" },
-  link: { flexDirection: "row", alignItems: "center", gap: space.xs, alignSelf: "flex-start" },
+  link: { flexDirection: "row", alignItems: "center", gap: space.s, alignSelf: "flex-start" },
 });

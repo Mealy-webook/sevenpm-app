@@ -1,5 +1,6 @@
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { StyleSheet } from "react-native";
 import type { SvgProps } from "react-native-svg";
@@ -7,7 +8,7 @@ import type { SvgProps } from "react-native-svg";
 import IcBookings from "../icons/ic-tab-bookings.svg";
 import IcDiscover from "../icons/ic-tab-discover.svg";
 import IcMenu from "../icons/ic-tab-menu.svg";
-import IcNews from "../icons/ic-tab-news.svg";
+import IcWallet from "../icons/ic-tab-wallet.svg";
 import IcResale from "../icons/ic-tab-resale.svg";
 import { TabBar } from "./TabBar";
 import { colors } from "../theme/tokens";
@@ -26,6 +27,7 @@ import { PaymentsScreen } from "../screens/account/PaymentsScreen";
 import { InstallmentsScreen } from "../screens/InstallmentsScreen";
 import { TicketsScreen } from "../screens/account/TicketsScreen";
 import { RewardsScreen } from "../screens/RewardsScreen";
+import { WelcomeScreen } from "../screens/onboarding/WelcomeScreen";
 
 export type RootParamList = {
   Tabs: undefined;
@@ -37,14 +39,28 @@ export type RootParamList = {
   Event: { slug: string; arriving?: boolean };
   Booking: { slug: string };
   Rewards: undefined;
-  Wallet: undefined;
+  News: undefined;
   Profile: undefined;
   Payments: undefined;
   Installments: { bookingId?: string } | undefined;
   Tickets: { bookingId: string };
   Story: { id: string };
   Article: { slug: string };
+  SignIn: undefined;
 };
+
+/**
+ * The Welcome screen again, reached from inside the app rather than from the
+ * first run. It is the same screen — there is only one place the app asks who
+ * you are — so it is wrapped rather than copied: leaving it goes back to
+ * wherever it was opened from, and whether you signed in or skipped is
+ * recorded by the screen itself.
+ */
+function SignInScreen({
+  navigation,
+}: NativeStackScreenProps<RootParamList, "SignIn">) {
+  return <WelcomeScreen onDone={() => navigation.goBack()} />;
+}
 
 /**
  * The five tabs, in the order the comps draw them.
@@ -52,14 +68,15 @@ export type RootParamList = {
  * **The comps disagreed about this bar.** Discover (378:27388) showed
  * Discover / Tickets / Wallet / Resale / Menu and the account screen
  * (359:7929) showed Discover / Bookings / News / Resale / Menu. The newer
- * account screen (454:67370) settles it: Discover / Resale / News / Bookings
- * / Menu, which is what this follows. Wallet keeps its menu row rather than a
- * tab of its own, as it did before.
+ * account screen (454:67370) settled it: Discover / Resale / Wallet /
+ * Bookings / Menu, which is what its five glyphs draw and what Ahmed
+ * confirmed. Wallet takes the tab; News gives one up and is reached from
+ * Discover, which is the only place that ever linked to it.
  */
 export type TabParamList = {
   Discover: undefined;
   Resale: undefined;
-  News: undefined;
+  Wallet: undefined;
   Bookings: undefined;
   Menu: undefined;
 };
@@ -70,7 +87,7 @@ const Tab = createBottomTabNavigator<TabParamList>();
 const TAB_ICONS: Record<keyof TabParamList, React.FC<SvgProps>> = {
   Discover: IcDiscover,
   Resale: IcResale,
-  News: IcNews,
+  Wallet: IcWallet,
   Bookings: IcBookings,
   Menu: IcMenu,
 };
@@ -91,7 +108,11 @@ function Tabs() {
         component={ResaleScreen}
         options={{ title: "Resale" }}
       />
-      <Tab.Screen name="News" component={NewsScreen} options={{ title: "News" }} />
+      <Tab.Screen
+        name="Wallet"
+        component={WalletScreen}
+        options={{ title: "Wallet" }}
+      />
       <Tab.Screen
         name="Bookings"
         component={BookingsScreen}
@@ -154,7 +175,7 @@ export function RootNavigator() {
           options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
         />
         <Stack.Screen name="Article" component={ArticleScreen} />
-        <Stack.Screen name="Wallet" component={WalletScreen} />
+        <Stack.Screen name="News" component={NewsScreen} />
         <Stack.Screen name="Rewards" component={RewardsScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Payments" component={PaymentsScreen} />
@@ -164,6 +185,13 @@ export function RootNavigator() {
         <Stack.Screen
           name="Tickets"
           component={TicketsScreen}
+          options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
+        />
+        {/* Asking who you are comes up over the app rather than beside it:
+            it is not a page in the app, it is the way into it. */}
+        <Stack.Screen
+          name="SignIn"
+          component={SignInScreen}
           options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
         />
         {/* The story player has no way in at the moment. It was opened from

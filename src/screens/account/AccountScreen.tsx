@@ -21,6 +21,8 @@ import { colors, displaySize, space, type } from "../../theme/tokens";
 import type { RootParamList } from "../../navigation/RootNavigator";
 import { TAB_BAR_CLEARANCE } from "../../navigation/TabBar";
 import { useTabBarScroll } from "../../navigation/tabBarScroll";
+import { useSession } from "../../session";
+import { signedOutCopy } from "../../data/session";
 import {
   accountUser,
   loyaltyBalance,
@@ -28,6 +30,9 @@ import {
   menuCopy,
   menuNav,
 } from "../../data/account";
+
+/** The rows that mean anything without an account behind them. */
+const PUBLIC_ROWS = ["notifications", "language"];
 
 /**
  * Menu, from Figma 359:7929 — the app's version of the web build's account
@@ -43,11 +48,25 @@ import {
  * state, and Notifications and Language have not been designed. They are
  * listed because the comp lists them, and the note at the foot says which,
  * rather than each one failing silently when pressed.
+ *
+ * **Signed out it is a different page, not a greyed-out one.** No comp draws
+ * this state, so it is designed to the rule the rest of the menu follows: the
+ * page opens with who you are. With nobody there it opens with the invitation
+ * instead, in the same display type the name would have used and in the
+ * Welcome screen's own words, above one button that goes and asks.
+ *
+ * Everything that needs an account is *gone* rather than dimmed — Bookings,
+ * Wallet, Resale, Rewards, Account settings, Payments, the Beats balance in
+ * the corner, and Logout, which has nothing to end. A row that is drawn only
+ * to refuse you is a worse answer than no row. What is left is what is true
+ * without an account: the two device rows, how to rate the app, where to find
+ * it elsewhere, and who owns it.
  */
 export function AccountScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
+  const { signedIn, signOut } = useSession();
   const [loggingOut, setLoggingOut] = useState(false);
   const [rated, setRated] = useState<string | null>(null);
   const tabScroll = useTabBarScroll();
@@ -55,12 +74,16 @@ export function AccountScreen() {
   /** Where each row goes. The three with no screen simply do not move. */
   const routes: Record<string, (() => void) | undefined> = {
     bookings: () => navigation.navigate("Tabs", { screen: "Bookings" } as never),
-    wallet: () => navigation.navigate("Wallet"),
+    wallet: () => navigation.navigate("Tabs", { screen: "Wallet" } as never),
     resale: () => navigation.navigate("Tabs", { screen: "Resale" } as never),
     rewards: () => navigation.navigate("Rewards"),
     settings: () => navigation.navigate("Profile"),
     payments: () => navigation.navigate("Payments"),
   };
+
+  const rows = signedIn
+    ? menuNav
+    : menuNav.filter((item) => PUBLIC_ROWS.includes(item.id));
 
   return (
     <ScrollView
@@ -71,14 +94,17 @@ export function AccountScreen() {
         paddingBottom: TAB_BAR_CLEARANCE,
       }}
     >
-      {/* The balance sits where a screen title's action would. */}
-      <View style={styles.headerActions}>
-        <Button
-          label={menuCopy.beats(loyaltyBalance)}
-          size="m"
-          onPress={() => navigation.navigate("Rewards")}
-        />
-      </View>
+      {/* The balance sits where a screen title's action would — and there is
+          no balance to put there without an account. */}
+      {signedIn && (
+        <View style={styles.headerActions}>
+          <Button
+            label={menuCopy.beats(loyaltyBalance)}
+            size="m"
+            onPress={() => navigation.navigate("Rewards")}
+          />
+        </View>
+      )}
 
       <View style={styles.head}>
         <Text
@@ -87,22 +113,35 @@ export function AccountScreen() {
           color={colors.white}
           style={displaySize(type.displayName, width)}
         >
-          {accountUser.name}
+          {signedIn ? accountUser.name : signedOutCopy.title}
         </Text>
 
-        <View style={styles.memberRow}>
-          <View style={styles.memberChip}>
-            <Crown width={16} height={16} />
-            <Text variant="bodyS">{menuCopy.member(accountUser.membership)}</Text>
+        {signedIn ? (
+          <View style={styles.memberRow}>
+            <View style={styles.memberChip}>
+              <Crown width={16} height={16} />
+              <Text variant="bodyS">{menuCopy.member(accountUser.membership)}</Text>
+            </View>
+            <Text variant="bodyS" color={colors.contentSecondary}>
+              {menuCopy.since}
+            </Text>
           </View>
-          <Text variant="bodyS" color={colors.contentSecondary}>
-            {menuCopy.since}
-          </Text>
-        </View>
+        ) : (
+          <>
+            <Text variant="body" color={colors.contentSecondary}>
+              {signedOutCopy.body}
+            </Text>
+            <Button
+              variant="brand"
+              label={signedOutCopy.signIn}
+              onPress={() => navigation.navigate("SignIn")}
+            />
+          </>
+        )}
       </View>
 
       <View style={styles.rows}>
-        {menuNav.map((item, index) => (
+        {rows.map((item, index) => (
           <View key={item.id} style={index > 0 && styles.divided}>
             <ListRow
               icon={icon(item.icon)}
@@ -169,13 +208,15 @@ export function AccountScreen() {
         </Text>
       </View>
 
-      <View style={styles.block}>
-        <Button
-          variant="outline"
-          label={logoutCopy.label}
-          onPress={() => setLoggingOut(true)}
-        />
-      </View>
+      {signedIn && (
+        <View style={styles.block}>
+          <Button
+            variant="outline"
+            label={logoutCopy.label}
+            onPress={() => setLoggingOut(true)}
+          />
+        </View>
+      )}
 
       <Confirm
         open={loggingOut}
@@ -185,9 +226,13 @@ export function AccountScreen() {
         confirm={logoutCopy.confirm}
         tone="destructive"
         onCancel={() => setLoggingOut(false)}
-        /* There is no session behind this build to end, so the confirm closes
-           and says nothing rather than pretending to sign anybody out. */
-        onConfirm={() => setLoggingOut(false)}
+        /* There is still no account service to sign out of, but there is now
+           a signed-in state to drop — which is the whole of what this build
+           can honestly end, and it puts the signed-out menu one press away. */
+        onConfirm={() => {
+          setLoggingOut(false);
+          signOut();
+        }}
       />
     </ScrollView>
   );

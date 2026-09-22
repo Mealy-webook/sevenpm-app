@@ -14,6 +14,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { View } from "react-native";
 
 import { RootNavigator } from "./src/navigation/RootNavigator";
+import { SessionProvider } from "./src/session";
 import { FirstRun } from "./src/screens/onboarding/FirstRun";
 import { SplashScreen } from "./src/screens/onboarding/SplashScreen";
 import { colors } from "./src/theme/tokens";
@@ -57,20 +58,24 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <View style={{ flex: 1, backgroundColor: colors.bgPrimary }}>
-        {ready && (
-          <>
-            {introDone ? (
-              <RootNavigator />
-            ) : (
-              <FirstRun onDone={() => setIntroDone(true)} />
-            )}
-            {/* Drawn over whatever is behind it and removed when it fades, so
-                the first screen is already laid out when it goes. */}
-            {!revealed && <SplashScreen onDone={() => setRevealed(true)} />}
-          </>
-        )}
-      </View>
+      {/* Above both, because the first run is where signing in happens and
+          the app is what reads the answer. */}
+      <SessionProvider>
+        <View style={{ flex: 1, backgroundColor: colors.bgPrimary }}>
+          {ready && (
+            <>
+              {introDone ? (
+                <RootNavigator />
+              ) : (
+                <FirstRun onDone={() => setIntroDone(true)} />
+              )}
+              {/* Drawn over whatever is behind it and removed when it fades, so
+                  the first screen is already laid out when it goes. */}
+              {!revealed && <SplashScreen onDone={() => setRevealed(true)} />}
+            </>
+          )}
+        </View>
+      </SessionProvider>
     </SafeAreaProvider>
   );
 }
