@@ -83,27 +83,24 @@ export function Confirmation({
   )}`;
 
   return (
-    <ScrollView contentContainerStyle={[styles.page, { paddingTop: insets.top + space.s }]}>
-      {/* Close on the left, the new Beats balance on the right, and what this
-          booking added to it as a toast under the balance. */}
-      <View style={styles.topBar}>
-        <Tap
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          onPress={onClose}
-          style={styles.close}
-        >
-          <Close width={20} height={20} />
-        </Tap>
-        <Button label={copy.balance(beatsBalance)} onPress={onViewBooking} />
-      </View>
-      {beatsEarned > 0 && (
-        <View style={styles.toast}>
-          <Text variant="bodyS" color={colors.contentPrimary}>
-            {copy.earned(beatsEarned)}
-          </Text>
-        </View>
-      )}
+    <View style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.page,
+          /* Clear of the bar pinned over it. */
+          { paddingTop: insets.top + space.s + BAR },
+        ]}
+      >
+        {/* What this booking added to the balance, tucked under the button
+            that shows it. It scrolls away with the page: the bar above stays
+            because it is how you leave, and a congratulation is not. */}
+        {beatsEarned > 0 && (
+          <View style={styles.toast}>
+            <Text variant="bodyS" color={colors.contentPrimary}>
+              {copy.earned(beatsEarned)}
+            </Text>
+          </View>
+        )}
 
       <Image
         source={image("/assets/conf-hands.png")}
@@ -334,7 +331,32 @@ export function Confirmation({
         </View>
       )}
 
-    </ScrollView>
+      </ScrollView>
+
+      {/* Close on the left, the new Beats balance on the right, and what this
+          booking added to it as a toast under the balance.
+
+          Pinned rather than scrolled. This page is long — the ticket, the
+          delivery note, what is still to pay, the calendar and share actions —
+          and the two things that let you leave it were at the top of all that,
+          so getting out meant scrolling back up first. */}
+      <View
+        style={[styles.pinned, { paddingTop: insets.top + space.s }]}
+        pointerEvents="box-none"
+      >
+        <View style={styles.topBar}>
+          <Tap
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            onPress={onClose}
+            style={styles.close}
+          >
+            <Close width={20} height={20} />
+          </Tap>
+          <Button label={copy.balance(beatsBalance)} onPress={onViewBooking} />
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -409,7 +431,11 @@ function stamp(date: Date) {
   return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 }
 
+/** The pinned bar's own height: a 40px control and the 8 below it. */
+const BAR = 48;
+
 const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.bgPrimary },
   page: { padding: gutter, paddingBottom: space.section, gap: space.xl },
   art: { width: "100%", height: 180 },
   head: { gap: space.m, alignItems: "center" },
@@ -417,6 +443,17 @@ const styles = StyleSheet.create({
   actions: { gap: space.m },
   wide: { alignSelf: "stretch" },
 
+  /* The band the bar sits in: the page's own colour, so what scrolls under
+     it goes out of sight rather than showing through. */
+  pinned: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: gutter,
+    paddingBottom: space.s,
+    backgroundColor: colors.bgPrimary,
+  },
   topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   close: {
     padding: 10,
@@ -426,7 +463,8 @@ const styles = StyleSheet.create({
   },
   toast: {
     alignSelf: "flex-end",
-    marginTop: -space.m,
+    /* Tucked up against the pinned bar rather than sitting a gap below it. */
+    marginTop: -space.l,
     paddingVertical: space.s,
     paddingHorizontal: space.m,
     backgroundColor: "#0f3e21",
