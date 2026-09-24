@@ -13,7 +13,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import ShortcutAbout from "../../icons/ic-shortcut-about.svg";
-import ShortcutLocation from "../../icons/ic-shortcut-location.svg";
+import ShortcutDirections from "../../icons/ic-shortcut-directions.svg";
 import ShortcutTickets from "../../icons/ic-shortcut-tickets.svg";
 import { Chip } from "../../components/Chip";
 import { EmptyState } from "../../components/EmptyState";
@@ -40,10 +40,10 @@ import { festivalCards } from "../../data/discover";
  * Everything sits on one ground with nothing boxing it.
  *
  * A booking is a card, not a row: the event's artwork across the top at 3:2,
- * then its name at display size with its dates in the accent colour and the
- * venue under them, all centred, and then three shortcuts along the foot —
- * About, Location, Tickets — divided by hairlines. 489:61435 replaced the
- * flat 106pt row this screen used to draw.
+ * then its name at display size with its run in the accent colour and the
+ * venue under it as a link, all ranged left, and then three bordered
+ * shortcuts — About, Directions, Tickets. 489:61435 replaced the flat 106pt
+ * row this screen used to draw.
  *
  * The three lines come from the festival the booking is for rather than from
  * the booking itself: the card names the event and its run, not the session
@@ -176,49 +176,51 @@ function BookingCard({
         transition={300}
       />
 
-      <View style={styles.cardText}>
-        <Text
-          variant="displayCard"
-          uppercase
-          color={colors.white}
-          numberOfLines={2}
-          style={[displaySize(type.displayCard, width), styles.centred]}
-        >
-          {name}
-        </Text>
-        {festival?.dates && (
-          <Text variant="bodyBold" color={colors.brand} style={styles.centred}>
-            {festival.dates}
+      <View style={styles.cardBody}>
+        <View>
+          <Text
+            variant="displayCard"
+            uppercase
+            color={colors.white}
+            numberOfLines={2}
+            style={displaySize(type.displayCard, width)}
+          >
+            {name}
           </Text>
-        )}
-        <Text
-          variant="bodyS"
-          color={colors.contentSecondary}
-          numberOfLines={1}
-          style={styles.centred}
-        >
-          {festival?.venue ?? booking.venue}
-        </Text>
-      </View>
+          {festival?.dates && (
+            <Text variant="bodyBold" color={colors.brand}>
+              {festival.dates}
+            </Text>
+          )}
+          {/* Underlined, because it opens the venue in maps. */}
+          <Text
+            variant="body"
+            color={colors.contentSecondary}
+            numberOfLines={1}
+            style={styles.venue}
+            onPress={onLocation}
+          >
+            {festival?.venue ?? booking.venue}
+          </Text>
+        </View>
 
-      <View style={styles.shortcuts}>
-        <Shortcut
-          icon={ShortcutAbout}
-          label={bookingsCopy.shortcuts.about}
-          onPress={onAbout}
-        />
-        <View style={styles.rule} />
-        <Shortcut
-          icon={ShortcutLocation}
-          label={bookingsCopy.shortcuts.location}
-          onPress={onLocation}
-        />
-        <View style={styles.rule} />
-        <Shortcut
-          icon={ShortcutTickets}
-          label={bookingsCopy.shortcuts.tickets(booking.tickets.length)}
-          onPress={onTickets}
-        />
+        <View style={styles.shortcuts}>
+          <Shortcut
+            icon={ShortcutAbout}
+            label={bookingsCopy.shortcuts.about}
+            onPress={onAbout}
+          />
+          <Shortcut
+            icon={ShortcutDirections}
+            label={bookingsCopy.shortcuts.directions}
+            onPress={onLocation}
+          />
+          <Shortcut
+            icon={ShortcutTickets}
+            label={bookingsCopy.shortcuts.tickets(booking.tickets.length)}
+            onPress={onTickets}
+          />
+        </View>
       </View>
     </View>
   );
@@ -270,29 +272,27 @@ const styles = StyleSheet.create({
 
   /* The comp's Product Card: one block on the secondary ground, square. */
   card: { backgroundColor: colors.bgSecondary },
-  /* 240 x 160 in the file — 3:2 across the card's width. */
-  media: { width: "100%", aspectRatio: 240 / 160, backgroundColor: colors.bgTertiary },
-  cardText: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: space.l,
-    paddingTop: space.l,
-    paddingBottom: space.s,
-  },
-  centred: { textAlign: "center", alignSelf: "stretch" },
+  /* 349 x 233 in the file — 3:2 across the card's width. */
+  media: { width: "100%", aspectRatio: 349 / 233, backgroundColor: colors.bgTertiary },
+  /* 16 all round, and 16 between the words and the shortcuts under them. */
+  cardBody: { padding: space.l, gap: space.l },
+  venue: { textDecorationLine: "underline" },
 
-  shortcuts: { flexDirection: "row", alignItems: "center", gap: space.m },
+  shortcuts: { flexDirection: "row", alignItems: "stretch", gap: space.m },
+  /* Each is its own bordered box now, not a column between two rules. */
   shortcut: {
     flex: 1,
     minWidth: 0,
     alignItems: "center",
     justifyContent: "center",
     gap: space.s,
+    paddingHorizontal: space.s,
     paddingVertical: space.m,
+    backgroundColor: colors.bgSecondary,
+    borderWidth: 1,
+    borderColor: colors.borderDimmed,
   },
   shortcutIcon: { paddingHorizontal: space.m },
-  /* A hairline standing between them, 40 tall, as the comp cuts it. */
-  rule: { width: 1, height: 40, backgroundColor: colors.overlay10 },
+  centred: { textAlign: "center" },
 
-  link: { flexDirection: "row", alignItems: "center", gap: space.s, alignSelf: "flex-start" },
 });

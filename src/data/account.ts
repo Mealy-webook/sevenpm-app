@@ -636,7 +636,9 @@ export const bookingsCopy = {
   /** The three shortcuts along the foot of a booking's card (489:61440). */
   shortcuts: {
     about: "About",
-    location: "Location",
+    /* 489:61608. It carries a trailing space in the file; only the word is
+       rendered. */
+    directions: "Directions",
     tickets: (count: number) => `Tickets (${count})`,
   },
 };
