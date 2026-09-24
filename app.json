@@ -38,9 +38,13 @@
       "expo-image",
       "expo-status-bar",
       "expo-audio",
-      "expo-asset"
+      "expo-asset",
+      "expo-updates"
     ],
     "backgroundColor": "#0b0b0e",
-    "primaryColor": "#fbeb1c"
+    "primaryColor": "#fbeb1c",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    }
   }
 }
