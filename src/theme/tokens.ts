@@ -42,6 +42,8 @@ export const colors = {
 
   /* States. */
   positive: "#22c55e",
+  /** content/states/content-notice — a caution that is not an error (161:65552). */
+  contentNotice: "#fcc800",
   /** Tag accents — lime for settled, orange for time-sensitive (454:31845). */
   lime: "#b3e100",
   orange: "#ff7f29",

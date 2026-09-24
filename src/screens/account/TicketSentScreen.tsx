@@ -6,12 +6,15 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import Close from "../../icons/ic-close.svg";
+import Copy from "../../icons/ic-copy-20.svg";
+import Help from "../../icons/ic-help-20.svg";
 import ShareIcon from "../../icons/ic-share-20.svg";
 import TicketIcon from "../../icons/ic-ticket-24.svg";
 import { Button } from "../../components/Button";
@@ -28,7 +31,7 @@ import {
 import { initials, sendCopy } from "../../data/send";
 
 /**
- * Where a send lands, from Figma 162:82059.
+ * Where a send lands — 162:82059 for an email, 161:65552 for a link.
  *
  * It says the thing that matters first — sent — and then, immediately, the
  * thing that stops the reader panicking: it is still yours until they accept,
@@ -40,6 +43,13 @@ import { initials, sendCopy } from "../../data/send";
  * check is that it went to the right person, and only then which seat went.
  *
  * Both cards are drawn by their border alone, on the page's own ground.
+ *
+ * **The two landings are one screen.** Everything below the head is the same
+ * booking card, and the head is where they differ: an email names the person
+ * who has to accept, a link names nobody and shows the link instead, with the
+ * two things a bearer link has to say — anyone who opens it can claim, and it
+ * does not last. The link screen also carries a help control, which the email
+ * one does not.
  */
 export function TicketSentScreen() {
   const insets = useSafeAreaInsets();
@@ -65,6 +75,15 @@ export function TicketSentScreen() {
         >
           <Close width={20} height={20} />
         </Tap>
+        <View style={styles.grow} />
+        {/* 161:65552 puts a help control opposite the close; the email
+            landing has none. Nothing explains a link yet, so it is drawn and
+            does not take presses. */}
+        {byLink && (
+          <View style={styles.barButton}>
+            <Help width={20} height={20} />
+          </View>
+        )}
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
@@ -86,40 +105,80 @@ export function TicketSentScreen() {
               styles.centred,
             ]}
           >
-            {sendCopy.sent.title}
+            {byLink ? sendCopy.link.title : sendCopy.sent.title}
           </Text>
           <Text variant="bodyS" color={colors.contentSecondary} style={styles.centred}>
-            {sendCopy.sent.pending}
+            {byLink ? sendCopy.link.pending : sendCopy.sent.pending}
           </Text>
         </View>
 
         <View style={styles.content}>
-          <Text variant="bodyBold" color={colors.contentPrimary}>
-            {sendCopy.sent.recipient}
-          </Text>
-
-          {/* Who has it — or, for a link, that nobody does yet. */}
-          <View style={[styles.card, styles.recipient]}>
-            <View style={styles.avatar}>
-              {byLink ? (
-                <ShareIcon width={20} height={20} />
-              ) : (
-                /* The file sets these at 20 in a face the app has no token
-                   for; body-L-bold is the nearest it does have. */
-                <Text variant="bodyLBold" color={colors.contentPrimary}>
-                  {initials(params.name ?? "")}
+          {byLink ? (
+            <>
+              {/* The link itself, with the one control that matters on it. */}
+              <View style={styles.linkField}>
+                <Text
+                  variant="bodyL"
+                  color={colors.contentPrimary}
+                  numberOfLines={1}
+                  style={styles.grow}
+                >
+                  {params.link}
                 </Text>
-              )}
-            </View>
-            <View style={styles.rowBody}>
-              <Text variant="body" color={colors.contentPrimary} numberOfLines={1}>
-                {byLink ? sendCopy.sent.anyone : params.name}
+                <Tap
+                  accessibilityRole="button"
+                  accessibilityLabel={sendCopy.link.copy}
+                  onPress={() => params.link && Clipboard.setStringAsync(params.link)}
+                  style={styles.linkCopy}
+                >
+                  <Copy width={20} height={20} />
+                </Tap>
+              </View>
+              <Text
+                variant="bodyS"
+                color={colors.contentSecondary}
+                style={styles.centred}
+              >
+                {sendCopy.link.warning}
               </Text>
-              <Text variant="bodyS" color={colors.contentSecondary} numberOfLines={1}>
-                {byLink ? params.link : params.email}
+              <Text
+                variant="bodyS"
+                color={colors.contentNotice}
+                style={styles.centred}
+              >
+                {sendCopy.link.expires}
               </Text>
-            </View>
-          </View>
+            </>
+          ) : (
+            <>
+              <Text variant="bodyBold" color={colors.contentPrimary}>
+                {sendCopy.sent.recipient}
+              </Text>
+
+              {/* Who has it. */}
+              <View style={[styles.card, styles.recipient]}>
+                <View style={styles.avatar}>
+                  {/* The file sets these at 20 in a face the app has no token
+                      for; body-L-bold is the nearest it does have. */}
+                  <Text variant="bodyLBold" color={colors.contentPrimary}>
+                    {initials(params.name ?? "")}
+                  </Text>
+                </View>
+                <View style={styles.rowBody}>
+                  <Text variant="body" color={colors.contentPrimary} numberOfLines={1}>
+                    {params.name}
+                  </Text>
+                  <Text
+                    variant="bodyS"
+                    color={colors.contentSecondary}
+                    numberOfLines={1}
+                  >
+                    {params.email}
+                  </Text>
+                </View>
+              </View>
+            </>
+          )}
 
           {/* And what they have. */}
           {booking && (
@@ -193,10 +252,9 @@ export function TicketSentScreen() {
             the flow rather than claiming to have sent anything. */}
         <Button
           variant="brand"
+          icon={byLink ? ShareIcon : undefined}
           label={
-            byLink
-              ? sendCopy.sent.shareAgain
-              : sendCopy.sent.inform(params.name ?? "")
+            byLink ? sendCopy.link.share : sendCopy.sent.inform(params.name ?? "")
           }
           onPress={
             byLink
@@ -204,7 +262,11 @@ export function TicketSentScreen() {
               : close
           }
         />
-        <Button variant="tertiary" label={sendCopy.sent.back} onPress={close} />
+        {/* The email landing offers a way back to the booking; 161:65552
+            gives the link one action and nothing else. */}
+        {!byLink && (
+          <Button variant="tertiary" label={sendCopy.sent.back} onPress={close} />
+        )}
       </View>
     </View>
   );
@@ -213,6 +275,23 @@ export function TicketSentScreen() {
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.surfaceBase },
   bar: { flexDirection: "row", alignItems: "center", paddingHorizontal: gutter },
+  /* 48 tall, as the field is drawn. */
+  linkField: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.m,
+    height: 48,
+    paddingLeft: space.l,
+    paddingRight: space.s,
+    backgroundColor: colors.overlay5,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.overlay10,
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  linkCopy: { padding: space.xs },
   barButton: {
     width: 40,
     height: 40,

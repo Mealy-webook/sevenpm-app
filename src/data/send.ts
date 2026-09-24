@@ -82,9 +82,20 @@ export const sendCopy = {
     quantity: (count: number) => `${count}x`,
     /** The comp names the recipient in the button. */
     inform: (name: string) => `Inform ${name.split(/\s+/)[0]}`,
-    /** A link has nobody to name, so it offers the link again instead. */
-    shareAgain: "Share the link again",
-    anyone: "Anyone with the link",
     back: "Back to booking",
+  },
+
+  /** The link send's own landing, from 161:65552. */
+  link: {
+    title: "Your link is ready",
+    pending:
+      "You\u2019ll still see these tickets in your account as pending, and you can cancel or revoke the link anytime before it\u2019s claimed.",
+    /* Said under the link, because a link is bearer-anything: whoever opens
+       it has the ticket. */
+    warning:
+      "Anyone who opens this link can claim your tickets. Only share it with someone you trust.",
+    expires: "This link will expire in 24 hours",
+    copy: "Copy link",
+    share: "Share link",
   },
 };
