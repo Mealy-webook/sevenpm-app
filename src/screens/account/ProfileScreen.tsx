@@ -4,7 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 
 import { Button } from "../../components/Button";
 import { Confirm } from "../../components/Confirm";
-import { NavBar, Page } from "../../components/Screen";
+import { NavBar } from "../../components/Screen";
 import { Text } from "../../theme/Text";
 import { colors, displaySize, gutter, space, type } from "../../theme/tokens";
 import { profileCopy, profileSections } from "../../data/account";
@@ -28,7 +28,7 @@ export function ProfileScreen() {
   const [deleting, setDeleting] = useState(false);
 
   return (
-    <Page>
+    <View style={styles.page}>
       <NavBar onBack={navigation.goBack} />
 
       <View style={styles.header}>
@@ -45,38 +45,43 @@ export function ProfileScreen() {
 
       <ScrollView contentContainerStyle={styles.body}>
         {profileSections.map((section) => (
-          <View key={section.id} style={styles.card}>
-            <Text variant="titleBody" uppercase>
+          <View key={section.id} style={styles.section}>
+            <Text variant="titleBody" uppercase color={colors.contentPrimary}>
               {section.title}
             </Text>
-            {section.fields.map((field) => (
-              <View key={field.id} style={styles.row}>
+            {section.fields.map((field, index) => (
+              <View
+                key={field.id}
+                style={[
+                  styles.row,
+                  /* The comp rules every row but the last of its section. */
+                  index < section.fields.length - 1 && styles.ruled,
+                ]}
+              >
                 <View style={styles.rowBody}>
-                  <Text variant="bodyS" color={colors.contentSecondary}>
+                  <Text variant="body" color={colors.contentPrimary}>
                     {field.label}
                   </Text>
-                  <Text
-                    variant="bodyBold"
-                    color={
-                      field.value ? colors.contentPrimary : colors.contentSecondary
-                    }
-                    numberOfLines={1}
-                  >
+                  <Text variant="bodyS" color={colors.contentSecondary} numberOfLines={1}>
                     {field.value ?? profileCopy.emptyValue}
                   </Text>
                 </View>
-                {field.action && <Button label={field.action} />}
+                {field.action && (
+                  <Button label={field.action} size="s" onPress={() => {}} />
+                )}
               </View>
             ))}
           </View>
         ))}
 
-        <Button
-          label={profileCopy.deleteCta}
-          tone="destructive"
-          onPress={() => setDeleting(true)}
-          style={styles.delete}
-        />
+        {/* Its own bordered block, as the comp gives it. */}
+        <View style={styles.section}>
+          <Button
+            label={profileCopy.deleteCta}
+            tone="destructive"
+            onPress={() => setDeleting(true)}
+          />
+        </View>
       </ScrollView>
 
       <Confirm
@@ -89,24 +94,31 @@ export function ProfileScreen() {
         onCancel={() => setDeleting(false)}
         onConfirm={() => setDeleting(false)}
       />
-    </Page>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  /* The comp bands the title over the secondary ground. */
+  /* The page sits on surface-base; only the title band is bg-secondary. */
+  page: { flex: 1, backgroundColor: colors.surfaceBase },
   header: {
     backgroundColor: colors.bgSecondary,
     paddingHorizontal: gutter,
-    paddingBottom: gutter,
+    paddingVertical: space.xl,
   },
-  body: { padding: gutter, paddingBottom: space.section, gap: space.l },
-  card: {
-    gap: space.l,
-    padding: space.l,
-    backgroundColor: colors.bgSecondary,
+  body: { paddingBottom: space.section },
+  /* Full width, hairline on all four sides, no fill. */
+  section: {
+    gap: space.s,
+    paddingHorizontal: gutter,
+    paddingVertical: space.xl,
+    borderWidth: 1,
+    borderColor: colors.borderDimmed,
   },
-  row: { flexDirection: "row", alignItems: "center", gap: space.m },
-  rowBody: { flex: 1, minWidth: 0, gap: space.xs },
-  delete: { alignSelf: "flex-start" },
+  row: { flexDirection: "row", alignItems: "center", gap: space.s, paddingVertical: space.m },
+  ruled: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.overlay10,
+  },
+  rowBody: { flex: 1, minWidth: 0 },
 });

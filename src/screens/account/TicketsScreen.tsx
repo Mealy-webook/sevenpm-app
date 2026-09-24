@@ -158,7 +158,7 @@ export function TicketsScreen() {
             onPress={navigation.goBack}
             style={styles.barButton}
           >
-            <ChevronLeft width={20} height={20} />
+            <ChevronLeft width={20} height={20} color={colors.contentPrimary} />
           </Tap>
           <View style={styles.barTitle}>
             <Text variant="titleBody" uppercase numberOfLines={1}>

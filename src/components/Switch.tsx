@@ -1,16 +1,18 @@
 import { Pressable, StyleSheet, View } from "react-native";
 
 import Check from "../icons/ic-switch-check-16.svg";
-import { colors, radii } from "../theme/tokens";
+import { colors } from "../theme/tokens";
 
 /**
  * Toggle switch, from Figma 2033:16698: a 52 × 32 track with a 28px white knob
  * at one end or the other. On, the track is brand yellow and the knob carries
  * a tick.
  *
- * Square edges are the house rule everywhere else in this system, and this is
- * one of its two exceptions — a pill track with a round knob is what makes a
- * switch read as a switch, and the comp draws it that way.
+ * **Square, like everything else.** This was drawn as a pill with a round
+ * knob on the strength of 2033:16698's component description, which calls the
+ * track pill-shaped. 454:61218 renders it and the render is square: measured
+ * off the comp, the track's corner pixel is brand yellow and the knob's is
+ * white, so neither is rounded. The render is the spec.
  */
 export function Switch({
   on,
@@ -47,7 +49,6 @@ const styles = StyleSheet.create({
     width: 52,
     height: 32,
     padding: 2,
-    borderRadius: radii.pill,
     justifyContent: "center",
   },
   on: { alignItems: "flex-end", backgroundColor: colors.brand },
@@ -56,7 +57,6 @@ const styles = StyleSheet.create({
   knob: {
     width: 28,
     height: 28,
-    borderRadius: radii.pill,
     backgroundColor: colors.white,
     alignItems: "center",
     justifyContent: "center",

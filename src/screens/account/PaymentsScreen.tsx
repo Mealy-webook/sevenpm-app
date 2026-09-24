@@ -3,14 +3,15 @@ import { ScrollView, StyleSheet, useWindowDimensions, View } from "react-native"
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 
+import CardSheen from "../../icons/ic-card-sheen.svg";
 import Trash from "../../icons/ic-trash-red-16.svg";
 import { Button } from "../../components/Button";
 import { Confirm } from "../../components/Confirm";
-import { NavBar, Page } from "../../components/Screen";
+import { NavBar } from "../../components/Screen";
 import { Switch } from "../../components/Switch";
 import { icon } from "../../icons";
 import { Text } from "../../theme/Text";
-import { colors, displaySize, gutter, radii, space, type } from "../../theme/tokens";
+import { colors, displaySize, gutter, space, type } from "../../theme/tokens";
 import {
   accountUser,
   paymentCards,
@@ -52,7 +53,7 @@ export function PaymentsScreen() {
     );
 
   return (
-    <Page>
+    <View style={styles.page}>
       <NavBar onBack={navigation.goBack} />
 
       <View style={styles.header}>
@@ -87,13 +88,24 @@ export function PaymentsScreen() {
                       end={{ x: 1, y: 0.92 }}
                       style={styles.faceFill}
                     />
+                    {/* 454:61203 — the specular band the comp lays over the
+                        gradient, white at 6%. It is drawn wider than the card
+                        in the file and clipped by it. */}
+                    <CardSheen
+                      width={FACE_SHEEN_W}
+                      height={CARD_H * (255 / 254.582)}
+                      style={styles.faceFill}
+                    />
                     <Text variant="bodyL" color={colors.contentPrimary}>
                       {accountUser.name}
                     </Text>
                     <View style={styles.faceFoot}>
                       <View style={styles.faceFigures}>
+                        {/* One string, because `uppercase` only reaches a
+                            child that is one — split across an expression it
+                            silently does nothing. */}
                         <Text variant="titleBody" uppercase color={colors.contentPrimary}>
-                          xxxx xxxx xxxx {card.last4}
+                          {`xxxx xxxx xxxx ${card.last4}`}
                         </Text>
                         <Text variant="bodyS" color={colors.contentPrimary}>
                           {copy.cards.expires} {card.expiry}
@@ -151,12 +163,14 @@ export function PaymentsScreen() {
           setRemoving(null);
         }}
       />
-    </Page>
+    </View>
   );
 }
 
 /** The comp draws the face 190 tall. */
 const CARD_H = 190;
+/** And the sheen over it 461.757 wide on a 390 frame — wider, then clipped. */
+const FACE_SHEEN_W = 461.757;
 
 const styles = StyleSheet.create({
   body: { padding: gutter, paddingBottom: space.section, gap: space.xl },
@@ -167,19 +181,22 @@ const styles = StyleSheet.create({
 
   /* The comp bands the title over the secondary ground rather than putting
      it in the bar. */
+  page: { flex: 1, backgroundColor: colors.surfaceBase },
   header: {
     backgroundColor: colors.bgSecondary,
     paddingHorizontal: gutter,
-    paddingBottom: gutter,
+    paddingVertical: gutter,
   },
 
   /* Face and action row are one object: no gap between them. */
   cardWrap: { gap: 0 },
+  /* Square. The comp's card surface carries a 24 radius in the file, but the
+     frame it sits in clips it and the render has square corners — measured,
+     the face's first row starts at the same x as every row below it. */
   face: {
     height: CARD_H,
     justifyContent: "space-between",
     padding: space.l,
-    borderRadius: radii.card,
     overflow: "hidden",
   },
   faceFill: { ...StyleSheet.absoluteFill },

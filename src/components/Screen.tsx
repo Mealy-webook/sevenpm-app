@@ -49,7 +49,7 @@ export function NavBar({
           onPress={onBack}
           style={styles.back}
         >
-          <ChevronLeft width={20} height={20} />
+          <ChevronLeft width={20} height={20} color={colors.contentPrimary} />
         </Tap>
       )}
       {title && (

@@ -27,6 +27,7 @@ import IcIcApple20 from "./ic-apple-20.svg";
 import IcIcApplepay24 from "./ic-applepay-24.svg";
 import IcIcApplepayWord from "./ic-applepay-word.svg";
 import IcIcArrowLeft20 from "./ic-arrow-left-20.svg";
+import IcIcCardSheen from "./ic-card-sheen.svg";
 import IcIcArrowRight20 from "./ic-arrow-right-20.svg";
 import IcIcArrowRight24 from "./ic-arrow-right-24.svg";
 import IcIcBeatsBurn from "./ic-beats-burn.svg";
@@ -172,6 +173,7 @@ export const icons: Record<string, React.FC<SvgProps>> = {
   "/assets/ic-applepay-24.svg": IcIcApplepay24,
   "/assets/ic-applepay-word.svg": IcIcApplepayWord,
   "/assets/ic-arrow-left-20.svg": IcIcArrowLeft20,
+  "/assets/ic-card-sheen.svg": IcIcCardSheen,
   "/assets/ic-arrow-right-20.svg": IcIcArrowRight20,
   "/assets/ic-arrow-right-24.svg": IcIcArrowRight24,
   "/assets/ic-beats-burn.svg": IcIcBeatsBurn,

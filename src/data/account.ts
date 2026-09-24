@@ -654,7 +654,8 @@ export const profileSections: ProfileSection[] = [
   },
   {
     id: "security",
-    title: "Security",
+    /* 486:58855 heads this section "Password", not "Security". */
+    title: "Password",
     fields: [
       {
         id: "password",

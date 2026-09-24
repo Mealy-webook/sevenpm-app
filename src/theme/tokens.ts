@@ -15,6 +15,8 @@
 export const colors = {
   /* Backgrounds, darkest first. `primary` is the page, `secondary` a raised
      band, `tertiary` a control or tile sitting on top of that. */
+  /** surface/surface-base — the ground a pushed page sits on (486:58839). */
+  surfaceBase: "#09090b",
   bgPrimary: "#0b0b0e",
   bgSecondary: "#18181b",
   bgTertiary: "#252528",
