@@ -106,8 +106,8 @@ export function Stepper({
       <Odometer
         value={value}
         variant={big ? "bodyL" : "bodyBold"}
-        textStyle={big ? styles.valueBig : undefined}
-        style={styles.value}
+        textStyle={big ? styles.valueWeight : undefined}
+        style={[styles.value, big && styles.valueBig]}
       />
 
       <Tap
@@ -158,6 +158,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.overlay5,
   },
   keyOff: { opacity: 0.3 },
-  value: { minWidth: 20, textAlign: "center" },
-  valueBig: { minWidth: 22, fontFamily: "Roboto_600SemiBold" },
+  /**
+   * The count's box, and the count centred in it.
+   *
+   * `textAlign` was on this, which is the Odometer's own View — a row of
+   * digit columns — where it does nothing, so a single digit sat against the
+   * left edge of the box instead of in the middle of it. Centring is the
+   * row's job. And the width belongs here rather than on the glyphs: it was
+   * on `textStyle`, which the Odometer applies to every digit, so a
+   * two-digit count was twice as wide as the comp's 22.
+   */
+  value: { minWidth: 20, justifyContent: "center" },
+  valueBig: { minWidth: 22 },
+  valueWeight: { fontFamily: "Roboto_600SemiBold" },
 });
