@@ -19,7 +19,11 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single",
+      "name": "SEVENPM",
+      "backgroundColor": "#0b0b0e"
     },
     "plugins": [
       "expo-font",
@@ -45,6 +49,9 @@
     "primaryColor": "#fbeb1c",
     "runtimeVersion": {
       "policy": "sdkVersion"
+    },
+    "experiments": {
+      "baseUrl": "/sevenpm-app/app"
     }
   }
 }
