@@ -1,7 +1,7 @@
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import ArrowLeft from "../icons/ic-arrow-left-20.svg";
+import ChevronLeft from "../icons/ic-chevron-left-20.svg";
 import { Tap } from "./Tap";
 import { Text } from "../theme/Text";
 import { colors, gutter, space } from "../theme/tokens";
@@ -12,7 +12,11 @@ import { colors, gutter, space } from "../theme/tokens";
  *
  * It is drawn here rather than left to the navigator's own header because the
  * navigator's header is a rounded, centred, iOS-shaped thing and this system
- * is square and left-aligned. Screens that open with a full-bleed image — the
+ * is square and left-aligned.
+ *
+ * **Back is a chevron, not an arrow.** Every comp that draws this control
+ * draws `‹` — 454:61192, 486:58839, 454:63288, 486:60153 — and this bar drew
+ * `←` on all four of its screens. Screens that open with a full-bleed image — the
  * event, the confirmation — pass `floating` and get the control back over the
  * artwork with no band behind it.
  */
@@ -45,7 +49,7 @@ export function NavBar({
           onPress={onBack}
           style={styles.back}
         >
-          <ArrowLeft width={20} height={20} />
+          <ChevronLeft width={20} height={20} />
         </Tap>
       )}
       {title && (
