@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   ScrollView,
-  Share,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -233,9 +232,12 @@ export function TicketsScreen() {
                 scrollX={scrollX}
                 still={reduced !== false}
                 label={ticketCopy.which(index + 1, items.length)}
+                /* Send has a flow of its own now (161:65688), so it opens
+                   that rather than handing the code to the OS share sheet. */
                 onSend={() =>
-                  Share.share({
-                    message: `${booking.eventName}\n${item.seat}\n${ticketCopy.number(item.code)}`,
+                  navigation.navigate("SendTicket", {
+                    bookingId: booking.id,
+                    ticketId: item.id,
                   })
                 }
                 onSell={() =>

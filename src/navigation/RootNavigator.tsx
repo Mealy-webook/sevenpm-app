@@ -27,6 +27,8 @@ import { ProfileScreen } from "../screens/account/ProfileScreen";
 import { PaymentsScreen } from "../screens/account/PaymentsScreen";
 import { InstallmentsScreen } from "../screens/InstallmentsScreen";
 import { TicketsScreen } from "../screens/account/TicketsScreen";
+import { SendTicketScreen } from "../screens/account/SendTicketScreen";
+import { TicketSentScreen } from "../screens/account/TicketSentScreen";
 import { RewardsScreen } from "../screens/RewardsScreen";
 import { WelcomeScreen } from "../screens/onboarding/WelcomeScreen";
 
@@ -42,6 +44,14 @@ export type RootParamList = {
   Rewards: undefined;
   News: undefined;
   ResaleListing: { id: string };
+  /** Sending a ticket on, and where that lands. */
+  SendTicket: { bookingId: string; ticketId: string };
+  TicketSent: {
+    bookingId: string;
+    ticketId: string;
+    name: string;
+    email: string;
+  };
   Profile: undefined;
   Payments: undefined;
   Installments: { bookingId?: string } | undefined;
@@ -179,6 +189,18 @@ export function RootNavigator() {
         <Stack.Screen name="Article" component={ArticleScreen} />
         <Stack.Screen name="News" component={NewsScreen} />
         <Stack.Screen name="ResaleListing" component={ResaleListingScreen} />
+        {/* Sending a ticket comes up over the ticket it is about, and its
+            confirmation replaces it rather than stacking on it. */}
+        <Stack.Screen
+          name="SendTicket"
+          component={SendTicketScreen}
+          options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
+        />
+        <Stack.Screen
+          name="TicketSent"
+          component={TicketSentScreen}
+          options={{ presentation: "fullScreenModal", animation: "fade" }}
+        />
         <Stack.Screen name="Rewards" component={RewardsScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Payments" component={PaymentsScreen} />
