@@ -1,30 +1,43 @@
-import { ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import { ScrollView, Share, StyleSheet, useWindowDimensions, View } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
+import ChevronRight from "../../icons/ic-chevron-right-16.svg";
+import Clock from "../../icons/ic-clock-16.svg";
 import Close from "../../icons/ic-close.svg";
+import Pin from "../../icons/ic-pin-16.svg";
+import ShareIcon from "../../icons/ic-share-20.svg";
+import TicketIcon from "../../icons/ic-ticket-24.svg";
 import { Button } from "../../components/Button";
 import { Tap } from "../../components/Tap";
 import { image } from "../../images";
 import { Text } from "../../theme/Text";
 import { colors, displaySize, gutter, space, type } from "../../theme/tokens";
 import type { RootParamList } from "../../navigation/RootNavigator";
-import { bookings, walletCurrency } from "../../data/account";
-import { festivalCards } from "../../data/discover";
+import {
+  bookings,
+  bookingsCopy,
+  eventDay,
+  eventTime,
+  walletCurrency,
+} from "../../data/account";
 import { initials, sendCopy } from "../../data/send";
 
 /**
  * Where a send lands, from Figma 162:82059.
  *
- * It says the thing that matters first — it is sent, and it is not theirs
- * yet: somebody has to accept it. Then it restates exactly what went and to
- * whom, because the one question anybody has after sending a ticket away is
- * whether they sent the right one.
+ * It says the thing that matters first — sent — and then, immediately, the
+ * thing that stops the reader panicking: it is still yours until they accept,
+ * and you can pull it back. That line replaced "somebody needs to accept",
+ * which stated the same fact without answering the question it raises.
  *
- * The two actions are the comp's: nudge them, or go back to the booking. The
- * nudge names the person, which is the comp's own wording.
+ * Then who has it, then what they have: the recipient in a card of their own
+ * above the booking, because after sending a ticket away the first thing you
+ * check is that it went to the right person, and only then which seat went.
+ *
+ * Both cards are drawn by their border alone, on the page's own ground.
  */
 export function TicketSentScreen() {
   const insets = useSafeAreaInsets();
@@ -33,10 +46,11 @@ export function TicketSentScreen() {
   const { params } = useRoute<RouteProp<RootParamList, "TicketSent">>();
 
   const booking = bookings.find((item) => item.id === params.bookingId);
-  const ticket = booking?.tickets.find((item) => item.id === params.ticketId);
-  const festival = festivalCards.find((item) => item.slug === booking?.eventSlug);
+  const sent = booking?.tickets.find((item) => item.id === params.ticketId);
 
   const close = () => navigation.navigate("Tabs");
+  /* A link send has nobody to name, so the recipient card names the link. */
+  const byLink = params.method === "link";
 
   return (
     <View style={styles.page}>
@@ -60,87 +74,127 @@ export function TicketSentScreen() {
             transition={240}
           />
           <Text
-            variant="displayStep"
+            variant="displayNotice"
             uppercase
             color={colors.white}
-            style={[displaySize(type.displayStep, width), styles.centred]}
+            /* 489:61813 sets it on 65 with 0.8 of tracking, which is tighter
+               and wider than the token's own 80. */
+            style={[
+              displaySize({ size: 80, line: 65, tracking: 0.8 }, width),
+              styles.centred,
+            ]}
           >
             {sendCopy.sent.title}
           </Text>
-          <Text variant="body" color={colors.contentSecondary} style={styles.centred}>
-            {sendCopy.sent.pending(params.name)}
+          <Text variant="bodyS" color={colors.contentSecondary} style={styles.centred}>
+            {sendCopy.sent.pending}
           </Text>
         </View>
 
-        <View style={styles.list}>
-          {/* What it was for. */}
-          <View style={styles.row}>
-            <Image
-              source={image(festival?.image ?? booking?.image ?? "")}
-              style={styles.thumb}
-              contentFit="cover"
-              transition={240}
-            />
-            <View style={styles.rowBody}>
-              <Text variant="body" color={colors.contentPrimary} numberOfLines={1}>
-                {festival?.name ?? booking?.eventName}
-              </Text>
-              <Text
-                variant="bodyS"
-                color={colors.contentSecondary}
-                numberOfLines={1}
-              >
-                {festival?.venue ?? booking?.venue}
-              </Text>
-            </View>
-          </View>
-
-          <Text variant="titleBody" uppercase color={colors.contentPrimary}>
-            {sendCopy.sent.tickets(1)}
+        <View style={styles.content}>
+          <Text variant="bodyBold" color={colors.contentPrimary}>
+            {sendCopy.sent.recipient}
           </Text>
 
-          {/* Which seat went. */}
-          {ticket && (
-            <View style={styles.row}>
-              <View style={styles.avatar}>
-                <Text variant="bodySBold" color={colors.white}>
-                  {initials(ticket.holder)}
-                </Text>
-              </View>
-              <View style={styles.rowBody}>
-                <Text variant="body" color={colors.contentPrimary} numberOfLines={1}>
-                  {ticket.tier}
-                </Text>
-                <Text variant="bodyS" color={colors.contentSecondary} numberOfLines={1}>
-                  {ticket.seat}
-                </Text>
-              </View>
-              <Text variant="bodyBold" color={colors.contentPrimary}>
-                {ticket.price.toFixed(2)} {walletCurrency}
-              </Text>
-            </View>
-          )}
-
-          <Text variant="titleBody" uppercase color={colors.contentPrimary}>
-            {sendCopy.sent.sentTo}
-          </Text>
-
-          {/* And who has it. */}
-          <View style={styles.row}>
+          {/* Who has it — or, for a link, that nobody does yet. */}
+          <View style={[styles.card, styles.recipient]}>
             <View style={styles.avatar}>
-              <Text variant="bodySBold" color={colors.white}>
-                {initials(params.name)}
-              </Text>
+              {byLink ? (
+                <ShareIcon width={20} height={20} />
+              ) : (
+                <Text variant="bodySBold" color={colors.contentPrimary}>
+                  {initials(params.name ?? "")}
+                </Text>
+              )}
             </View>
             <View style={styles.rowBody}>
               <Text variant="body" color={colors.contentPrimary} numberOfLines={1}>
-                {params.name}
+                {byLink ? sendCopy.sent.anyone : params.name}
               </Text>
               <Text variant="bodyS" color={colors.contentSecondary} numberOfLines={1}>
-                {params.email}
+                {byLink ? params.link : params.email}
               </Text>
             </View>
           </View>
+
+          {/* And what they have. */}
+          {booking && (
+            <View style={[styles.card, styles.bookingCard]}>
+              <View style={styles.bookingRow}>
+                <Image
+                  source={image(booking.image)}
+                  style={styles.thumb}
+                  contentFit="cover"
+                  transition={240}
+                />
+                <View style={styles.bookingBody}>
+                  <Text variant="body" color={colors.contentPrimary} numberOfLines={1}>
+                    {booking.eventName}
+                  </Text>
+                  <View style={styles.meta}>
+                    <Clock width={16} height={16} />
+                    <Text
+                      variant="bodyS"
+                      color={colors.contentSecondary}
+                      numberOfLines={1}
+                    >
+                      {`${eventDay(booking.startsAt)} ${eventTime(booking.startsAt)} - ${eventTime(booking.endsAt)}`}
+                    </Text>
+                  </View>
+                  <View style={styles.meta}>
+                    <Pin width={16} height={16} />
+                    <Text
+                      variant="bodyS"
+                      color={colors.contentSecondary}
+                      numberOfLines={1}
+                      style={styles.underline}
+                    >
+                      {booking.venue}
+                    </Text>
+                  </View>
+                  <Tap
+                    accessibilityRole="button"
+                    accessibilityLabel={bookingsCopy.tickets(booking.tickets.length)}
+                    onPress={() =>
+                      navigation.navigate("Tickets", { bookingId: booking.id })
+                    }
+                    scale={0.98}
+                    style={styles.link}
+                  >
+                    <Text variant="bodyBold" color={colors.contentPrimary}>
+                      {bookingsCopy.tickets(booking.tickets.length)}
+                    </Text>
+                    <ChevronRight width={16} height={16} />
+                  </Tap>
+                </View>
+              </View>
+
+              <View style={styles.tickets}>
+                <Text variant="bodyBold" color={colors.contentPrimary}>
+                  {sendCopy.sent.tickets(sent ? 1 : 0)}
+                </Text>
+                {sent && (
+                  <View style={styles.ticketRow}>
+                    <Text variant="bodyS" color={colors.contentSecondary}>
+                      {sendCopy.sent.quantity(1)}
+                    </Text>
+                    <TicketIcon width={24} height={24} />
+                    <Text
+                      variant="body"
+                      color={colors.contentPrimary}
+                      numberOfLines={1}
+                      style={styles.grow}
+                    >
+                      {sent.tier}
+                    </Text>
+                    <Text variant="bodyBold" color={colors.contentPrimary}>
+                      {sent.price.toFixed(2)} {walletCurrency}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -149,8 +203,16 @@ export function TicketSentScreen() {
             the flow rather than claiming to have sent anything. */}
         <Button
           variant="brand"
-          label={sendCopy.sent.inform(params.name)}
-          onPress={close}
+          label={
+            byLink
+              ? sendCopy.sent.shareAgain
+              : sendCopy.sent.inform(params.name ?? "")
+          }
+          onPress={
+            byLink
+              ? () => params.link && Share.share({ message: params.link })
+              : close
+          }
         />
         <Button variant="tertiary" label={sendCopy.sent.back} onPress={close} />
       </View>
@@ -182,29 +244,51 @@ const styles = StyleSheet.create({
   art: { width: 204, height: 157, marginBottom: space.s },
   centred: { textAlign: "center", alignSelf: "stretch" },
 
-  /* The comp's Tickets list: 24 across, 16 down, 16 between its parts. */
-  list: {
+  /* 24 across, 16 down, 16 between its parts. */
+  content: {
     paddingHorizontal: space.xl,
     paddingVertical: space.l,
     gap: space.l,
   },
-  row: { flexDirection: "row", alignItems: "center", gap: space.s },
-  thumb: { width: 52, height: 52, backgroundColor: colors.bgTertiary },
-  rowBody: { flex: 1, minWidth: 0, gap: space.s },
-  /* Round, and in the second brand colour the comp gives every initials
-     avatar (489:61707 and its twin on this screen). */
+  /* Both cards are their border and nothing else — no fill, on the page. */
+  card: {
+    borderWidth: 1,
+    borderColor: colors.borderTertiary,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  recipient: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.l,
+    paddingHorizontal: space.l,
+    paddingVertical: space.m,
+  },
+  /* Round, because a face is — and grey, not the brand purple the seat row
+     used to carry. */
   avatar: {
     width: 52,
     height: 52,
     borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.brand2,
+    backgroundColor: colors.bgTertiary,
   },
+  rowBody: { flex: 1, minWidth: 0 },
 
-  dock: {
-    paddingHorizontal: gutter,
-    paddingTop: space.s,
-    gap: space.s,
-  },
+  bookingCard: { padding: space.l, gap: space.l },
+  bookingRow: { flexDirection: "row", alignItems: "center", gap: space.m, minHeight: 44 },
+  thumb: { width: 80, height: 80, backgroundColor: colors.bgTertiary },
+  bookingBody: { flex: 1, minWidth: 0, gap: space.xs },
+  meta: { flexDirection: "row", alignItems: "center", gap: space.xs },
+  underline: { textDecorationLine: "underline" },
+  link: { flexDirection: "row", alignItems: "center", gap: space.xs, alignSelf: "flex-start" },
+
+  tickets: { gap: space.s },
+  ticketRow: { flexDirection: "row", alignItems: "center", gap: space.s },
+  grow: { flex: 1, minWidth: 0 },
+
+  dock: { paddingHorizontal: gutter, paddingTop: space.s, gap: space.s },
 });

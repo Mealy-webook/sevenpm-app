@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   ScrollView,
+  Share,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -19,7 +20,10 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import ChevronLeft from "../../icons/ic-chevron-left-20.svg";
 import ChevronRight from "../../icons/ic-chevron-right-20.svg";
 import Info from "../../icons/ic-info-20.svg";
+import { Button } from "../../components/Button";
 import { Segmented } from "../../components/Segmented";
+import { Sheet } from "../../components/Sheet";
+import { Option } from "../booking/BookingSheets";
 import { Page } from "../../components/Screen";
 import { Tap } from "../../components/Tap";
 import { icon } from "../../icons";
@@ -30,6 +34,7 @@ import { ease, useReducedMotion } from "../../theme/motion";
 import { colors, gutter, space } from "../../theme/tokens";
 import type { RootParamList } from "../../navigation/RootNavigator";
 import { bookings, eventDay, eventTime, ticketCopy, walletCurrency } from "../../data/account";
+import { sendCopy } from "../../data/send";
 import { jazzablanca } from "../../data/events";
 
 /**
@@ -66,6 +71,10 @@ export function TicketsScreen() {
 
   const [tab, setTab] = useState("tickets");
   const [shown, setShown] = useState(0);
+  /* Which ticket is being sent, and how — the choice comes before the form
+     because the two ways need different things from you. */
+  const [sending, setSending] = useState<string | null>(null);
+  const [method, setMethod] = useState<"link" | "email">("email");
   const reduced = useReducedMotion();
   const scrollX = useRef(new Animated.Value(0)).current;
   const enter = useRef(new Animated.Value(0)).current;
@@ -232,14 +241,10 @@ export function TicketsScreen() {
                 scrollX={scrollX}
                 still={reduced !== false}
                 label={ticketCopy.which(index + 1, items.length)}
-                /* Send has a flow of its own now (161:65688), so it opens
-                   that rather than handing the code to the OS share sheet. */
-                onSend={() =>
-                  navigation.navigate("SendTicket", {
-                    bookingId: booking.id,
-                    ticketId: item.id,
-                  })
-                }
+                /* Send has a flow of its own now (161:65688). It asks how
+                   first, because a link needs nobody and an email needs a
+                   person. */
+                onSend={() => setSending(item.id)}
                 onSell={() =>
                   navigation.navigate("Tabs", { screen: "Resale" } as never)
                 }
@@ -291,6 +296,55 @@ export function TicketsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <Sheet
+        open={sending !== null}
+        onClose={() => setSending(null)}
+        title={sendCopy.method.title}
+        subtitle={sendCopy.method.subtitle}
+        closeLabel={sendCopy.method.close}
+        footer={
+          <Button
+            variant="brand"
+            label={sendCopy.method.next}
+            onPress={() => {
+              const id = sending;
+              setSending(null);
+              if (!id) return;
+              if (method === "email") {
+                navigation.navigate("SendTicket", {
+                  bookingId: booking.id,
+                  ticketId: id,
+                });
+                return;
+              }
+              /* A link is the one thing here that can really leave the
+                 phone, so it goes out through the OS share sheet. */
+              const link = `https://sevenpm.com/t/${id}`;
+              Share.share({ message: link });
+              navigation.navigate("TicketSent", {
+                bookingId: booking.id,
+                ticketId: id,
+                method: "link",
+                link,
+              });
+            }}
+          />
+        }
+      >
+        <Option
+          label={sendCopy.method.link}
+          sub={sendCopy.method.linkSub}
+          selected={method === "link"}
+          onPress={() => setMethod("link")}
+        />
+        <Option
+          label={sendCopy.method.email}
+          sub={sendCopy.method.emailSub}
+          selected={method === "email"}
+          onPress={() => setMethod("email")}
+        />
+      </Sheet>
 
       {/* Read by anything that announces the screen. */}
       <View style={styles.hidden} accessibilityElementsHidden>

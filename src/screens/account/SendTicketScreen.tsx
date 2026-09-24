@@ -62,6 +62,7 @@ export function SendTicketScreen() {
     navigation.replace("TicketSent", {
       bookingId: booking.id,
       ticketId: ticket.id,
+      method: "email",
       name: name.trim(),
       email: email.trim(),
     });

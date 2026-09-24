@@ -49,8 +49,12 @@ export type RootParamList = {
   TicketSent: {
     bookingId: string;
     ticketId: string;
-    name: string;
-    email: string;
+    /** Which of the two ways it went. */
+    method: "email" | "link";
+    /** An email send names somebody; a link send does not. */
+    name?: string;
+    email?: string;
+    link?: string;
   };
   Profile: undefined;
   Payments: undefined;

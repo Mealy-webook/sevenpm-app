@@ -30,6 +30,27 @@ export function initials(name: string) {
 }
 
 export const sendCopy = {
+  /**
+   * Choosing how to send, which no comp draws.
+   *
+   * The two are not variants of one screen: an email send needs a person, a
+   * link send needs nobody, so the choice has to come before the form rather
+   * than sit inside it. It is a sheet because it is one question.
+   *
+   * No icons: the SevenPM icon set has neither a link nor an envelope, and
+   * the two lines say which is which without one.
+   */
+  method: {
+    title: "Send tickets",
+    subtitle: "Choose how they get there.",
+    close: "Close",
+    link: "Send a link",
+    linkSub: "Anyone with the link can claim the ticket.",
+    email: "Send by email",
+    emailSub: "They get an email and have to accept it.",
+    next: "Continue",
+  },
+
   /** "Send 1 ticket to", with the count the comp puts in the middle of it. */
   title: (count: number) =>
     `Send ${count} ${count === 1 ? "ticket" : "tickets"} to`,
@@ -50,12 +71,20 @@ export const sendCopy = {
   /** The screen it lands on (162:82059). */
   sent: {
     title: "Tickets sent",
-    /** Who has to do something about it before it is theirs. */
-    pending: (name: string) => `${name} needs to accept`,
+    /* 489:62032. It answers the question the illustration raises — is that
+       it? — by saying the send is still undoable. */
+    pending:
+      "You\u2019ll still see these tickets in your account as pending, and you can cancel anytime before they are approved.",
+    /* Trailing space in the file; only the word is rendered. */
+    recipient: "Recipient",
     tickets: (count: number) => `Tickets (${count})`,
-    sentTo: "Sent to",
+    /** How many of a tier went, as the row prints it. */
+    quantity: (count: number) => `${count}x`,
     /** The comp names the recipient in the button. */
     inform: (name: string) => `Inform ${name.split(/\s+/)[0]}`,
+    /** A link has nobody to name, so it offers the link again instead. */
+    shareAgain: "Share the link again",
+    anyone: "Anyone with the link",
     back: "Back to booking",
   },
 };
