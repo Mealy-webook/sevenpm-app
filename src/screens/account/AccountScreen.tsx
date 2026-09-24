@@ -49,8 +49,8 @@ const IN_THE_TAB_BAR = ["bookings", "wallet", "resale"];
  * It opens with who you are rather than with what you can do: the Beats
  * balance as a control in the corner, the name at display size, and the
  * membership you have reached. Then the rows, then the things that belong at
- * the bottom of a menu and nowhere else — rate us, the social accounts, the
- * copyright, and the way out.
+ * the bottom of a menu and nowhere else — the social accounts, the copyright,
+ * and the way out. 454:67370 drops the rate-us panel the older comp carried.
  *
  * Three rows have no screen behind them yet: Resale is a tab with an empty
  * state, and Notifications and Language have not been designed. They are
@@ -76,7 +76,6 @@ export function AccountScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
   const { signedIn, signOut } = useSession();
   const [loggingOut, setLoggingOut] = useState(false);
-  const [rated, setRated] = useState<string | null>(null);
   const tabScroll = useTabBarScroll();
 
   /** Where each row goes. The three with no screen simply do not move. */
@@ -148,49 +147,23 @@ export function AccountScreen() {
       <View style={styles.rows}>
         {rows.map((item, index) => (
           <View key={item.id} style={index > 0 && styles.divided}>
+            {/* Every row carries a chevron in 454:67385-90, including the
+                three with no screen behind them yet. The comp says these are
+                navigable; it is the screens that are missing, not the
+                affordance. */}
             <ListRow
               icon={icon(item.icon)}
               label={item.label}
               value={item.trailing}
+              chevron
               onPress={routes[item.id]}
             />
           </View>
         ))}
       </View>
 
-      {/* Rate us — the comp's dialog: a panel, a title over its line, and
-          three drawn hands to choose from. */}
-      <View style={styles.block}>
-        <View style={styles.panel}>
-          <Text variant="titleBody" uppercase>
-            {menuCopy.rateTitle}
-          </Text>
-          <Text variant="bodyS" color={colors.contentSecondary}>
-            {menuCopy.rateBody}
-          </Text>
-          <View style={styles.rates}>
-            {menuCopy.rates.map((rate) => {
-              const Hand = icon(rate.icon);
-              return (
-                <Tap
-                  key={rate.label}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: rated === rate.label }}
-                  onPress={() => setRated(rate.label)}
-                  style={[styles.rate, rated && rated !== rate.label && styles.rateDim]}
-                >
-                  <View style={styles.hand}>
-                    {Hand && <Hand width={rate.width} height={rate.height} />}
-                  </View>
-                  <Text variant="bodyL">{rate.label}</Text>
-                </Tap>
-              );
-            })}
-          </View>
-        </View>
-      </View>
-
-      {/* Social */}
+      {/* Social. On the page's own ground in 454:67392 — the panel this used
+          to sit in came from the older comp. */}
       <View style={styles.block}>
         <View style={styles.socials}>
           {menuCopy.socials.map((social) => {
@@ -267,24 +240,8 @@ const styles = StyleSheet.create({
   rows: { paddingHorizontal: space.xl, paddingTop: space.xl },
 
   block: { paddingHorizontal: space.xl, paddingTop: space.section, gap: space.m },
-  panel: { padding: space.l, gap: space.s, backgroundColor: colors.bgSecondary },
-  rates: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "flex-end",
-    paddingTop: space.l,
-  },
-  rate: { width: 65, alignItems: "center", gap: 0 },
-  rateDim: { opacity: 0.4 },
-  /* The tallest hand is 64; the others stand on the same baseline. */
-  hand: { height: 64, justifyContent: "flex-end", alignItems: "center" },
 
-  socials: {
-    flexDirection: "row",
-    gap: space.l,
-    padding: space.l,
-    backgroundColor: colors.bgSecondary,
-  },
+  socials: { flexDirection: "row", justifyContent: "center", gap: space.l },
   social: {
     width: 40,
     height: 40,

@@ -55,7 +55,8 @@ const styles = StyleSheet.create({
   base: {
     height: 40,
     justifyContent: "center",
-    paddingHorizontal: space.m,
+    /* 12 on the chip and 4 on the label inside it, as 462:71180 nests them. */
+    paddingHorizontal: space.m + space.xs,
     borderWidth: 1,
   },
   block: { alignSelf: "stretch", alignItems: "flex-start" },

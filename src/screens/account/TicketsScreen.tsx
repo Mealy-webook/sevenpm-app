@@ -29,7 +29,7 @@ import { tap as haptic } from "../../theme/haptics";
 import { ease, useReducedMotion } from "../../theme/motion";
 import { colors, gutter, space } from "../../theme/tokens";
 import type { RootParamList } from "../../navigation/RootNavigator";
-import { bookings, ticketCopy, walletCurrency } from "../../data/account";
+import { bookings, eventDay, eventTime, ticketCopy, walletCurrency } from "../../data/account";
 import { jazzablanca } from "../../data/events";
 
 /**
@@ -95,10 +95,6 @@ export function TicketsScreen() {
     );
   }
 
-  const starts = new Date(booking.startsAt);
-  const doors = new Date(booking.doorsAt);
-  const time = (date: Date) =>
-    date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
   /* Both tabs are the same object as far as the rail is concerned: a code,
      a seat and a price. */
@@ -174,13 +170,10 @@ export function TicketsScreen() {
         <View style={styles.facts}>
           <Fact
             label={ticketCopy.date}
-            value={starts.toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "long",
-            })}
+            value={eventDay(booking.startsAt, "long")}
           />
-          <Fact label={ticketCopy.time} value={time(starts)} />
-          <Fact label={ticketCopy.gateOpen} value={time(doors)} />
+          <Fact label={ticketCopy.time} value={eventTime(booking.startsAt)} />
+          <Fact label={ticketCopy.gateOpen} value={eventTime(booking.doorsAt)} />
         </View>
       </View>
 

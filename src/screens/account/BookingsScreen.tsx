@@ -20,7 +20,7 @@ import { TAB_BAR_CLEARANCE } from "../../navigation/TabBar";
 import { useTabBarScroll } from "../../navigation/tabBarScroll";
 import { useSession } from "../../session";
 import { signedOutCopy } from "../../data/session";
-import { bookings, bookingsCopy } from "../../data/account";
+import { bookings, bookingsCopy, eventDay, eventTime } from "../../data/account";
 
 /**
  * Bookings, from Figma 462:70918.
@@ -191,18 +191,9 @@ function BookingRow({
   );
 }
 
-/** "Wed, 11 Sep 7:00 PM - 9:30 PM", as the comp writes it. */
+/** "Fri 16 Oct 9:00 PM - 11:30 PM", as the comp writes it. */
 function when(startsAt: string, endsAt: string) {
-  const starts = new Date(startsAt);
-  const ends = new Date(endsAt);
-  const day = starts.toLocaleDateString("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
-  const time = (date: Date) =>
-    date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  return `${day} ${time(starts)} - ${time(ends)}`;
+  return `${eventDay(startsAt)} ${eventTime(startsAt)} - ${eventTime(endsAt)}`;
 }
 
 const styles = StyleSheet.create({

@@ -14,6 +14,7 @@ import { Text } from "../theme/Text";
 import { colors, displaySize, gutter, space, type } from "../theme/tokens";
 import type { RootParamList } from "../navigation/RootNavigator";
 import { useResale } from "../resale";
+import { eventDay, eventTime } from "../data/account";
 import { resaleCopy } from "../data/resale";
 
 /**
@@ -54,16 +55,8 @@ export function ResaleListingScreen() {
     );
   }
 
-  const starts = new Date(listing.startsAt);
-  const day = starts.toLocaleDateString("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
-  const time = starts.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  const day = eventDay(listing.startsAt);
+  const time = eventTime(listing.startsAt);
   const under = listing.faceValue - listing.price;
   const gone = taken(listing.id);
 

@@ -4,6 +4,52 @@
  * everything the account screens render comes from here.
  */
 
+/**
+ * When an event happens, as the event says it.
+ *
+ * A ticket prints the time at the venue, not on the reader's phone: gates at
+ * 7:30 means 7:30 there. Going through `Date` gets this wrong twice over —
+ * it shifts the time by the reader's offset (a 9:00 PM start read 11:00 PM on
+ * a simulator three hours east), and naming a zone to correct that does not
+ * help, because Hermes ships without the ICU data to resolve one and falls
+ * back to UTC without saying so.
+ *
+ * So these read the wall clock straight off the ISO string, which already
+ * carries it. No conversion, nothing to get wrong.
+ */
+const AT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/;
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** "9:00 PM", from the hour and minute the string states. */
+export function eventTime(iso: string) {
+  const m = AT.exec(iso);
+  if (!m) return "";
+  const hour = Number(m[4]);
+  const minute = m[5];
+  const suffix = hour < 12 ? "AM" : "PM";
+  const twelve = hour % 12 === 0 ? 12 : hour % 12;
+  return `${twelve}:${minute} ${suffix}`;
+}
+
+/**
+ * The date, in one of the two shapes the comps ask for: "Fri, 16 Oct" for a
+ * booking row (462:70918), "16 October" above a ticket (486:60153).
+ */
+export function eventDay(iso: string, style: "short" | "long" = "short") {
+  const m = AT.exec(iso);
+  if (!m) return "";
+  const [, y, mo, d] = m;
+  const month = MONTHS[Number(mo) - 1];
+  if (style === "long") return `${Number(d)} ${month}`;
+  /* Built at UTC noon so the weekday cannot slip a day either way. */
+  const weekday = DAYS[new Date(Date.UTC(+y, +mo - 1, +d, 12)).getUTCDay()];
+  return `${weekday}, ${Number(d)} ${month.slice(0, 3)}`;
+}
+
 export const accountUser = {
   name: "Ahmed Mealy",
   email: "ahmed@gmail.com",
@@ -226,8 +272,15 @@ export const menuNav: AccountNavItem[] = [
   },
   {
     id: "language",
-    label: "Language",
+    /* 454:67389 spells it lower case. The comp is the spec, typo and all. */
+    label: "language",
     icon: "/assets/ic-menu-language.svg",
+    href: "#",
+  },
+  {
+    id: "currency",
+    label: "Currency",
+    icon: "/assets/ic-menu-currency.svg",
     href: "#",
   },
 ];
@@ -245,14 +298,14 @@ export const menuCopy = {
     { label: "OK!", icon: "/assets/rate-ok.svg", width: 45, height: 53 },
     { label: "#@#!", icon: "/assets/rate-bad.svg", width: 49, height: 57 },
   ],
-  /** The six accounts the comp lists (359:7989), in its order. */
+  /** The six accounts the comp lists (454:67392), in its order. */
   socials: [
     { label: "X", href: "https://x.com", icon: "/assets/ic-social-x.svg" },
     { label: "Facebook", href: "https://facebook.com", icon: "/assets/ic-social-facebook.svg" },
     { label: "Instagram", href: "https://instagram.com", icon: "/assets/ic-social-instagram.svg" },
-    { label: "LinkedIn", href: "https://linkedin.com", icon: "/assets/ic-social-linkedin.svg" },
     { label: "Snapchat", href: "https://snapchat.com", icon: "/assets/ic-social-snapchat.svg" },
     { label: "TikTok", href: "https://tiktok.com", icon: "/assets/ic-social-tiktok.svg" },
+    { label: "LinkedIn", href: "https://linkedin.com", icon: "/assets/ic-social-linkedin.svg" },
   ],
   copyright: "Copyright ©2023 Sevenpm.com. All rights reserved.",
   /** Nothing behind these rows yet — said once, at the foot of the list. */
@@ -521,10 +574,13 @@ export const bookings: Booking[] = [
     eventName: "Jazzablanca",
     eventSlug: "jazzablanca",
     image: "/assets/festival-poster-3.png",
-    startsAt: "2026-09-18T19:00:00+01:00",
-    endsAt: "2026-09-18T21:30:00+01:00",
+    /* 486:60153 dates this booking: 16 October, 9:00 PM, gates at 7:30 PM.
+       Following it also keeps the sample booking ahead of the clock, so the
+       screen's own default filter is not empty. */
+    startsAt: "2026-10-16T21:00:00+01:00",
+    endsAt: "2026-10-16T23:30:00+01:00",
     /** The comp prints gate open beside the start time, and they differ. */
-    doorsAt: "2026-09-18T17:30:00+01:00",
+    doorsAt: "2026-10-16T19:30:00+01:00",
     venue: "Palais des Institutions Italiennes",
     venueUrl:
       "https://www.google.com/maps/search/?api=1&query=Palais+des+Institutions+Italiennes+Casablanca",

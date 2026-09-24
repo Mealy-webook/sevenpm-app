@@ -26,6 +26,7 @@ export function ListRow({
   value,
   trailing,
   onPress,
+  chevron = false,
   tone = "default",
 }: {
   icon?: React.FC<SvgProps>;
@@ -35,6 +36,12 @@ export function ListRow({
   value?: string;
   trailing?: React.ReactNode;
   onPress?: () => void;
+  /**
+   * Draw the chevron even with nothing behind the row yet. 454:67385-90 gives
+   * all six menu rows one: the comp says these are navigable, and it is the
+   * screens that are missing rather than the affordance.
+   */
+  chevron?: boolean;
   tone?: "default" | "destructive";
 }) {
   const ink = tone === "destructive" ? colors.negative : colors.contentPrimary;
@@ -59,7 +66,7 @@ export function ListRow({
         </Text>
       )}
       {trailing}
-      {onPress && !trailing && <ChevronRight width={20} height={20} />}
+      {(onPress || chevron) && !trailing && <ChevronRight width={20} height={20} />}
     </>
   );
 
