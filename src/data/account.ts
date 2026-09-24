@@ -493,8 +493,10 @@ export const loyaltyCopy = {
   expiring: 100,
   expiresAt: "20 Sep 2026",
   expiry: (beats: number, date: string) =>
-    /* 454:63288 capitalises Beats here, as everywhere else it names them. */
-    `${beats.toLocaleString("en-US")} Beats will expire at ${date}`,
+    /* Lower case here, where every other mention capitalises it. Read off
+       454:63288 at full size — an earlier pass "corrected" it from a
+       thumbnail and was wrong. */
+    `${beats.toLocaleString("en-US")} beats will expire at ${date}`,
   toNextLead: "Earn",
   toNext: (beats: number) => `${beats.toLocaleString("en-US")} more to unlock`,
   toNextTail: "membership",

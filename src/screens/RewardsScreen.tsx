@@ -211,12 +211,15 @@ export function RewardsScreen() {
               {loyaltyCopy.empty}
             </Text>
           ) : (
-            shown.map((reward) => {
+            shown.map((reward, index) => {
               const Mark = icon(reward.icon);
               const taken = redeemed.includes(reward.id);
               const affordable = balance >= reward.cost;
               return (
-                <View key={reward.id} style={styles.row}>
+                <View
+                  key={reward.id}
+                  style={[styles.row, index > 0 && styles.ruled]}
+                >
                   {Mark && <Mark width={24} height={24} />}
                   <View style={styles.rowBody}>
                     <Text variant="body" numberOfLines={2}>
@@ -239,7 +242,12 @@ export function RewardsScreen() {
                       style={styles.redeem}
                     />
                   ) : (
-                    <Button label={loyaltyCopy.locked} icon={LockSmall} disabled />
+                    <Button
+                      label={loyaltyCopy.locked}
+                      icon={LockSmall}
+                      disabled
+                      style={styles.redeem}
+                    />
                   )}
                 </View>
               );
@@ -402,9 +410,21 @@ const styles = StyleSheet.create({
   section: { paddingHorizontal: space.xl, paddingTop: space.section, gap: space.m },
   chips: { flexDirection: "row", gap: space.s, paddingRight: space.xl },
 
-  row: { flexDirection: "row", alignItems: "center", gap: space.m },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.m,
+    paddingVertical: space.m,
+  },
+  /* 454:63288 rules between reward rows, not around them. */
+  ruled: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.overlay10,
+  },
   rowBody: { flex: 1, minWidth: 0 },
-  redeem: { paddingHorizontal: space.l, paddingVertical: 10 },
+  /* Measured off the comp: 69 x 28, which is 10 either side and 4 top and
+     bottom around a 13/20 label. */
+  redeem: { paddingHorizontal: 10, paddingVertical: 4 },
 
   entry: { gap: space.s, paddingVertical: space.s },
   flip: { transform: [{ rotate: "180deg" }] },

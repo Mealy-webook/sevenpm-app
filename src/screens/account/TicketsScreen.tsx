@@ -12,6 +12,7 @@ import {
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import QRCode from "react-native-qrcode-svg";
+import Svg, { Rect } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -245,16 +246,19 @@ export function TicketsScreen() {
           </Animated.ScrollView>
         </Animated.View>
 
-        {/* Where you are in the stack. */}
+        {/* Where you are in the stack. The comp gives the rail one segment
+            per ticket rather than a bar that fills — measured off 142:40923,
+            each is 61 x 4 with a 4 gap, the one you are on white and the rest
+            barely there. */}
         {items.length > 1 && (
           <View style={styles.progress}>
             <View style={styles.track}>
-              <View
-                style={[
-                  styles.range,
-                  { width: `${((shown + 1) / items.length) * 100}%` },
-                ]}
-              />
+              {items.map((item, index) => (
+                <View
+                  key={item.id}
+                  style={[styles.segment, index === shown && styles.segmentOn]}
+                />
+              ))}
             </View>
             <Text variant="bodyS" color={colors.contentPrimary}>
               {ticketCopy.position(shown + 1, items.length)}
@@ -380,8 +384,24 @@ function TicketCard({
       </View>
 
       <View style={styles.cardBody}>
-        {/* The comp frames the code in a dashed brand border. */}
+        {/* The comp frames the code in a dashed brand border whose dashes are
+            long enough to straddle the corners and leave a gap mid-edge —
+            brackets, in effect. RN's own dashed border draws a much finer
+            pattern, so the frame is stroked here instead. */}
         <View style={styles.qrFrame}>
+          <Svg width={FRAME} height={FRAME} style={StyleSheet.absoluteFill}>
+            <Rect
+              x={FRAME_STROKE / 2}
+              y={FRAME_STROKE / 2}
+              width={FRAME - FRAME_STROKE}
+              height={FRAME - FRAME_STROKE}
+              fill="none"
+              stroke={colors.brand}
+              strokeWidth={FRAME_STROKE}
+              strokeDasharray={`${DASH} ${FRAME - DASH}`}
+              strokeDashoffset={DASH / 2}
+            />
+          </Svg>
           <QRCode value={code} size={QR} color={INK} backgroundColor={PAPER} />
         </View>
         <Text variant="caption" color={INK}>
@@ -423,8 +443,20 @@ function TicketCard({
   );
 }
 
+/** The card is a fixed height in the comp; its middle is what flexes. */
+const CARD_H = 469;
+
 /** The comp's code, and the light surface it is printed on. */
-const QR = 162;
+/* Measured off 486:60153: the frame is 172 across and the code 154 inside
+   it, so the two do not touch. */
+const QR = 154;
+const FRAME = 172;
+/** The stroke, and the dash that straddles each of its corners. */
+const FRAME_STROKE = 4;
+const DASH = Math.round(FRAME * 0.52);
+/** The segments of the rail's position bar, where they are not the one you
+ *  are on (142:40923 renders them at #17171a). */
+const SEGMENT_OFF = "#17171a";
 const PAPER = "#ffffff";
 const INK = "#18181b";
 const INK_SECONDARY = "#52525b";
@@ -469,6 +501,7 @@ const styles = StyleSheet.create({
   /* The card. Square, as everything here is, and shadowed the way the comp
      lifts it off the page. */
   card: {
+    height: CARD_H,
     overflow: "hidden",
     backgroundColor: PAPER,
     shadowColor: "#000",
@@ -487,14 +520,21 @@ const styles = StyleSheet.create({
   },
   cardSeat: { flex: 1, minWidth: 0 },
 
+  /* Flexes, so the dock and the instructions stay on the card's bottom edge
+     whatever is above them. */
   cardBody: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     gap: space.l,
     paddingHorizontal: space.l,
-    paddingVertical: space.xl,
   },
-  qrFrame: { borderWidth: 4, borderColor: colors.brand, borderStyle: "dashed" },
+  qrFrame: {
+    width: FRAME,
+    height: FRAME,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
   dock: { flexDirection: "row", gap: space.s, padding: space.s },
   action: {
@@ -531,16 +571,16 @@ const styles = StyleSheet.create({
     gap: space.s,
     paddingHorizontal: gutter,
   },
-  track: {
+  track: { flex: 1, flexDirection: "row", gap: 4 },
+  /* Rounded because the comp draws each one as a pill, which is one of the
+     few things here that literally is. */
+  segment: {
     flex: 1,
     height: 4,
-    backgroundColor: colors.overlay10,
     borderRadius: 2,
-    overflow: "hidden",
+    backgroundColor: SEGMENT_OFF,
   },
-  /* Rounded because the comp draws it as a pill, which is one of the few
-     things here that literally is. */
-  range: { height: 4, backgroundColor: colors.white, borderRadius: 2 },
+  segmentOn: { backgroundColor: colors.white },
 
   sponsors: { paddingHorizontal: gutter, paddingTop: space.l, gap: space.l },
   tiles: { flexDirection: "row", flexWrap: "wrap", gap: space.m },
