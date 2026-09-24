@@ -1,13 +1,20 @@
 import { useState } from "react";
-import { ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import {
+  Linking,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { SvgProps } from "react-native-svg";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import ChevronRight from "../../icons/ic-chevron-right-20.svg";
-import Clock from "../../icons/ic-clock-16.svg";
-import Pin from "../../icons/ic-pin-16.svg";
+import ShortcutAbout from "../../icons/ic-shortcut-about.svg";
+import ShortcutLocation from "../../icons/ic-shortcut-location.svg";
+import ShortcutTickets from "../../icons/ic-shortcut-tickets.svg";
 import { Chip } from "../../components/Chip";
 import { EmptyState } from "../../components/EmptyState";
 import { SignedOut } from "../../components/SignedOut";
@@ -20,7 +27,8 @@ import { TAB_BAR_CLEARANCE } from "../../navigation/TabBar";
 import { useTabBarScroll } from "../../navigation/tabBarScroll";
 import { useSession } from "../../session";
 import { signedOutCopy } from "../../data/session";
-import { bookings, bookingsCopy, eventDay, eventTime } from "../../data/account";
+import { bookings, bookingsCopy } from "../../data/account";
+import { festivalCards } from "../../data/discover";
 
 /**
  * Bookings, from Figma 462:70918.
@@ -31,9 +39,15 @@ import { bookings, bookingsCopy, eventDay, eventTime } from "../../data/account"
  * opens on its own name at display size and goes straight into the filters.
  * Everything sits on one ground with nothing boxing it.
  *
- * A booking is a flat row: a 106pt poster, the name in title type, when and
- * where, and a single link into the tickets. Rows are separated by a rule
- * rather than by being carded.
+ * A booking is a card, not a row: the event's artwork across the top at 3:2,
+ * then its name at display size with its dates in the accent colour and the
+ * venue under them, all centred, and then three shortcuts along the foot —
+ * About, Location, Tickets — divided by hairlines. 489:61435 replaced the
+ * flat 106pt row this screen used to draw.
+ *
+ * The three lines come from the festival the booking is for rather than from
+ * the booking itself: the card names the event and its run, not the session
+ * you hold a seat at.
  *
  * Upcoming and past are decided against the clock rather than stored on the
  * booking, so the filter stays honest the day this mock data is older than
@@ -108,20 +122,21 @@ export function BookingsScreen() {
               />
             ) : (
               <View style={styles.list}>
-                {shown.map((booking, index) => (
-                  <View key={booking.id} style={styles.listItem}>
-                    {index > 0 && <View style={styles.divider} />}
-                    <BookingRow
-                      booking={booking}
-                      /* The row's one action names the tickets, so it opens
-                         them — the payment plan is reached from inside a
-                         ticket's own booking rather than from the word
-                         "tickets". */
-                      onOpen={() =>
-                        navigation.navigate("Tickets", { bookingId: booking.id })
-                      }
-                    />
-                  </View>
+                {shown.map((booking) => (
+                  <BookingCard
+                    key={booking.id}
+                    booking={booking}
+                    width={width}
+                    onAbout={() =>
+                      navigation.navigate("Event", { slug: booking.eventSlug })
+                    }
+                    onLocation={() =>
+                      booking.venueUrl && Linking.openURL(booking.venueUrl)
+                    }
+                    onTickets={() =>
+                      navigation.navigate("Tickets", { bookingId: booking.id })
+                    }
+                  />
                 ))}
               </View>
             )}
@@ -132,68 +147,114 @@ export function BookingsScreen() {
   );
 }
 
-/** One booking: the poster, what it is, when and where, and the way in. */
-function BookingRow({
+/** One booking, as 489:61435 draws it. */
+function BookingCard({
   booking,
-  onOpen,
+  width,
+  onAbout,
+  onLocation,
+  onTickets,
 }: {
   booking: (typeof bookings)[number];
-  onOpen: () => void;
+  width: number;
+  onAbout: () => void;
+  onLocation: () => void;
+  onTickets: () => void;
 }) {
+  /* The card names the festival, so it reads the festival's own three lines
+     rather than restating the booking's. */
+  const festival = festivalCards.find((item) => item.slug === booking.eventSlug);
+  const name = festival?.name ?? booking.eventName;
+  const art = festival?.image ?? booking.image;
+
   return (
-    <View style={styles.row}>
+    <View style={styles.card}>
       <Image
-        source={image(booking.image)}
-        style={styles.thumb}
+        source={image(art)}
+        style={styles.media}
         contentFit="cover"
         transition={300}
       />
 
-      <View style={styles.rowBody}>
-        <View style={styles.rowText}>
-          <Text variant="titleBody" uppercase color={colors.white} numberOfLines={1}>
-            {booking.eventName}
-          </Text>
-
-          <View style={styles.metaGroup}>
-            <View style={styles.meta}>
-              <Clock width={16} height={16} />
-              <Text variant="bodyS" color={colors.contentSecondary} numberOfLines={1}>
-                {when(booking.startsAt, booking.endsAt)}
-              </Text>
-            </View>
-            <View style={styles.meta}>
-              <Pin width={16} height={16} />
-              <Text
-                variant="bodyS"
-                color={colors.contentSecondary}
-                numberOfLines={1}
-                style={styles.underline}
-              >
-                {booking.venue}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <Tap
-          accessibilityRole="button"
-          accessibilityLabel={bookingsCopy.tickets(booking.tickets.length)}
-          onPress={onOpen}
-          scale={0.98}
-          style={styles.link}
+      <View style={styles.cardText}>
+        <Text
+          variant="displayCard"
+          uppercase
+          color={colors.white}
+          numberOfLines={2}
+          style={[displaySize(type.displayCard, width), styles.centred]}
         >
-          <Text variant="bodyLBold">{bookingsCopy.tickets(booking.tickets.length)}</Text>
-          <ChevronRight width={20} height={20} />
-        </Tap>
+          {name}
+        </Text>
+        {festival?.dates && (
+          <Text variant="bodyBold" color={colors.brand} style={styles.centred}>
+            {festival.dates}
+          </Text>
+        )}
+        <Text
+          variant="bodyS"
+          color={colors.contentSecondary}
+          numberOfLines={1}
+          style={styles.centred}
+        >
+          {festival?.venue ?? booking.venue}
+        </Text>
+      </View>
+
+      <View style={styles.shortcuts}>
+        <Shortcut
+          icon={ShortcutAbout}
+          label={bookingsCopy.shortcuts.about}
+          onPress={onAbout}
+        />
+        <View style={styles.rule} />
+        <Shortcut
+          icon={ShortcutLocation}
+          label={bookingsCopy.shortcuts.location}
+          onPress={onLocation}
+        />
+        <View style={styles.rule} />
+        <Shortcut
+          icon={ShortcutTickets}
+          label={bookingsCopy.shortcuts.tickets(booking.tickets.length)}
+          onPress={onTickets}
+        />
       </View>
     </View>
   );
 }
 
-/** "Fri 16 Oct 9:00 PM - 11:30 PM", as the comp writes it. */
-function when(startsAt: string, endsAt: string) {
-  return `${eventDay(startsAt)} ${eventTime(startsAt)} - ${eventTime(endsAt)}`;
+/** One of the three along the foot of a card: the glyph, then its word. */
+function Shortcut({
+  icon: Mark,
+  label,
+  onPress,
+}: {
+  icon: React.FC<SvgProps>;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Tap
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      scale={0.98}
+      style={styles.shortcut}
+    >
+      <View style={styles.shortcutIcon}>
+        <Mark width={24} height={24} />
+      </View>
+      <Text
+        variant="bodyS"
+        color={colors.white}
+        numberOfLines={1}
+        style={styles.centred}
+      >
+        {label}
+      </Text>
+    </Tap>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -206,17 +267,32 @@ const styles = StyleSheet.create({
   nothing: { minHeight: 320 },
 
   list: { gap: space.l },
-  /* The rule belongs to the row below it, so the gap either side of it is
-     the list's own 16 rather than something the divider adds. */
-  listItem: { gap: space.l },
-  divider: { height: 1, backgroundColor: colors.overlay5 },
 
-  row: { flexDirection: "row", alignItems: "center", gap: space.m, minHeight: 44 },
-  thumb: { width: 106, height: 106, backgroundColor: colors.bgTertiary },
-  rowBody: { flex: 1, minWidth: 0, gap: space.s },
-  rowText: { gap: space.s },
-  metaGroup: { gap: space.xs },
-  meta: { flexDirection: "row", alignItems: "center", gap: space.xs },
-  underline: { textDecorationLine: "underline" },
+  /* The comp's Product Card: one block on the secondary ground, square. */
+  card: { backgroundColor: colors.bgSecondary },
+  /* 240 x 160 in the file — 3:2 across the card's width. */
+  media: { width: "100%", aspectRatio: 240 / 160, backgroundColor: colors.bgTertiary },
+  cardText: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: space.l,
+    paddingTop: space.l,
+    paddingBottom: space.s,
+  },
+  centred: { textAlign: "center", alignSelf: "stretch" },
+
+  shortcuts: { flexDirection: "row", alignItems: "center", gap: space.m },
+  shortcut: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space.s,
+    paddingVertical: space.m,
+  },
+  shortcutIcon: { paddingHorizontal: space.m },
+  /* A hairline standing between them, 40 tall, as the comp cuts it. */
+  rule: { width: 1, height: 40, backgroundColor: colors.overlay10 },
+
   link: { flexDirection: "row", alignItems: "center", gap: space.s, alignSelf: "flex-start" },
 });

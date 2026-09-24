@@ -633,6 +633,12 @@ export const bookingsCopy = {
   empty: "No bookings yet",
   /** The row's one action — "4 tickets \u203a" (454:56757). */
   tickets: (count: number) => `${count} ${count === 1 ? "ticket" : "tickets"}`,
+  /** The three shortcuts along the foot of a booking's card (489:61440). */
+  shortcuts: {
+    about: "About",
+    location: "Location",
+    tickets: (count: number) => `Tickets (${count})`,
+  },
 };
 
 export const ticketCopy = {
