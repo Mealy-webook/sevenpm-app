@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
-  Easing,
-  Image as RNImage,
-  Linking,
   ScrollView,
   Share,
   StyleSheet,
@@ -15,58 +12,50 @@ import {
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import QRCode from "react-native-qrcode-svg";
-import Svg, { Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import Close from "../../icons/ic-close.svg";
-import MapPin from "../../icons/ic-map-pin.svg";
-import { Button } from "../../components/Button";
-import { image } from "../../images";
-import { ticketOutline } from "../../components/TicketStub";
+import ChevronLeft from "../../icons/ic-chevron-left-20.svg";
+import ChevronRight from "../../icons/ic-chevron-right-20.svg";
+import Info from "../../icons/ic-info-20.svg";
+import { Segmented } from "../../components/Segmented";
 import { Page } from "../../components/Screen";
 import { Tap } from "../../components/Tap";
+import { icon } from "../../icons";
+import { image } from "../../images";
 import { Text } from "../../theme/Text";
 import { tap as haptic } from "../../theme/haptics";
 import { ease, useReducedMotion } from "../../theme/motion";
-import { colors, displaySize, gutter, space, type } from "../../theme/tokens";
+import { colors, gutter, space } from "../../theme/tokens";
 import type { RootParamList } from "../../navigation/RootNavigator";
-import { bookings, ticketCopy, type Ticket } from "../../data/account";
+import { bookings, ticketCopy, walletCurrency } from "../../data/account";
+import { jazzablanca } from "../../data/events";
 
 /**
- * The tickets in a booking, one sheet at a time.
+ * The tickets in a booking, from Figma 486:60153.
  *
- * No comp draws this — it is designed here, from the pieces the app already
- * has, and the one decision that matters is what the screen is *for*. It is
- * held up at a gate, in the dark, by someone who is being waved forward. So
- * the code is the screen: a white sheet, the QR as large as the width allows,
- * and nothing above it to scroll past. Everything a person might want to read
- * — who it admits, which gate, when the doors open — is underneath it, where
- * it can be found but cannot get in the way.
+ * This replaces a screen designed here before the comp existed, and the comp
+ * disagrees with almost all of it. The ticket is not a sheet of perforated
+ * paper — that is the rail card on the event page (426:50829), a different
+ * object. This one is a card: a coloured header naming the seat and its
+ * price, the code in the middle inside a dashed brand frame, the two things
+ * you can do with it, and a way into the rules. Nothing is textured and
+ * nothing is torn.
  *
- * A booking can hold several tickets and they are paged sideways, one to a
- * screen, because two people at a gate hand over one ticket each and a list
- * you scroll is the wrong shape for that. The counter says which of how many.
+ * The screen around it opens on the event — its artwork behind the name, then
+ * the three facts somebody at a gate actually wants: which day, what time,
+ * when the gates open. Tickets and addons are two tabs of one rail, because
+ * they are both things you hold up and neither deserves its own screen.
  *
- * The sheet is white and stays white. Everything else in this app is dark,
- * and this is the one screen where that would be a problem: scanners want
- * contrast and phones dim themselves, so the ticket borrows none of the
- * page's colour.
+ * The rail is paged one card at a time and the bar under it says where you
+ * are, which is the comp's own answer to a stack of five.
  *
- * **It behaves like a thing rather than a page.** One idea, in four parts:
- * the tickets arrive rather than appear, rising and settling as a hand brings
- * them up; the code is issued a beat after the sheet lands, so the sheet is
- * paper first and a ticket second; swiping fans them, each sheet tilting and
- * dropping back as it leaves the middle, the way cards held in one hand move
- * against each other; and light crosses whichever one is being held, once,
- * when it arrives. None of it is decoration hung on the screen — it is the
- * screen admitting what it is, which is a piece of paper somebody is about to
- * hold up in the dark.
- *
- * The fan is driven by the scroll offset rather than by a timer, so it tracks
- * a finger exactly and reverses when the finger does. Reduced motion keeps
- * the paging and drops all four.
+ * **Motion is not in the comp**, which is a still. The cards arrive rather
+ * than appear, and each fans as it leaves the middle, the way cards held in
+ * one hand move against each other; the fan is read off the scroll offset so
+ * it tracks a finger and reverses with it. Reduced motion keeps the paging
+ * and drops both.
  */
 export function TicketsScreen() {
   const insets = useSafeAreaInsets();
@@ -75,16 +64,11 @@ export function TicketsScreen() {
   const { params } = useRoute<RouteProp<RootParamList, "Tickets">>();
   const booking = bookings.find((item) => item.id === params.bookingId);
 
+  const [tab, setTab] = useState("tickets");
   const [shown, setShown] = useState(0);
-  /* Measured, because the sheets have to be able to scroll clear of it. */
-  const [foot, setFoot] = useState(0);
   const reduced = useReducedMotion();
-  /* Where the rail is, in pixels — every sheet's tilt is read off this. */
   const scrollX = useRef(new Animated.Value(0)).current;
-  /* The whole rail arriving, and the code arriving after it. */
   const enter = useRef(new Animated.Value(0)).current;
-  /* Light crossing the sheet in the middle. Restarted when that changes. */
-  const sheen = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (reduced === null) return;
@@ -99,24 +83,10 @@ export function TicketsScreen() {
     return () => run.stop();
   }, [reduced, enter]);
 
-  useEffect(() => {
-    if (reduced !== false) return;
-    sheen.setValue(0);
-    const run = Animated.timing(sheen, {
-      toValue: 1,
-      duration: SHEEN_MS,
-      delay: SHEEN_AT,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    });
-    run.start();
-    return () => run.stop();
-  }, [shown, reduced, sheen]);
-
   if (!booking) {
     return (
       <Page>
-        <View style={[styles.empty, { paddingTop: insets.top + space.section }]}>
+        <View style={[styles.gone, { paddingTop: insets.top + space.section }]}>
           <Text variant="body" color={colors.contentSecondary}>
             This booking is no longer listed.
           </Text>
@@ -126,32 +96,112 @@ export function TicketsScreen() {
   }
 
   const starts = new Date(booking.startsAt);
-  const day = starts.toLocaleDateString("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
+  const doors = new Date(booking.doorsAt);
+  const time = (date: Date) =>
+    date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
-  /* One ticket to a screen, so the page is the ticket. */
-  const page = width;
+  /* Both tabs are the same object as far as the rail is concerned: a code,
+     a seat and a price. */
+  const items =
+    tab === "tickets"
+      ? booking.tickets.map((item) => ({
+          id: item.id,
+          code: item.code,
+          seat: item.seat,
+          price: item.price,
+        }))
+      : booking.addons.map((item) => ({
+          id: item.id,
+          code: item.code,
+          seat: `${item.name} · ${item.seat}`,
+          price: item.price,
+        }));
+
+  const card = width - gutter * 2;
+  const step = card + space.m;
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const next = Math.round(event.nativeEvent.contentOffset.x / page);
+    const next = Math.round(event.nativeEvent.contentOffset.x / step);
     if (next === shown) return;
-    /* One ticket has become the one being held. */
     haptic.tick();
     setShown(next);
   };
 
-  const ticket = booking.tickets[shown];
-  const title = displaySize(type.displayCard, width);
+  const held = items[Math.min(shown, items.length - 1)];
+  const sponsors = [jazzablanca.officialSponsor, ...jazzablanca.goldSponsors];
 
   return (
     <Page>
-      {/* The tickets coming up into the hand. */}
-      <Animated.View
-        style={[
-          styles.rail,
-          {
+      {/* The event, behind its own name. */}
+      <View style={styles.header}>
+        {/* The booking's own poster rather than a fixed hero, so this works
+            for whatever was booked — cropped to its top, which is where a
+            poster is artwork rather than its own name. */}
+        <Image
+          source={image(booking.image)}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          contentPosition="top"
+          transition={240}
+        />
+        <LinearGradient
+          /* Heavy, because this artwork carries the festival's own wordmark
+             and the bar sets the name over it. What the image has to do here
+             is say which event at a glance, not be read. */
+          colors={["rgba(11,11,14,0.82)", "rgba(11,11,14,0.96)"]}
+          style={StyleSheet.absoluteFill}
+        />
+
+        <View style={[styles.bar, { paddingTop: insets.top + space.xs }]}>
+          <Tap
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            onPress={navigation.goBack}
+            style={styles.barButton}
+          >
+            <ChevronLeft width={20} height={20} />
+          </Tap>
+          <View style={styles.barTitle}>
+            <Text variant="titleBody" uppercase numberOfLines={1}>
+              {booking.eventName}
+            </Text>
+          </View>
+          {/* The footprint the back control has, so the name stays centred
+              on the screen rather than on what is left of the bar. */}
+          <View style={styles.barSpacer} />
+        </View>
+
+        {/* Which day, what time, when the gates open. */}
+        <View style={styles.facts}>
+          <Fact
+            label={ticketCopy.date}
+            value={starts.toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "long",
+            })}
+          />
+          <Fact label={ticketCopy.time} value={time(starts)} />
+          <Fact label={ticketCopy.gateOpen} value={time(doors)} />
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.page}>
+        <View style={styles.tabs}>
+          <Segmented
+            options={[
+              { id: "tickets", label: ticketCopy.tickets(booking.tickets.length) },
+              { id: "addons", label: ticketCopy.addons(booking.addons.length) },
+            ]}
+            value={tab}
+            onChange={(next) => {
+              setTab(next);
+              setShown(0);
+              scrollX.setValue(0);
+            }}
+          />
+        </View>
+
+        <Animated.View
+          style={{
             opacity: enter,
             transform: [
               {
@@ -161,553 +211,351 @@ export function TicketsScreen() {
                 }),
               },
             ],
-          },
-        ]}
-      >
-        <Animated.ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={onScroll}
-          scrollEventThrottle={16}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            { useNativeDriver: true },
-          )}
-          contentContainerStyle={{ paddingTop: insets.top + BAR }}
+          }}
         >
-          {booking.tickets.map((item, index) => (
-            <Sheet
-              key={item.id}
-              ticket={item}
-              index={index}
-              width={page}
-              scrollX={scrollX}
-              enter={enter}
-              sheen={sheen}
-              active={index === shown}
-              still={reduced !== false}
-              title={title}
-              eventName={booking.eventName}
-              day={day}
-              venue={booking.venue}
-              venueUrl={booking.venueUrl}
-              poster={booking.image}
-              label={ticketCopy.which(index + 1, booking.tickets.length)}
-              foot={foot}
-            />
-          ))}
-        </Animated.ScrollView>
-      </Animated.View>
-
-      {/* Which of how many, and the way out of this booking's tickets. */}
-      <View style={[styles.bar, { paddingTop: insets.top + space.s }]}>
-        <Tap
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          onPress={navigation.goBack}
-          style={styles.barButton}
-        >
-          <Close width={20} height={20} />
-        </Tap>
-        <View style={styles.barTitle}>
-          <Text variant="titleBody" uppercase numberOfLines={1}>
-            {booking.tickets.length > 1
-              ? ticketCopy.which(shown + 1, booking.tickets.length)
-              : ticketCopy.title}
-          </Text>
-        </View>
-        {/* Sending is a named action on the ticket itself now, not an icon
-            up here. The space it held stays, so the title is still centred on
-            the screen rather than on what is left of the bar. */}
-        <View style={styles.barSpacer} />
-      </View>
-
-      {/* Fixed at the foot of the screen: what you can do with the ticket in
-          front of you, and which of how many that is. The rail scrolls under
-          it, so the actions are reachable without reading to the bottom of a
-          ticket first. */}
-      <View
-        style={[styles.footer, { paddingBottom: Math.max(insets.bottom, space.l) }]}
-        onLayout={(event) => setFoot(event.nativeEvent.layout.height)}
-      >
-        <LinearGradient
-          colors={["rgba(11,11,14,0)", colors.bgPrimary]}
-          locations={[0, 0.38]}
-          style={styles.footerShade}
-          pointerEvents="none"
-        />
-
-        {booking.tickets.length > 1 && (
-          <View style={styles.dots}>
-            {booking.tickets.map((item, index) => (
-              <Animated.View
+          <Animated.ScrollView
+            key={tab}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={step}
+            decelerationRate="fast"
+            onMomentumScrollEnd={onScroll}
+            scrollEventThrottle={16}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+              { useNativeDriver: true },
+            )}
+            contentContainerStyle={styles.rail}
+          >
+            {items.map((item, index) => (
+              <TicketCard
                 key={item.id}
-                style={[
-                  styles.dot,
-                  reduced !== false
-                    ? index === shown
-                      ? null
-                      : styles.dotOff
-                    : {
-                        opacity: scrollX.interpolate({
-                          inputRange: span(index, page),
-                          outputRange: [0.3, 1, 0.3],
-                          extrapolate: "clamp",
-                        }),
-                        transform: [
-                          {
-                            scaleX: scrollX.interpolate({
-                              inputRange: span(index, page),
-                              outputRange: [DOT / DOT_ON, 1, DOT / DOT_ON],
-                              extrapolate: "clamp",
-                            }),
-                          },
-                        ],
-                      },
-                ]}
+                seat={item.seat}
+                price={item.price}
+                code={item.code}
+                index={index}
+                width={card}
+                step={step}
+                scrollX={scrollX}
+                still={reduced !== false}
+                label={ticketCopy.which(index + 1, items.length)}
+                onSend={() =>
+                  Share.share({
+                    message: `${booking.eventName}\n${item.seat}\n${ticketCopy.number(item.code)}`,
+                  })
+                }
+                onSell={() =>
+                  navigation.navigate("Tabs", { screen: "Resale" } as never)
+                }
               />
             ))}
+          </Animated.ScrollView>
+        </Animated.View>
+
+        {/* Where you are in the stack. */}
+        {items.length > 1 && (
+          <View style={styles.progress}>
+            <View style={styles.track}>
+              <View
+                style={[
+                  styles.range,
+                  { width: `${((shown + 1) / items.length) * 100}%` },
+                ]}
+              />
+            </View>
+            <Text variant="bodyS" color={colors.contentPrimary}>
+              {ticketCopy.position(shown + 1, items.length)}
+            </Text>
           </View>
         )}
 
-        <Button
-          variant="primary"
-          label={ticketCopy.send}
-          onPress={() =>
-            ticket &&
-            Share.share({
-              message: `${booking.eventName} — ${day}\n${ticketCopy.code}: ${ticket.code}`,
-            })
-          }
-        />
-        {/* Resale has no screens of its own yet; the tab says so plainly,
-            which is a truer answer than a button that does nothing. */}
-        <Button
-          label={ticketCopy.resell}
-          onPress={() => navigation.navigate("Tabs", { screen: "Resale" } as never)}
-        />
-      </View>
+        <View style={styles.sponsors}>
+          <Text variant="titleSection" uppercase color={colors.contentPrimary}>
+            {ticketCopy.sponsors}
+          </Text>
+          <View style={styles.tiles}>
+            {sponsors.map((sponsor) => {
+              const Logo = icon(sponsor.logo);
+              return (
+                <View key={sponsor.name} style={styles.tile}>
+                  {Logo && <Logo width={56} height={28} />}
+                  <Text
+                    variant="caption2"
+                    color={colors.contentSecondary}
+                    numberOfLines={1}
+                  >
+                    {sponsor.name}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      </ScrollView>
 
+      {/* Read by anything that announces the screen. */}
+      <View style={styles.hidden} accessibilityElementsHidden>
+        <Text variant="caption">{held?.code}</Text>
+      </View>
     </Page>
   );
 }
 
-/** One ticket, filling one screen. */
-function Sheet({
-  ticket,
-  index,
-  width,
-  scrollX,
-  enter,
-  sheen,
-  active,
-  still,
-  title,
-  eventName,
-  day,
-  venue,
-  venueUrl,
-  poster,
-  label,
-  foot,
-}: {
-  ticket: Ticket;
-  index: number;
-  width: number;
-  scrollX: Animated.Value;
-  enter: Animated.Value;
-  sheen: Animated.Value;
-  /** Whether this is the one being held. */
-  active: boolean;
-  /** Reduced motion, or the setting not yet known. */
-  still: boolean;
-  title: ReturnType<typeof displaySize>;
-  eventName: string;
-  day: string;
-  venue: string;
-  venueUrl?: string;
-  poster: string;
-  label: string;
-  foot: number;
-}) {
-  /* The code fills the sheet's width less its padding, capped so it does not
-     become the whole screen on a tablet. */
-  const qr = Math.min(width - gutter * 2 - space.xl * 2, 260);
-  const sheetWidth = width - gutter * 2;
-  /* The cut follows the sheet, so the sheet has to be measured first. */
-  const [sheetHeight, setSheetHeight] = useState(0);
-
-  /**
-   * The fan: read straight off the rail's offset, so it tracks the finger and
-   * reverses with it. A sheet leaving the middle tips away, drops back and
-   * dims — the three things a card does when another is brought in front of
-   * it. Clamped, so a sheet two along does not keep tipping.
-   */
-  const at = span(index, width);
-  const fan = still
-    ? null
-    : {
-        opacity: scrollX.interpolate({
-          inputRange: at,
-          outputRange: [FAN_DIM, 1, FAN_DIM],
-          extrapolate: "clamp",
-        }),
-        transform: [
-          {
-            translateY: scrollX.interpolate({
-              inputRange: at,
-              outputRange: [FAN_DROP, 0, FAN_DROP],
-              extrapolate: "clamp",
-            }),
-          },
-          {
-            rotate: scrollX.interpolate({
-              inputRange: at,
-              outputRange: [`${FAN_TILT}deg`, "0deg", `-${FAN_TILT}deg`],
-              extrapolate: "clamp",
-            }),
-          },
-          {
-            scale: scrollX.interpolate({
-              inputRange: at,
-              outputRange: [FAN_SCALE, 1, FAN_SCALE],
-              extrapolate: "clamp",
-            }),
-          },
-        ],
-      };
-
-  /* The code is issued after the sheet has landed, so the sheet is paper
-     first and a ticket second. */
-  const issued = enter.interpolate({
-    inputRange: [ISSUE_AT, 1],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
-  return (
-    <Animated.View style={[{ width }, fan]}>
-    <ScrollView
-      contentContainerStyle={[styles.sheetPage, { paddingBottom: foot + space.l }]}
-      showsVerticalScrollIndicator={false}
-      accessibilityLabel={label}
-    >
-      <View
-        style={styles.sheet}
-        onLayout={(event) => setSheetHeight(event.nativeEvent.layout.height)}
-      >
-        {/* Card stock. A tile of grain and fibre laid over the white, so the
-            sheet reads as something printed rather than as a white rectangle.
-            Faint enough that the code still scans against it. */}
-        {/* The comp's own paper, from the ticket it already draws
-            (426:50829). It is the same stock as the rail card on the event
-            page, because it is the same ticket printed larger. */}
-        <RNImage
-          source={image("/assets/ticket-texture.jpg")}
-          resizeMode="cover"
-          style={styles.grain}
-        />
-
-        {/* The key visual, printed across the head of the ticket the way a
-            real one carries the event's artwork. It is scrimmed hard: what
-            it has to do here is say which night this is at a glance, and the
-            name is set over it rather than left to the poster to carry. */}
-        <View style={styles.art}>
-          <Image
-            source={image(poster)}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-            /* The top of the poster, not its middle: the middle is where the
-               poster prints its own name, and two of the same name stacked on
-               one band is worse than either alone. */
-            contentPosition="top"
-            transition={240}
-          />
-          <LinearGradient
-            colors={["rgba(11,11,14,0.25)", "rgba(11,11,14,0.88)"]}
-            style={StyleSheet.absoluteFill}
-          />
-          <View style={styles.artText}>
-            <Text
-              variant="displayCard"
-              uppercase
-              color={colors.white}
-              numberOfLines={1}
-              style={title}
-            >
-              {eventName}
-            </Text>
-            <Text variant="bodySBold" color={colors.white}>
-              {day} · {ticket.entry}
-            </Text>
-          </View>
-        </View>
-
-        {/* The comp cuts this shape, so this cuts it too: bitten corners
-            and a run of half-punched holes down both long edges (426:50829).
-            Painted as the page showing *through* the paper — one rect with
-            the outline subtracted — so it bites the artwork at the head as
-            well as the white below it. */}
-        <Svg
-          width={sheetWidth}
-          height={sheetHeight}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        >
-          <Path
-            d={`M0 0 H${sheetWidth} V${sheetHeight} H0 Z ${ticketOutline(sheetWidth, sheetHeight)}`}
-            fill={colors.bgPrimary}
-            fillRule="evenodd"
-          />
-        </Svg>
-
-        {/* Light crossing the sheet, once, as it arrives. Only on the one
-            being held — the others are not being looked at. */}
-        {active && !still && (
-          <Animated.View
-            style={[
-              styles.sheen,
-              {
-                transform: [
-                  {
-                    translateX: sheen.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-SHEEN_W, sheetWidth + SHEEN_W],
-                    }),
-                  },
-                  { rotate: "18deg" },
-                ],
-                opacity: sheen.interpolate({
-                  inputRange: [0, 0.12, 0.88, 1],
-                  outputRange: [0, 1, 1, 0],
-                }),
-              },
-            ]}
-            pointerEvents="none"
-          >
-            <LinearGradient
-              colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.05)", "rgba(0,0,0,0)"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={StyleSheet.absoluteFill}
-            />
-          </Animated.View>
-        )}
-
-        <View style={styles.body}>
-        {/* The code, first and largest. */}
-        <Animated.View
-          style={[
-            styles.code,
-            still
-              ? null
-              : {
-                  opacity: issued,
-                  transform: [
-                    {
-                      scale: issued.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [ISSUE_SCALE, 1],
-                      }),
-                    },
-                  ],
-                },
-          ]}
-        >
-          <QRCode
-            value={ticket.code}
-            size={qr}
-            color="#0b0b0e"
-            /* Transparent, so the code is printed on the paper rather than
-               sitting on a whiter patch of sticker over it. The grain is 3%
-               grey, which is still white as far as a scanner is concerned. */
-            backgroundColor="transparent"
-          />
-        </Animated.View>
-        <Text variant="bodySBold" color="#0b0b0e" style={styles.codeText}>
-          {ticket.code}
-        </Text>
-        <Text variant="caption2" color="#52525b" style={styles.centred}>
-          {ticketCopy.scan}
-        </Text>
-
-        <Tap
-          accessibilityRole="link"
-          disabled={!venueUrl}
-          onPress={() => venueUrl && Linking.openURL(venueUrl)}
-          scale={0.99}
-          style={styles.venue}
-        >
-          <MapPin width={16} height={16} color="#52525b" />
-          <Text variant="bodyS" color="#52525b" style={styles.venueName}>
-            {venue}
-          </Text>
-        </Tap>
-
-        <View style={styles.facts}>
-          <Fact label={ticketCopy.holder} value={ticket.holder} />
-          <Fact label={ticketCopy.tier} value={ticket.tier} />
-          <Fact label={ticketCopy.gate} value={ticket.gate} />
-          <Fact label={ticketCopy.entry} value={ticket.entry} />
-        </View>
-        </View>
-      </View>
-
-      <Text variant="caption2" color={colors.contentSecondary} style={styles.note}>
-        {ticketCopy.note}
-      </Text>
-    </ScrollView>
-    </Animated.View>
-  );
-}
-
+/** One of the three facts above the rail. */
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.fact}>
-      <Text variant="caption2" color="#52525b">
+      <Text variant="caption2Bold" uppercase color={colors.contentPrimary}>
         {label}
       </Text>
-      <Text variant="bodySBold" color="#0b0b0e">
+      <Text variant="bodyBold" color={colors.contentPrimary}>
         {value}
       </Text>
     </View>
   );
 }
 
-/** The floating bar's own height, so the rail starts clear of it. */
-const BAR = 52;
-
-/** The tickets coming up into the hand. */
-const ENTER_MS = 620;
-const ENTER_RISE = 40;
-/** How far through that the code is issued, and the size it comes up from. */
-const ISSUE_AT = 0.45;
-const ISSUE_SCALE = 0.82;
-
-/** Light crossing the sheet being held: when, how long, how wide. */
-const SHEEN_AT = 260;
-const SHEEN_MS = 900;
-const SHEEN_W = 120;
-
-/** What a sheet does as it leaves the middle. */
-const FAN_TILT = 4;
-const FAN_DROP = 26;
-const FAN_SCALE = 0.9;
-const FAN_DIM = 0.55;
-
-/** The artwork band across the head of the ticket. */
-const ART_H = 132;
-
-/** The paging dots, resting and held. */
-const DOT = 8;
-const DOT_ON = 28;
-
 /**
- * The rail offsets at which a sheet is one to the left, centred, and one to
- * the right — the input range everything about it is read off.
+ * One ticket.
+ *
+ * Everything below the header sits on white, so its ink and its two buttons
+ * are spelled out here rather than taken from the dark-surface tokens — the
+ * same thing `TicketStub` does for the same reason.
  */
-function span(index: number, page: number) {
-  return [(index - 1) * page, index * page, (index + 1) * page];
+function TicketCard({
+  seat,
+  price,
+  code,
+  index,
+  width,
+  step,
+  scrollX,
+  still,
+  label,
+  onSell,
+  onSend,
+}: {
+  seat: string;
+  price: number;
+  code: string;
+  index: number;
+  width: number;
+  step: number;
+  scrollX: Animated.Value;
+  still: boolean;
+  label: string;
+  onSell: () => void;
+  onSend: () => void;
+}) {
+  const at = [(index - 1) * step, index * step, (index + 1) * step];
+  const fan = still
+    ? null
+    : {
+        opacity: scrollX.interpolate({
+          inputRange: at,
+          outputRange: [FAN_DIM, 1, FAN_DIM],
+          extrapolate: "clamp" as const,
+        }),
+        transform: [
+          {
+            scale: scrollX.interpolate({
+              inputRange: at,
+              outputRange: [FAN_SCALE, 1, FAN_SCALE],
+              extrapolate: "clamp" as const,
+            }),
+          },
+        ],
+      };
+
+  return (
+    <Animated.View
+      style={[styles.card, { width }, fan]}
+      accessibilityLabel={label}
+    >
+      <View style={styles.cardHead}>
+        <Text
+          variant="bodyBold"
+          color={colors.white}
+          numberOfLines={1}
+          style={styles.cardSeat}
+        >
+          {seat}
+        </Text>
+        <Text variant="bodyBold" color={colors.white}>
+          {price.toFixed(2)} {walletCurrency}
+        </Text>
+      </View>
+
+      <View style={styles.cardBody}>
+        {/* The comp frames the code in a dashed brand border. */}
+        <View style={styles.qrFrame}>
+          <QRCode value={code} size={QR} color={INK} backgroundColor={PAPER} />
+        </View>
+        <Text variant="caption" color={INK}>
+          {ticketCopy.number(code)}
+        </Text>
+      </View>
+
+      <View style={styles.dock}>
+        <Tap
+          accessibilityRole="button"
+          accessibilityLabel={ticketCopy.sell}
+          onPress={onSell}
+          style={[styles.action, styles.sell]}
+        >
+          <Text variant="bodyL" color={INK} style={styles.actionLabel}>
+            {ticketCopy.sell}
+          </Text>
+        </Tap>
+        <Tap
+          accessibilityRole="button"
+          accessibilityLabel={ticketCopy.send}
+          onPress={onSend}
+          style={[styles.action, styles.send]}
+        >
+          <Text variant="bodyL" color={INK} style={styles.actionLabel}>
+            {ticketCopy.send}
+          </Text>
+        </Tap>
+      </View>
+
+      <View style={styles.instructions}>
+        <Info width={20} height={20} color={INK_SECONDARY} />
+        <Text variant="body" color={INK} style={styles.instructionsLabel}>
+          {ticketCopy.instructions}
+        </Text>
+        <ChevronRight width={20} height={20} color={INK_SECONDARY} />
+      </View>
+    </Animated.View>
+  );
 }
 
+/** The comp's code, and the light surface it is printed on. */
+const QR = 162;
+const PAPER = "#ffffff";
+const INK = "#18181b";
+const INK_SECONDARY = "#52525b";
+/** backgrounds/bg-tertiary on a light surface — the instructions bar. */
+const INSTRUCTIONS_BG = "#d4d4d8";
+
+const ENTER_MS = 620;
+const ENTER_RISE = 40;
+const FAN_SCALE = 0.94;
+const FAN_DIM = 0.6;
+
 const styles = StyleSheet.create({
-  empty: { paddingHorizontal: gutter },
-  rail: { flex: 1 },
+  gone: { paddingHorizontal: gutter },
+  hidden: { height: 0, overflow: "hidden" },
 
-  sheetPage: {
-    paddingHorizontal: gutter,
-    paddingTop: space.l,
-    paddingBottom: space.section * 2,
-    gap: space.l,
+  header: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.borderDimmed,
+    paddingBottom: space.l,
   },
-  /* White, and staying white: a scanner wants contrast and a phone dims
-     itself, so this one sheet borrows nothing from the page under it. */
-  /* The sheet itself carries no padding now: the artwork runs to its edges
-     and the tear crosses it, so the padding belongs to the body under them. */
-  sheet: {
-    backgroundColor: "#ffffff",
-    /* The light, the grain and the punched edges all have to stop here. */
-    overflow: "hidden",
-  },
-  /* The comp lays its paper at 80%. Sized in percentages rather than by
-     `absoluteFill` alone, which leaves an Image at the bitmap's own size. */
-  grain: {
-    ...StyleSheet.absoluteFill,
-    width: "100%",
-    height: "100%",
-    opacity: 0.8,
-  },
-  body: { padding: space.xl, gap: space.m, alignItems: "center" },
-
-  art: { height: ART_H, justifyContent: "flex-end" },
-  artText: { padding: space.l, gap: 2 },
-  sheen: {
-    position: "absolute",
-    top: -SHEEN_W,
-    bottom: -SHEEN_W,
-    left: 0,
-    width: SHEEN_W,
-  },
-  code: { padding: space.m },
-  codeText: { letterSpacing: 1.5, textAlign: "center" },
-  centred: { textAlign: "center", alignSelf: "stretch" },
-
-  venue: { flexDirection: "row", alignItems: "center", gap: space.xs },
-  venueName: { textDecorationLine: "underline" },
-
-  facts: {
-    alignSelf: "stretch",
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: space.s,
-  },
-  fact: { width: "50%", paddingVertical: space.s, gap: 2 },
-
-  note: { paddingHorizontal: space.xs },
-
-  footer: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: gutter,
-    paddingTop: space.l,
-    gap: space.m,
-  },
-  /* Reaching above the footer so the rail fades into it rather than meeting
-     it at a line. */
-  footerShade: { ...StyleSheet.absoluteFill, top: -space.section },
-
-  bar: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: gutter,
-    paddingBottom: space.s,
-    backgroundColor: colors.bgPrimary,
-  },
+  bar: { flexDirection: "row", alignItems: "center", paddingHorizontal: gutter },
   barButton: {
-    padding: 10,
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: colors.overlay5,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.overlay10,
   },
-  barTitle: { flex: 1, minWidth: 0, alignItems: "center", paddingHorizontal: space.m },
-  /* The footprint the share control had, so the title stays centred. */
   barSpacer: { width: 40, height: 40 },
+  barTitle: { flex: 1, minWidth: 0, alignItems: "center", paddingHorizontal: space.m },
 
-  dots: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: space.s,
-    paddingBottom: space.xs,
+  /* Three cells sharing the width, each centred on its own label. */
+  facts: { flexDirection: "row", gap: space.s, paddingHorizontal: gutter, paddingTop: space.l },
+  fact: { flex: 1, minWidth: 0, alignItems: "center" },
+
+  page: { paddingBottom: space.section, gap: space.l },
+  tabs: { paddingHorizontal: gutter, paddingTop: space.l },
+  rail: { paddingHorizontal: gutter, gap: space.m },
+
+  /* The card. Square, as everything here is, and shadowed the way the comp
+     lifts it off the page. */
+  card: {
+    overflow: "hidden",
+    backgroundColor: PAPER,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 3,
   },
-  /* One size, scaled down when it is not the one being held, because width
-     cannot be animated off the main thread and scaleX can. */
-  dot: { width: DOT_ON, height: DOT, backgroundColor: colors.brand },
-  dotOff: { opacity: 0.3, transform: [{ scaleX: DOT / DOT_ON }] },
+  cardHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.s,
+    paddingHorizontal: space.l,
+    paddingVertical: space.s,
+    backgroundColor: colors.brand2,
+  },
+  cardSeat: { flex: 1, minWidth: 0 },
+
+  cardBody: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space.l,
+    paddingHorizontal: space.l,
+    paddingVertical: space.xl,
+  },
+  qrFrame: { borderWidth: 4, borderColor: colors.brand, borderStyle: "dashed" },
+
+  dock: { flexDirection: "row", gap: space.s, padding: space.s },
+  action: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: space.xl,
+    paddingVertical: space.l,
+  },
+  /* The comp's secondary button on a light surface: a wash of black rather
+     than of white, so the paper shows through its edges. */
+  sell: {
+    backgroundColor: "rgba(0,0,0,0.05)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,0,0,0.1)",
+  },
+  send: { backgroundColor: colors.brand },
+  actionLabel: { fontWeight: "600" },
+
+  instructions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.l,
+    paddingHorizontal: space.l,
+    paddingVertical: space.m,
+    backgroundColor: INSTRUCTIONS_BG,
+  },
+  instructionsLabel: { flex: 1, minWidth: 0 },
+
+  progress: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.s,
+    paddingHorizontal: gutter,
+  },
+  track: {
+    flex: 1,
+    height: 4,
+    backgroundColor: colors.overlay10,
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  /* Rounded because the comp draws it as a pill, which is one of the few
+     things here that literally is. */
+  range: { height: 4, backgroundColor: colors.white, borderRadius: 2 },
+
+  sponsors: { paddingHorizontal: gutter, paddingTop: space.l, gap: space.l },
+  tiles: { flexDirection: "row", flexWrap: "wrap", gap: space.m },
+  tile: {
+    width: 80,
+    alignItems: "center",
+    gap: space.s,
+    paddingVertical: space.m,
+    backgroundColor: colors.bgSecondary,
+  },
 });

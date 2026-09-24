@@ -35,6 +35,8 @@ export const colors = {
 
   /** The one brand colour. Used sparingly: an accent, never a surface. */
   brand: "#fbeb1c",
+  /** backgrounds/brand/bg-brand-2 — the ticket header's purple (486:60153). */
+  brand2: "#7b49ff",
 
   /* States. */
   positive: "#22c55e",
@@ -169,6 +171,8 @@ export const type = {
      an icon on a schedule tile and under the title on a good-to-know
      panel, where 12 is too loud for a thing you read second. */
   caption2: { font: fonts.regular, size: 10, line: 14, tracking: 0.1 },
+  /** Captions/Caption-2-Bold — the ticket's field labels (486:60153). */
+  caption2Bold: { font: fonts.bold, size: 10, line: 14, tracking: 0.1 },
   /** The tab bar's label — Figma calls it Caption-2. */
   tab: { font: fonts.regular, size: 10, line: 14, tracking: 0.1 },
   captionBold: { font: fonts.bold, size: 12, line: 16, tracking: 0.12 },

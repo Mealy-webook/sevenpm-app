@@ -480,10 +480,23 @@ export type Ticket = {
   code: string;
   /** The tier as it was bought, verbatim from the booking. */
   tier: string;
+  /** Where it puts you, as the ticket header prints it (486:60740). */
+  seat: string;
+  /** What it cost, in the wallet's currency. */
+  price: number;
   holder: string;
   gate: string;
   /** When this ticket lets you in, which is not always the event's own time. */
   entry: string;
+};
+
+/** Something bought alongside the tickets — the comp's second tab. */
+export type Addon = {
+  id: string;
+  code: string;
+  name: string;
+  seat: string;
+  price: number;
 };
 
 export type Booking = {
@@ -494,9 +507,12 @@ export type Booking = {
   /** ISO datetimes; the card formats them. */
   startsAt: string;
   endsAt: string;
+  /** When the gates open, which the ticket prints beside the start time. */
+  doorsAt: string;
   venue: string;
   venueUrl?: string;
   tickets: Ticket[];
+  addons: Addon[];
 };
 
 export const bookings: Booking[] = [
@@ -507,6 +523,8 @@ export const bookings: Booking[] = [
     image: "/assets/festival-poster-3.png",
     startsAt: "2026-09-18T19:00:00+01:00",
     endsAt: "2026-09-18T21:30:00+01:00",
+    /** The comp prints gate open beside the start time, and they differ. */
+    doorsAt: "2026-09-18T17:30:00+01:00",
     venue: "Palais des Institutions Italiennes",
     venueUrl:
       "https://www.google.com/maps/search/?api=1&query=Palais+des+Institutions+Italiennes+Casablanca",
@@ -515,6 +533,8 @@ export const bookings: Booking[] = [
         id: "tk-0918-a",
         code: "SPM-0918-4K7Q-2XR9",
         tier: "Single day: Fri 19 Sept",
+        seat: "Grandstand - GA3",
+        price: 210.75,
         holder: "Ahmed Mealy",
         gate: "Gate B",
         entry: "7:00 PM",
@@ -523,9 +543,27 @@ export const bookings: Booking[] = [
         id: "tk-0918-b",
         code: "SPM-0918-9WJ3-6LT4",
         tier: "Single day: Fri 19 Sept",
+        seat: "Grandstand - GA4",
+        price: 210.75,
         holder: "Guest",
         gate: "Gate B",
         entry: "7:00 PM",
+      },
+    ],
+    addons: [
+      {
+        id: "ad-0918-a",
+        code: "SPM-0918-PARK-1180",
+        name: "Parking pass",
+        seat: "Anfa Park - Lot B",
+        price: 60,
+      },
+      {
+        id: "ad-0918-b",
+        code: "SPM-0918-LOCK-4471",
+        name: "Locker",
+        seat: "Cloakroom - 214",
+        price: 40,
       },
     ],
   },
@@ -541,22 +579,24 @@ export const bookingsCopy = {
 
 export const ticketCopy = {
   title: "Tickets",
-  /** Which of how many, for the rail and for screen readers. */
+  /** Which of how many, for screen readers and the rail's counter. */
   which: (index: number, total: number) => `Ticket ${index} of ${total}`,
-  scan: "Show this at the gate",
-  holder: "Admits",
-  tier: "Type",
-  gate: "Gate",
-  entry: "Doors",
-  code: "Ticket number",
-  share: "Share ticket",
-  /* The two things you can do with a ticket you are holding. "Resale" is the
-     app's own word for it — the tab, the menu row and the empty state all say
-     resale, and a screen that said "resell" would be naming a fourth thing. */
-  send: "Send tickets",
-  resell: "Submit tickets for resale",
-  /** A prototype should say so where it would otherwise be mistaken. */
-  note: "These tickets are a prototype. The code is made up and will not scan at a real gate.",
+  /** 486:60153's three facts above the rail. */
+  date: "DATE",
+  time: "TIME",
+  gateOpen: "GATE OPEN",
+  /** The two tabs, each carrying its own count. */
+  tickets: (count: number) => `Tickets (${count})`,
+  addons: (count: number) => `Addons (${count})`,
+  /** Printed under the code on the ticket itself. */
+  number: (code: string) => `No. ${code}`,
+  /** The dock under each ticket. */
+  sell: "Sell",
+  send: "Send",
+  instructions: "Ticket instructions",
+  /** The rail's position, as the comp writes it. */
+  position: (index: number, total: number) => `${index}/${total}`,
+  sponsors: "Sponsors",
 };
 
 /* ------------------------------------------------------------------ *
