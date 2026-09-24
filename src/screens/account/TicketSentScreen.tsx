@@ -1,13 +1,17 @@
-import { ScrollView, Share, StyleSheet, useWindowDimensions, View } from "react-native";
+import {
+  Linking,
+  ScrollView,
+  Share,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import ChevronRight from "../../icons/ic-chevron-right-16.svg";
-import Clock from "../../icons/ic-clock-16.svg";
 import Close from "../../icons/ic-close.svg";
-import Pin from "../../icons/ic-pin-16.svg";
 import ShareIcon from "../../icons/ic-share-20.svg";
 import TicketIcon from "../../icons/ic-ticket-24.svg";
 import { Button } from "../../components/Button";
@@ -18,8 +22,6 @@ import { colors, displaySize, gutter, space, type } from "../../theme/tokens";
 import type { RootParamList } from "../../navigation/RootNavigator";
 import {
   bookings,
-  bookingsCopy,
-  eventDay,
   eventTime,
   walletCurrency,
 } from "../../data/account";
@@ -102,7 +104,9 @@ export function TicketSentScreen() {
               {byLink ? (
                 <ShareIcon width={20} height={20} />
               ) : (
-                <Text variant="bodySBold" color={colors.contentPrimary}>
+                /* The file sets these at 20 in a face the app has no token
+                   for; body-L-bold is the nearest it does have. */
+                <Text variant="bodyLBold" color={colors.contentPrimary}>
                   {initials(params.name ?? "")}
                 </Text>
               )}
@@ -119,58 +123,44 @@ export function TicketSentScreen() {
 
           {/* And what they have. */}
           {booking && (
-            <View style={[styles.card, styles.bookingCard]}>
-              <View style={styles.bookingRow}>
+            <View style={styles.bookingCard}>
+              <View style={styles.bookingHead}>
+                <View style={styles.bookingText}>
+                  <Text
+                    variant="displayStep"
+                    uppercase
+                    color={colors.white}
+                    numberOfLines={2}
+                    /* 56 on 42 in the file, which is tighter than the token. */
+                    style={displaySize({ size: 56, line: 42, tracking: 0.56 }, width)}
+                  >
+                    {booking.eventName}
+                  </Text>
+                  <Text variant="bodySBold" color={colors.brand}>
+                    {`${eventTime(booking.startsAt)} - ${eventTime(booking.endsAt)}`}
+                  </Text>
+                  <Text
+                    variant="bodySBold"
+                    color={colors.white}
+                    numberOfLines={2}
+                    style={styles.underline}
+                    onPress={() =>
+                      booking.venueUrl && Linking.openURL(booking.venueUrl)
+                    }
+                  >
+                    {booking.venue}
+                  </Text>
+                </View>
                 <Image
                   source={image(booking.image)}
-                  style={styles.thumb}
+                  style={styles.poster}
                   contentFit="cover"
                   transition={240}
                 />
-                <View style={styles.bookingBody}>
-                  <Text variant="body" color={colors.contentPrimary} numberOfLines={1}>
-                    {booking.eventName}
-                  </Text>
-                  <View style={styles.meta}>
-                    <Clock width={16} height={16} />
-                    <Text
-                      variant="bodyS"
-                      color={colors.contentSecondary}
-                      numberOfLines={1}
-                    >
-                      {`${eventDay(booking.startsAt)} ${eventTime(booking.startsAt)} - ${eventTime(booking.endsAt)}`}
-                    </Text>
-                  </View>
-                  <View style={styles.meta}>
-                    <Pin width={16} height={16} />
-                    <Text
-                      variant="bodyS"
-                      color={colors.contentSecondary}
-                      numberOfLines={1}
-                      style={styles.underline}
-                    >
-                      {booking.venue}
-                    </Text>
-                  </View>
-                  <Tap
-                    accessibilityRole="button"
-                    accessibilityLabel={bookingsCopy.tickets(booking.tickets.length)}
-                    onPress={() =>
-                      navigation.navigate("Tickets", { bookingId: booking.id })
-                    }
-                    scale={0.98}
-                    style={styles.link}
-                  >
-                    <Text variant="bodyBold" color={colors.contentPrimary}>
-                      {bookingsCopy.tickets(booking.tickets.length)}
-                    </Text>
-                    <ChevronRight width={16} height={16} />
-                  </Tap>
-                </View>
               </View>
 
               <View style={styles.tickets}>
-                <Text variant="bodyBold" color={colors.contentPrimary}>
+                <Text variant="bodyBold" color={colors.contentSecondary}>
                   {sendCopy.sent.tickets(sent ? 1 : 0)}
                 </Text>
                 {sent && (
@@ -268,23 +258,30 @@ const styles = StyleSheet.create({
   },
   /* Round, because a face is — and grey, not the brand purple the seat row
      used to carry. */
+  /* 40 across, measured off the render. */
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.bgTertiary,
   },
   rowBody: { flex: 1, minWidth: 0 },
 
-  bookingCard: { padding: space.l, gap: space.l },
-  bookingRow: { flexDirection: "row", alignItems: "center", gap: space.m, minHeight: 44 },
-  thumb: { width: 80, height: 80, backgroundColor: colors.bgTertiary },
-  bookingBody: { flex: 1, minWidth: 0, gap: space.xs },
-  meta: { flexDirection: "row", alignItems: "center", gap: space.xs },
+  /* The comp holds this one with the dimmed border, not the tertiary one the
+     recipient card above it uses. */
+  bookingCard: {
+    borderWidth: 1,
+    borderColor: colors.borderDimmed,
+    padding: space.l,
+    gap: space.xl,
+  },
+  bookingHead: { flexDirection: "row", alignItems: "flex-start", gap: space.l },
+  bookingText: { flex: 1, minWidth: 0 },
+  /* 89 x 88 in the file. */
+  poster: { width: 89, height: 88, backgroundColor: colors.bgTertiary },
   underline: { textDecorationLine: "underline" },
-  link: { flexDirection: "row", alignItems: "center", gap: space.xs, alignSelf: "flex-start" },
 
   tickets: { gap: space.s },
   ticketRow: { flexDirection: "row", alignItems: "center", gap: space.s },
