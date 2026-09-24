@@ -75,6 +75,7 @@ export function TicketsStep({
             <Text variant="titleBody" uppercase color={colors.white}>
               {group.title ?? group.label}
             </Text>
+            <View style={styles.list}>
             {group.tickets.map((ticket) => (
               <View key={ticket.id} style={styles.row}>
                 <View style={styles.rowBody}>
@@ -104,8 +105,10 @@ export function TicketsStep({
                   </View>
                 </View>
 
+                {/* 86:165150 — the larger stepper, not the bordered one. */}
                 <Stepper
                   atZero="stepper"
+                  size="m"
                   value={quantityOf(cart, ticket.id)}
                   name={ticket.name}
                   onChange={(by) => onAdjust(ticket.id, by)}
@@ -113,6 +116,7 @@ export function TicketsStep({
                 />
               </View>
             ))}
+            </View>
           </View>
         ))}
       </View>
@@ -126,16 +130,24 @@ const styles = StyleSheet.create({
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.l },
 
   groups: { gap: space.xl },
-  group: { gap: space.l },
+  /* 8 between a group's heading and its rows; the rows themselves are flush,
+     because each carries the rule that separates it from the next. */
+  group: { gap: space.s },
+  list: { width: "100%" },
+  /* A flat row with a rule under it, not a bordered card: 427:51040 pads it
+     16 top and bottom and nothing at the sides. */
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: space.s,
-    padding: space.l,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderDimmed,
+    paddingVertical: space.l,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderDimmed,
   },
-  rowBody: { flex: 1, minWidth: 0, gap: space.s },
+  /* No gap between the name and the price. Figma's 8 sits between boxes
+     drawn tight to the glyphs; RN's line heights already carry that leading,
+     and adding it again made every row 7 taller than the comp's 76. */
+  rowBody: { flex: 1, minWidth: 0 },
   rowTitle: { flexDirection: "row", alignItems: "center", gap: space.s },
   name: { flexShrink: 1 },
   price: { flexDirection: "row", alignItems: "baseline", gap: 2 },
