@@ -60,7 +60,17 @@ export function TicketSentScreen() {
   const booking = bookings.find((item) => item.id === params.bookingId);
   const sent = booking?.tickets.find((item) => item.id === params.ticketId);
 
-  const close = () => navigation.navigate("Tabs");
+  /**
+   * Unwind the stack rather than navigate back down it.
+   *
+   * This screen sits two modals deep — the ticket rail, then the send — and
+   * all three are presented full screen. `navigate("Tabs")` asks UIKit to
+   * dismiss both at once, which it does without restoring the presenting
+   * view's transform: the tab underneath comes back inset and round-cornered,
+   * still wearing the card the modal had put it in. `popToTop` unwinds them
+   * in one native operation and the screen underneath comes back whole.
+   */
+  const close = () => navigation.popToTop();
   /* A link send has nobody to name, so the recipient card names the link. */
   const byLink = params.method === "link";
 

@@ -188,7 +188,7 @@ export function RootNavigator() {
         <Stack.Screen
           name="Booking"
           component={BookingScreen}
-          options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
+          options={{ presentation: "fullScreenModal" }}
         />
         <Stack.Screen name="Article" component={ArticleScreen} />
         <Stack.Screen name="News" component={NewsScreen} />
@@ -198,12 +198,12 @@ export function RootNavigator() {
         <Stack.Screen
           name="SendTicket"
           component={SendTicketScreen}
-          options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
+          options={{ presentation: "fullScreenModal" }}
         />
         <Stack.Screen
           name="TicketSent"
           component={TicketSentScreen}
-          options={{ presentation: "fullScreenModal", animation: "fade" }}
+          options={{ presentation: "fullScreenModal" }}
         />
         <Stack.Screen name="Rewards" component={RewardsScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
@@ -214,14 +214,14 @@ export function RootNavigator() {
         <Stack.Screen
           name="Tickets"
           component={TicketsScreen}
-          options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
+          options={{ presentation: "fullScreenModal" }}
         />
         {/* Asking who you are comes up over the app rather than beside it:
             it is not a page in the app, it is the way into it. */}
         <Stack.Screen
           name="SignIn"
           component={SignInScreen}
-          options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
+          options={{ presentation: "fullScreenModal" }}
         />
         {/* The story player has no way in at the moment. It was opened from
             the ring on the Discover screen this app used to have, and the
@@ -231,7 +231,7 @@ export function RootNavigator() {
         <Stack.Screen
           name="Story"
           component={StoryScreen}
-          options={{ presentation: "fullScreenModal", animation: "fade" }}
+          options={{ presentation: "fullScreenModal" }}
         />
       </Stack.Navigator>
     </NavigationContainer>

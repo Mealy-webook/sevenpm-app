@@ -36,7 +36,6 @@ import { useWatchedStories } from "./watchedStories";
 import {
   discoverCopy,
   festivalCards,
-  galleryTiles,
   merchandise,
   newsRows,
   stories,
@@ -46,7 +45,7 @@ import {
  * Discover, from Figma 469:72755 — the app's home screen.
  *
  * Five sections down one page: the stories, the festivals, the merchandise,
- * the gallery, the news. It replaced an earlier Discover (378:27332) which
+ * the news. It replaced an earlier Discover (378:27332) which
  * ranged its headings left and laid the festivals out as a paged rail, and
  * for a short while it was the Moodboard's concept on its own with the other
  * four sections dropped. This is both: the concept's festivals block inside
@@ -67,8 +66,6 @@ const CARD_MEDIA = 273;
 /** How long the new festival's name takes to arrive in the old one's place. */
 const NAME_MS = 220;
 const STORY = 72;
-const TILE_W = 228;
-const TILE_H = 152;
 const NEWS_TILE = 106;
 /** The comp's product media, 170 x 212.5. */
 const MEDIA_RATIO = 170 / 212.5;
@@ -321,40 +318,8 @@ export function DiscoverScreen() {
             </View>
           </Reveal>
 
-          {/* Gallery */}
-          <Reveal index={3} style={styles.section}>
-            <RevealWords
-              variant="displaySection"
-              color={colors.white}
-              textStyle={heading}
-            >
-              {discoverCopy.gallery}
-            </RevealWords>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.gallery}
-            >
-              <View style={styles.galleryRows}>
-                {[galleryTiles.slice(0, 3), galleryTiles.slice(3)].map((row, i) => (
-                  <View key={i} style={styles.galleryRow}>
-                    {row.map((tile) => (
-                      <Image
-                        key={tile}
-                        source={image(tile)}
-                        style={styles.tile}
-                        contentFit="cover"
-                        transition={200}
-                      />
-                    ))}
-                  </View>
-                ))}
-              </View>
-            </ScrollView>
-          </Reveal>
-
           {/* News */}
-          <Reveal index={4} style={styles.section}>
+          <Reveal index={3} style={styles.section}>
             <View style={styles.headingRow}>
               <RevealWords
                 variant="displaySection"
@@ -534,10 +499,6 @@ const styles = StyleSheet.create({
   },
   productBody: { gap: space.xs, paddingHorizontal: space.xs },
 
-  gallery: { paddingRight: space.l },
-  galleryRows: { gap: space.l },
-  galleryRow: { flexDirection: "row", gap: space.l },
-  tile: { width: TILE_W, height: TILE_H, backgroundColor: "#27272a" },
 
   newsRow: {
     flexDirection: "row",
